@@ -8,6 +8,7 @@ import 'package:asec/core/custom/111-app_svg_icon.dart';
 import 'package:asec/features/web/core/i18n.dart';
 import 'package:asec/features/web/core/theme.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
+import 'package:asec/core/custom/114-app_messenger.dart';
 
 /// Title row + scrollable content, the same on every panel page.
 class AdminPageFrame extends StatelessWidget {
@@ -116,17 +117,17 @@ String describeError(Object? e) {
 
 /// Runs a write, shows a snackbar on failure. Returns whether it worked.
 Future<bool> guarded(BuildContext context, Future<Object?> Function() run, {String? done}) async {
-  final ScaffoldMessengerState m = ScaffoldMessenger.of(context);
+  final AppMessenger m = AppMessenger.of(context);
   try {
     await run();
-    m.showSnackBar(SnackBar(
+    m.show(AppMessage(
       content: Text(FormatHelper.capitalize(done ?? const L('تم الحفظ', 'Saved').t)),
       duration: const Duration(seconds: 2),
       backgroundColor: WebColors.success,
     ));
     return true;
   } catch (e) {
-    m.showSnackBar(SnackBar(content: Text(FormatHelper.capitalize(describeError(e))), backgroundColor: WebColors.red, duration: const Duration(seconds: 6)));
+    m.show(AppMessage(content: Text(FormatHelper.capitalize(describeError(e))), backgroundColor: WebColors.red, duration: const Duration(seconds: 6)));
     return false;
   }
 }

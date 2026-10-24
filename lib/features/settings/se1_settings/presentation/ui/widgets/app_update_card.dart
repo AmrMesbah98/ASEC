@@ -30,6 +30,7 @@ import 'package:asec/core/theme/app_colors.dart';
 import 'package:asec/core/theme/app_theme.dart';
 import 'package:asec/generated/l10n.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
+import 'package:asec/core/custom/114-app_messenger.dart';
 
 class AppUpdateCard extends StatefulWidget {
   const AppUpdateCard({super.key});
@@ -140,8 +141,8 @@ class _AppUpdateCardState extends State<AppUpdateCard> {
 
   void _snack(String text) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(FormatHelper.capitalize(text))),
+    AppMessenger.of(context).show(
+      AppMessage(content: Text(FormatHelper.capitalize(text))),
     );
   }
 
@@ -311,8 +312,8 @@ class _UseVersionDialogState extends State<_UseVersionDialog> {
   void _done(bool forced) {
     final int? b = int.tryParse(_build.text.trim());
     if (b == null || b <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(FormatHelper.capitalize(S.of(context).updEnterBuild))),
+      AppMessenger.of(context).show(
+        AppMessage(content: Text(FormatHelper.capitalize(S.of(context).updEnterBuild))),
       );
       return;
     }

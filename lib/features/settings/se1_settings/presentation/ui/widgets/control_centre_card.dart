@@ -23,6 +23,7 @@ import 'package:asec/core/theme/app_colors.dart';
 import 'package:asec/core/theme/app_theme.dart';
 import 'package:asec/generated/l10n.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
+import 'package:asec/core/custom/114-app_messenger.dart';
 
 class ControlCentreCard extends StatelessWidget {
   const ControlCentreCard({super.key});
@@ -153,8 +154,8 @@ class ControlCentreCard extends StatelessWidget {
                             await features.set(f, v);
                           } catch (_) {
                             if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text(FormatHelper.capitalize(s.errUnknown))),
+                              AppMessenger.of(context).show(
+                                AppMessage(content: Text(FormatHelper.capitalize(s.errUnknown))),
                               );
                             }
                           }

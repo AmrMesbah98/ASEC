@@ -30,6 +30,7 @@ import 'package:asec/features/cv/c1_cv/presentation/ui/widgets/multi_select_fiel
 import 'package:asec/features/onboarding/o2_authentication/domain/entities/app_user.dart';
 import 'package:asec/generated/l10n.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
+import 'package:asec/core/custom/114-app_messenger.dart';
 
 class CvFormPage extends StatelessWidget {
   const CvFormPage({super.key, required this.user});
@@ -71,8 +72,8 @@ class _CvFormView extends StatelessWidget {
       listenWhen: (CvFormState a, CvFormState b) => a.status != b.status,
       listener: (BuildContext context, CvFormState state) {
         if (state.status == CvFormStatus.saved) {
-          ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text(FormatHelper.capitalize(s.cvSaved))));
+          AppMessenger.of(context)
+              .show(AppMessage(content: Text(FormatHelper.capitalize(s.cvSaved))));
         }
       },
       builder: (BuildContext context, CvFormState state) {

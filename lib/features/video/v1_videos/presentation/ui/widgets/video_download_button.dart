@@ -20,6 +20,7 @@ import 'package:asec/features/video/v1_videos/data/download/video_downloads.dart
 import 'package:asec/features/video/v1_videos/domain/entities/video_item.dart';
 import 'package:asec/generated/l10n.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
+import 'package:asec/core/custom/114-app_messenger.dart';
 
 class VideoDownloadButton extends StatefulWidget {
   const VideoDownloadButton({super.key, required this.video});
@@ -55,9 +56,9 @@ class _VideoDownloadButtonState extends State<VideoDownloadButton> {
   void _start() {
     final S s = S.of(context);
     VideoDownloads.start(widget.video);
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(FormatHelper.capitalize(s.downloadStarted))));
+    AppMessenger.of(context)
+      ..hide()
+      ..show(AppMessage(content: Text(FormatHelper.capitalize(s.downloadStarted))));
   }
 
   @override

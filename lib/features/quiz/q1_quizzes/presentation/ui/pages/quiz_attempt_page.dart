@@ -30,6 +30,7 @@ import 'package:asec/features/quiz/q1_quizzes/presentation/ui/widgets/quiz_meta.
 import 'package:asec/features/quiz/q2_certificates/presentation/ui/pages/certificate_page.dart';
 import 'package:asec/generated/l10n.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
+import 'package:asec/core/custom/114-app_messenger.dart';
 
 class QuizAttemptPage extends StatelessWidget {
   const QuizAttemptPage({super.key, required this.quiz, required this.user});
@@ -87,8 +88,8 @@ class _AttemptView extends StatelessWidget {
       listenWhen: (QuizAttemptState a, QuizAttemptState b) =>
           a.failure != b.failure && b.failure != null,
       listener: (BuildContext context, QuizAttemptState state) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(FormatHelper.capitalize(state.failure!.message(context)))),
+        AppMessenger.of(context).show(
+          AppMessage(content: Text(FormatHelper.capitalize(state.failure!.message(context)))),
         );
       },
       builder: (BuildContext context, QuizAttemptState state) {

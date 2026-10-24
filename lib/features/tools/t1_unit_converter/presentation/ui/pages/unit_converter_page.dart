@@ -34,6 +34,7 @@ import 'package:asec/features/admin/a1_shell/presentation/ui/widgets/console_pag
 import 'package:asec/features/tools/t1_unit_converter/domain/unit_catalog.dart';
 import 'package:asec/generated/l10n.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
+import 'package:asec/core/custom/114-app_messenger.dart';
 
 class UnitConverterPage extends StatefulWidget {
   const UnitConverterPage({super.key, this.standalone = false});
@@ -144,9 +145,9 @@ class _UnitConverterPageState extends State<UnitConverterPage> {
 
   void _copy(String text) {
     Clipboard.setData(ClipboardData(text: text));
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(
+    AppMessenger.of(context)
+      ..hide()
+      ..show(AppMessage(
         content: Text(FormatHelper.capitalize(S.of(context).copiedValue(text))),
         duration: const Duration(seconds: 2),
       ));

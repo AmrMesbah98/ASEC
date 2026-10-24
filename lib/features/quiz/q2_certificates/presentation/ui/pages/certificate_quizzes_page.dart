@@ -38,6 +38,7 @@ import 'package:asec/features/video/v1_videos/presentation/ui/widgets/video_cate
 import 'package:asec/generated/l10n.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
 import 'package:asec/features/video/v1_videos/presentation/controller/member_videos.dart';
+import 'package:asec/core/custom/114-app_messenger.dart';
 
 enum _ExamStatus { noExam, locked, ready, failed, passed }
 
@@ -109,9 +110,9 @@ class _CertificateQuizzesPageState extends State<CertificateQuizzesPage> {
       case _ExamStatus.noExam:
         return;
       case _ExamStatus.locked:
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(SnackBar(content: Text(FormatHelper.capitalize(s.certLockedSnack))));
+        AppMessenger.of(context)
+          ..hide()
+          ..show(AppMessage(content: Text(FormatHelper.capitalize(s.certLockedSnack))));
         return;
       case _ExamStatus.ready:
       case _ExamStatus.failed:

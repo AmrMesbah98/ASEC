@@ -21,6 +21,7 @@ import 'package:asec/features/web/core/theme.dart';
 import 'package:asec/features/web/core/widgets.dart';
 import 'package:asec/features/web/data/site_repo.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
+import 'package:asec/core/custom/114-app_messenger.dart';
 
 class AdminsPage extends StatelessWidget {
   const AdminsPage({super.key});
@@ -38,7 +39,7 @@ class AdminsPage extends StatelessWidget {
           onPressed: () async {
             final bool? ok = await showDialog<bool>(context: context, builder: (_) => const _NewAdminDialog());
             if (ok == true && context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              AppMessenger.of(context).show(AppMessage(
                 content: Text(FormatHelper.capitalize(const L('تم إنشاء المشرف', 'Admin created').t)),
                 backgroundColor: WebColors.success,
               ));

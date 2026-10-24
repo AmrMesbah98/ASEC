@@ -42,6 +42,7 @@ import 'package:asec/features/onboarding/o2_authentication/presentation/ui/widge
 import 'package:asec/generated/l10n.dart';
 import 'package:asec/core/animation/app_animations.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
+import 'package:asec/core/custom/114-app_messenger.dart';
 
 class ShellSection {
   const ShellSection({
@@ -145,9 +146,9 @@ class _AppShellState extends State<AppShell> {
       return;
     }
     _lastBack = now;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(
+    AppMessenger.of(context)
+      ..hide()
+      ..show(AppMessage(
         content: Text(FormatHelper.capitalize(S.of(context).pressBackAgainToExit)),
         duration: _exitWindow,
       ));

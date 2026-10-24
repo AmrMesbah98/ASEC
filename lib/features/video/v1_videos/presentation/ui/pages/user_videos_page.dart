@@ -47,6 +47,7 @@ import 'package:asec/features/video/v1_videos/presentation/controller/member_vid
 import 'package:asec/features/video/v1_videos/data/catalog/video_catalog.dart';
 import 'package:asec/core/helper/main_helper/stream_combine.dart';
 import 'package:asec/features/quiz/q2_certificates/presentation/ui/widgets/course_certificate_button.dart';
+import 'package:asec/core/custom/114-app_messenger.dart';
 
 /// The chips above a course's lessons. FILES comes first: the folders and
 /// files the admin put in this course.
@@ -434,12 +435,12 @@ class _UserVideosPageState extends State<UserVideosPage> {
                   : null,
               onOpen: (VideoItem v) {
                 if (notGivenIds.contains(v.id)) {
-                  ScaffoldMessenger.of(context)
-                    ..hideCurrentSnackBar()
-                    ..showSnackBar(SnackBar(
+                  AppMessenger.of(context)
+                    ..hide()
+                    ..show(AppMessage(
                       content: Row(
                         children: <Widget>[
-                          const Icon(Icons.lock_rounded, color: Colors.white, size: 18),
+                          const Icon(Icons.lock_rounded, size: 18),
                           const SizedBox(width: 8),
                           Expanded(child: Text(FormatHelper.capitalize(s.courseLockedSnack))),
                         ],
@@ -449,12 +450,12 @@ class _UserVideosPageState extends State<UserVideosPage> {
                 }
                 if (locked.contains(v.id)) {
                   final int n = numbers[v.id]!;
-                  ScaffoldMessenger.of(context)
-                    ..hideCurrentSnackBar()
-                    ..showSnackBar(SnackBar(
+                  AppMessenger.of(context)
+                    ..hide()
+                    ..show(AppMessage(
                       content: Row(
                         children: <Widget>[
-                          const Icon(Icons.lock_rounded, color: Colors.white, size: 18),
+                          const Icon(Icons.lock_rounded, size: 18),
                           const SizedBox(width: 8),
                           Expanded(child: Text(FormatHelper.capitalize(s.finishLessonFirst(n - 1)))),
                         ],

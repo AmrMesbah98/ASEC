@@ -23,6 +23,7 @@ import 'package:asec/features/onboarding/o2_authentication/domain/enums/admin_pe
 import 'package:asec/features/settings/se1_settings/data/admins_repository.dart';
 import 'package:asec/generated/l10n.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
+import 'package:asec/core/custom/114-app_messenger.dart';
 
 class AdminsCard extends StatefulWidget {
   const AdminsCard({super.key});
@@ -37,9 +38,9 @@ class _AdminsCardState extends State<AdminsCard> {
 
   void _toast(String text) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(FormatHelper.capitalize(text))));
+    AppMessenger.of(context)
+      ..hide()
+      ..show(AppMessage(content: Text(FormatHelper.capitalize(text))));
   }
 
   Future<void> _create() async {

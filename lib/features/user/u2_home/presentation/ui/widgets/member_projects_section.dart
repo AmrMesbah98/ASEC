@@ -9,16 +9,22 @@
 ///          look (not the website in a frame).
 /// Author: ASEC team
 /// Created: 21/10/2026
-/// Updated: 24/10/2026 - Two cards on screen. English mode shows English
-///          only (no Arabic fallback). The project page keeps one title
+/// Updated: 24/10/2026 - English comes from the `_en` fields, else from the
+///          English bundled with the app (assets/web/seed/site_seed_en.json)
+///          — so the starter projects are in English even before the
+///          English import has been run. No translation at all → Arabic.
+/// Updated: 24/10/2026 - Two cards on screen. English mode shows English.
+///          The project page keeps one title
 ///          (the app bar), no second big one.
 ///
 /// The projects are the published `site_projects` the website shows, read
 /// live, so a project added in Website → Projects appears here too.
 
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import 'package:asec/core/animation/app_animations.dart';
@@ -31,10 +37,71 @@ import 'package:asec/generated/l10n.dart';
 bool _isAr(BuildContext context) =>
     Localizations.localeOf(context).languageCode == 'ar';
 
-/// A text field of [d] in the APP's language. English shows the English
-/// only — never the Arabic, even when the English is missing.
-String _txt(BuildContext context, Doc d, String key) =>
-    _isAr(context) ? d.raw(key).trim() : d.en(key);
+/// The English of the starter projects, bundled with the app, by project
+/// id (p01 …): `{ 'p01': { 'title_en': …, 'client_en': … } }`.
+abstract final class _BundledEnglish {
+  static Map<String, dynamic> projects = <String, dynamic>{};
+
+  /// Arabic title (trimmed) → starter id, for projects whose Firestore id
+  /// is not the starter one (p01 …).
+  static Map<String, String> idByArabicTitle = <String, String>{};
+  static Future<void>? _loading;
+
+  static bool get loaded => projects.isNotEmpty;
+
+  /// Reads the bundled files once. Safe to call on every build (and after a
+  /// hot reload): a failed or empty read is tried again next time.
+  static Future<void> load() {
+    if (loaded) return Future<void>.value();
+    return _loading ??= () async {
+      try {
+        final Map<String, dynamic> en = jsonDecode(
+          await rootBundle.loadString('assets/web/seed/site_seed_en.json'),
+        ) as Map<String, dynamic>;
+        final Object? p = en['projects'];
+        if (p is Map<String, dynamic>) projects = p;
+
+        final Map<String, dynamic> ar = jsonDecode(
+          await rootBundle.loadString('assets/web/seed/site_seed.json'),
+        ) as Map<String, dynamic>;
+        final Object? list = ar['projects'];
+        if (list is List) {
+          idByArabicTitle = <String, String>{
+            for (final Object? e in list)
+              if (e is Map && e['title'] is String && e['id'] is String)
+                (e['title'] as String).trim(): e['id'] as String,
+          };
+        }
+      } catch (e) {
+        debugPrint('Bundled project English not loaded: $e');
+      } finally {
+        _loading = null;
+      }
+    }();
+  }
+
+  static String of(Doc d, String key) {
+    Object? doc = projects[d.id];
+    if (doc == null) {
+      final String? id = idByArabicTitle[d.raw('title').trim()];
+      if (id != null) doc = projects[id];
+    }
+    final Object? v = doc is Map ? doc['${key}_en'] : null;
+    return v is String ? v.trim() : '';
+  }
+}
+
+/// A text field of [d] in the APP's language. Arabic: the Arabic. English:
+/// the `_en` field, else the English bundled with the app, else — only when
+/// there is no translation at all — the Arabic, so nothing disappears.
+String _txt(BuildContext context, Doc d, String key) {
+  final String ar = d.raw(key).trim();
+  if (_isAr(context)) return ar;
+  final String en = d.en(key);
+  if (en.isNotEmpty) return en;
+  final String bundled = _BundledEnglish.of(d, key);
+  return bundled.isNotEmpty ? bundled : ar;
+}
 
 /// The project's category in the APP's language (the website's own
 /// language switch is not the app's).
@@ -67,6 +134,9 @@ class _MemberProjectsSectionState extends State<MemberProjectsSection> {
   @override
   void initState() {
     super.initState();
+    _BundledEnglish.load().then((_) {
+      if (mounted) setState(() {});
+    });
     // THE LIST SLIDES BY ITSELF: one card every few seconds, back to the
     // start at the end. A finger on it stops the sliding.
     _auto = Timer.periodic(const Duration(seconds: 4), (_) => _next());
@@ -94,6 +164,13 @@ class _MemberProjectsSectionState extends State<MemberProjectsSection> {
   @override
   Widget build(BuildContext context) {
     final S s = S.of(context);
+    // Also here, not only in initState: after a hot reload initState does
+    // not run again. Cached — a no-op once loaded.
+    if (!_BundledEnglish.loaded) {
+      _BundledEnglish.load().then((_) {
+        if (mounted && _BundledEnglish.loaded) setState(() {});
+      });
+    }
     return StreamBuilder<List<Doc>>(
       stream: _projects,
       builder: (BuildContext context, AsyncSnapshot<List<Doc>> snap) {

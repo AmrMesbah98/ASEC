@@ -6,6 +6,8 @@
 ///          frame the sign-in and register forms sit in.
 /// Author: ASEC team
 /// Created: 19/9/2026
+/// Updated: 24/10/2026 - `compactHeader`: the register screen keeps the small
+///          header so its fields are drawn bigger.
 
 import 'dart:math' as math;
 
@@ -37,6 +39,7 @@ class AuthLayout extends StatelessWidget {
     required this.form,
     required this.illustration,
     this.fitToScreen = false,
+    this.compactHeader = false,
   });
 
   /// The card of fields — sign-in or register.
@@ -50,6 +53,10 @@ class AuthLayout extends StatelessWidget {
   /// keyboard is open) and the form scales down if it still doesn't fit.
   /// Used by sign-in; register is longer and keeps scrolling.
   final bool fitToScreen;
+
+  /// Phone / tablet: always the small header (small logo, no artwork), so a
+  /// long form (register) keeps more room and is shrunk less to fit.
+  final bool compactHeader;
 
   /// The brand side: one flat colour from the theme — white in light mode,
   /// the card colour in dark mode — with the theme's text colours on it.
@@ -192,7 +199,7 @@ class AuthLayout extends StatelessWidget {
       builder: (BuildContext context, BoxConstraints c) {
         final double height = c.maxHeight;
         // Short screen or keyboard up → logo beside the name, no artwork.
-        final bool compact = keyboardOpen || height < 680;
+        final bool compact = compactHeader || keyboardOpen || height < 680;
         final double illustrationHeight =
             compact ? 0 : math.min(120.h, height * 0.14);
 

@@ -31,6 +31,7 @@ import 'package:asec/features/onboarding/o2_authentication/presentation/controll
 import 'package:asec/features/onboarding/o2_authentication/domain/enums/admin_permission.dart';
 import 'package:asec/generated/l10n.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
+import 'package:asec/core/custom/114-app_messenger.dart';
 
 class QuizEditorPage extends StatelessWidget {
   const QuizEditorPage({
@@ -100,10 +101,10 @@ class _QuizEditorView extends StatelessWidget {
       listenWhen: (QuizEditorState a, QuizEditorState b) => a.status != b.status,
       listener: (BuildContext context, QuizEditorState state) {
         if (state.status == QuizEditorStatus.saved) {
-          final ScaffoldMessengerState messenger =
-              ScaffoldMessenger.of(context);
+          final AppMessenger messenger =
+              AppMessenger.of(context);
           Navigator.of(context).pop(true);
-          messenger.showSnackBar(SnackBar(content: Text(FormatHelper.capitalize(s.quizSaved))));
+          messenger.show(AppMessage(content: Text(FormatHelper.capitalize(s.quizSaved))));
         }
       },
       builder: (BuildContext context, QuizEditorState state) {

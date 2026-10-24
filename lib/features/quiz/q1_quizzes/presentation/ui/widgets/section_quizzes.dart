@@ -34,6 +34,7 @@ import 'package:asec/features/onboarding/o2_authentication/presentation/controll
 import 'package:asec/features/onboarding/o2_authentication/domain/enums/admin_permission.dart';
 import 'package:asec/generated/l10n.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
+import 'package:asec/core/custom/114-app_messenger.dart';
 
 class SectionQuizzes extends StatefulWidget {
   /// For a member: unlocked once the section's lessons are all watched.
@@ -102,9 +103,9 @@ class _SectionQuizzesState extends State<SectionQuizzes> {
       return;
     }
     if (!widget.unlocked) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(FormatHelper.capitalize(s.sectionQuizLocked))));
+      AppMessenger.of(context)
+        ..hide()
+        ..show(AppMessage(content: Text(FormatHelper.capitalize(s.sectionQuizLocked))));
       return;
     }
     await Navigator.of(context).push(MaterialPageRoute<void>(

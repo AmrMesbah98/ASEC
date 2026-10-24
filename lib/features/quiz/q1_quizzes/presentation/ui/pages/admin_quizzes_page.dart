@@ -33,6 +33,7 @@ import 'package:asec/features/quiz/q2_certificates/data/certificate_data.dart';
 import 'package:asec/features/quiz/q2_certificates/presentation/ui/pages/certificate_page.dart';
 import 'package:asec/core/animation/app_animations.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
+import 'package:asec/core/custom/114-app_messenger.dart';
 
 class AdminQuizzesPage extends StatefulWidget {
   const AdminQuizzesPage({
@@ -75,10 +76,10 @@ class _AdminQuizzesPageState extends State<AdminQuizzesPage> {
       confirmLabel: s.delete,
       cancelLabel: s.cancel,
       onConfirm: () async {
-        final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+        final AppMessenger messenger = AppMessenger.of(context);
         final String deleted = s.deleted;
         await _repository.delete(quiz.id);
-        messenger.showSnackBar(SnackBar(content: Text(FormatHelper.capitalize(deleted))));
+        messenger.show(AppMessage(content: Text(FormatHelper.capitalize(deleted))));
       },
     );
   }

@@ -47,6 +47,7 @@ import 'package:asec/core/settings/app_connectivity.dart';
 import 'package:asec/core/settings/app_features.dart';
 import 'package:asec/core/settings/app_integrity.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
+import 'package:asec/core/custom/114-app_messenger.dart';
 
 class VideoPlayerPage extends StatefulWidget {
   const VideoPlayerPage({
@@ -256,9 +257,9 @@ class _VideoPlayerPageState extends State<VideoPlayerPage>
     final DateTime now = DateTime.now();
     if (now.difference(_lastSkipWarning).inSeconds < 3 || !mounted) return;
     _lastSkipWarning = now;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(FormatHelper.capitalize(S.of(context).noSkipAhead))));
+    AppMessenger.of(context)
+      ..hide()
+      ..show(AppMessage(content: Text(FormatHelper.capitalize(S.of(context).noSkipAhead))));
   }
 
   Set<String> get _lockedIds => widget.sequential
@@ -268,10 +269,10 @@ class _VideoPlayerPageState extends State<VideoPlayerPage>
 
   void _openOther(VideoItem video) {
     if (_lockedIds.contains(video.id)) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-            SnackBar(content: Text(FormatHelper.capitalize(S.of(context).finishThisLessonFirst))));
+      AppMessenger.of(context)
+        ..hide()
+        ..show(
+            AppMessage(content: Text(FormatHelper.capitalize(S.of(context).finishThisLessonFirst))));
       return;
     }
     _savePosition();

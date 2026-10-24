@@ -22,6 +22,7 @@ import 'package:asec/features/web/core/theme.dart';
 import 'package:asec/features/web/core/widgets.dart';
 import 'package:asec/features/web/data/site_repo.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
+import 'package:asec/core/custom/114-app_messenger.dart';
 
 enum FieldType {
   /// A heading that groups the fields after it. No value.
@@ -454,7 +455,7 @@ class _ImageFieldState extends State<ImageField> {
 
   void _toast(String m) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(FormatHelper.capitalize(m))));
+    AppMessenger.of(context).show(AppMessage(content: Text(FormatHelper.capitalize(m))));
   }
 
   @override

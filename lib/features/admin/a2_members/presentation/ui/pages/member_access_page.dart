@@ -47,6 +47,7 @@ import 'package:asec/features/quiz/q2_certificates/data/certificate_data.dart';
 import 'package:asec/features/quiz/q2_certificates/data/issued_certificates.dart';
 import 'package:asec/features/quiz/q2_certificates/presentation/ui/pages/certificate_page.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
+import 'package:asec/core/custom/114-app_messenger.dart';
 
 class MemberAccessPage extends StatefulWidget {
   const MemberAccessPage({super.key, required this.member});
@@ -189,9 +190,9 @@ class _MemberAccessPageState extends State<MemberAccessPage> {
     return null;
   }
 
-  void _toast(String text) => ScaffoldMessenger.of(context)
-    ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(content: Text(FormatHelper.capitalize(text))));
+  void _toast(String text) => AppMessenger.of(context)
+    ..hide()
+    ..show(AppMessage(content: Text(FormatHelper.capitalize(text))));
 
   bool get _canAccess =>
       SessionController.to.current.canDo(AdminAction.membersAccess);

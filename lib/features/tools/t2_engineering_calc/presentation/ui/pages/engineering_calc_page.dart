@@ -43,6 +43,7 @@ import 'package:asec/features/tools/t2_engineering_calc/domain/calc_catalog.dart
 import 'package:asec/features/tools/t2_engineering_calc/domain/calc_model.dart';
 import 'package:asec/generated/l10n.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
+import 'package:asec/core/custom/114-app_messenger.dart';
 
 class EngineeringCalcPage extends StatefulWidget {
   const EngineeringCalcPage({super.key});
@@ -96,9 +97,9 @@ class _EngineeringCalcPageState extends State<EngineeringCalcPage> {
 
   void _copy(String text) {
     Clipboard.setData(ClipboardData(text: text));
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(
+    AppMessenger.of(context)
+      ..hide()
+      ..show(AppMessage(
         content: Text(FormatHelper.capitalize(S.of(context).copiedValue(text))),
         duration: const Duration(seconds: 2),
       ));
@@ -111,7 +112,7 @@ class _EngineeringCalcPageState extends State<EngineeringCalcPage> {
     if (_exporting) return;
     final S s = S.of(context);
     final bool ar = Localizations.localeOf(context).languageCode == 'ar';
-    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+    final AppMessenger messenger = AppMessenger.of(context);
     final CalcReport report = _session.report(s, ar, _disc);
     final String ext = excel ? 'xlsx' : 'pdf';
     String fileName = '${report.fileBase}.$ext';
@@ -129,11 +130,11 @@ class _EngineeringCalcPageState extends State<EngineeringCalcPage> {
           : await CalcExport.savePdf(report, fileName: fileName, dialogTitle: s.calcExportPdf);
       if (saved != null) {
         messenger
-          ..hideCurrentSnackBar()
-          ..showSnackBar(SnackBar(content: Text(FormatHelper.capitalize(s.calcSaved(saved)))));
+          ..hide()
+          ..show(AppMessage(content: Text(FormatHelper.capitalize(s.calcSaved(saved)))));
       }
     } catch (e) {
-      messenger.showSnackBar(SnackBar(
+      messenger.show(AppMessage(
         content: Text(FormatHelper.capitalize(kDebugMode ? '${s.errUnknown}\n$e' : s.errUnknown)),
         duration: const Duration(seconds: 6),
       ));

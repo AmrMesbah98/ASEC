@@ -43,6 +43,7 @@ import 'package:asec/features/onboarding/o2_authentication/domain/entities/app_u
 import 'package:asec/features/onboarding/o2_authentication/domain/enums/admin_permission.dart';
 import 'package:asec/generated/l10n.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
+import 'package:asec/core/custom/114-app_messenger.dart';
 
 class AdminVideosPage extends StatefulWidget {
   const AdminVideosPage({super.key, required this.adminUid});
@@ -74,14 +75,14 @@ class _AdminVideosPageState extends State<AdminVideosPage> {
 
   Future<void> _setFree(VideoItem video, bool free) async {
     final S s = S.of(context);
-    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+    final AppMessenger messenger = AppMessenger.of(context);
     try {
       await _engagement.setVideoFree(video.id, free);
-      messenger.showSnackBar(SnackBar(
+      messenger.show(AppMessage(
         content: Text(FormatHelper.capitalize(free ? s.engVideoDefault : s.engVideoCustom)),
       ));
     } catch (_) {
-      messenger.showSnackBar(SnackBar(content: Text(FormatHelper.capitalize(s.errUnknown))));
+      messenger.show(AppMessage(content: Text(FormatHelper.capitalize(s.errUnknown))));
     }
   }
 
@@ -156,10 +157,10 @@ class _AdminVideosPageState extends State<AdminVideosPage> {
       confirmLabel: s.delete,
       cancelLabel: s.cancel,
       onConfirm: () async {
-        final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+        final AppMessenger messenger = AppMessenger.of(context);
         final String deleted = s.deleted;
         await _repository.delete(video);
-        messenger.showSnackBar(SnackBar(content: Text(FormatHelper.capitalize(deleted))));
+        messenger.show(AppMessage(content: Text(FormatHelper.capitalize(deleted))));
       },
     );
   }
@@ -589,8 +590,8 @@ Future<void> _editSubtitle(BuildContext context, String course) async {
     await CourseSettings.to.setSubtitle(course, value);
   } catch (_) {
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(FormatHelper.capitalize(s.errUnknown))),
+      AppMessenger.of(context).show(
+        AppMessage(content: Text(FormatHelper.capitalize(s.errUnknown))),
       );
     }
   }

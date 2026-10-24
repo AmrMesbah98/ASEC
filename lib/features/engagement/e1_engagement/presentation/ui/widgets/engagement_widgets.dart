@@ -26,6 +26,7 @@ import 'package:asec/features/engagement/e1_engagement/domain/entities/engagemen
 import 'package:asec/features/video/v1_videos/presentation/ui/widgets/video_watch_store.dart';
 import 'package:asec/generated/l10n.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
+import 'package:asec/core/custom/114-app_messenger.dart';
 
 /// What went wrong, in words the admin can act on. "permission-denied"
 /// almost always means the new firestore.rules / storage.rules were not
@@ -42,9 +43,9 @@ String engErrorText(BuildContext context, Object? error) {
 }
 
 void showEngagementToast(BuildContext context, String message) {
-  ScaffoldMessenger.of(context)
-    ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(content: Text(FormatHelper.capitalize(message))));
+  AppMessenger.of(context)
+    ..hide()
+    ..show(AppMessage(content: Text(FormatHelper.capitalize(message))));
 }
 
 /// A title and a text. Resolves to null when cancelled or left empty.
@@ -430,14 +431,14 @@ Future<void> confirmDelete(
     confirmLabel: s.delete,
     cancelLabel: s.cancel,
     onConfirm: () async {
-      final ScaffoldMessengerState m = ScaffoldMessenger.of(context);
+      final AppMessenger m = AppMessenger.of(context);
       final String done = s.deleted;
       try {
         await action();
-        m.showSnackBar(SnackBar(content: Text(FormatHelper.capitalize(done))));
+        m.show(AppMessage(content: Text(FormatHelper.capitalize(done))));
       } catch (e) {
         if (context.mounted) {
-          m.showSnackBar(SnackBar(content: Text(FormatHelper.capitalize(engErrorText(context, e)))));
+          m.show(AppMessage(content: Text(FormatHelper.capitalize(engErrorText(context, e)))));
         }
       }
     },

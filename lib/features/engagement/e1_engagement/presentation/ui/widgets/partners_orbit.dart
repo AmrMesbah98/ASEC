@@ -7,8 +7,8 @@
 ///          turning gear, on the member's home page.
 /// Author: ASEC team
 /// Created: 16/10/2026
-/// Updated: 24/10/2026 - In the app the logos turn bare (no white disc,
-///          no shadow) and the ASEC logo sits alone, exactly centred.
+/// Updated: 24/10/2026 - In the app the ASEC logo in the centre has no disc
+///          behind it.
 ///
 /// THE SAME PARTNERS AS THE WEBSITE: `site_partners` (name, logo_url,
 /// order, published). The admin adds them in Engagement → Partners (or
@@ -153,14 +153,12 @@ class _PartnersOrbitState extends State<PartnersOrbit>
                     top: y,
                     child: Opacity(
                       opacity: 0.4 + 0.6 * k,
-                      child: widget._site
-                          ? _LogoChip(
-                              item: widget.items[p.$1],
-                              size: size,
-                              depth: k,
-                              accent: widget.accent,
-                            )
-                          : _BareLogo(item: widget.items[p.$1], size: size),
+                      child: _LogoChip(
+                        item: widget.items[p.$1],
+                        size: size,
+                        depth: k,
+                        accent: widget.accent,
+                      ),
                     ),
                   );
                 }
@@ -182,30 +180,30 @@ class _PartnersOrbitState extends State<PartnersOrbit>
                     // The logos behind the centre…
                     for (final p in placed)
                       if (math.sin(p.$2) < 0) logoAt(p),
-                    // …ASEC in the middle ("around us"): in the app just the
-                    // logo, no disc, exactly in the centre…
-                    if (!widget._site)
-                      Center(
-                        child: BrandMark(size: logo * 0.85, showName: false),
-                      )
-                    else
+                    // …ASEC in the middle ("around us")…
                     Center(
                       child: Container(
-                        width: logo * 1.25,
-                        height: logo * 1.25,
-                        decoration: BoxDecoration(
-                          color: widget.centerColor ?? AppColors.card,
-                          shape: BoxShape.circle,
-                          boxShadow: <BoxShadow>[
-                            BoxShadow(
-                              color: (widget.accent ?? AppColors.primary).withOpacity(0.35),
-                              blurRadius: 30,
-                              spreadRadius: 2,
-                            ),
-                          ],
-                        ),
+                        // App: no disc, so the logo gets more room.
+                        width: logo * (widget._site ? 1.25 : 1.6),
+                        height: logo * (widget._site ? 1.25 : 1.6),
+                        // App: the ASEC logo alone, no disc behind it. The
+                        // website keeps its disc.
+                        decoration: !widget._site
+                            ? null
+                            : BoxDecoration(
+                                color: widget.centerColor ?? AppColors.card,
+                                shape: BoxShape.circle,
+                                boxShadow: <BoxShadow>[
+                                  BoxShadow(
+                                    color: (widget.accent ?? AppColors.primary).withOpacity(0.35),
+                                    blurRadius: 30,
+                                    spreadRadius: 2,
+                                  ),
+                                ],
+                              ),
                         alignment: Alignment.center,
-                        child: widget.center ?? BrandMark(size: logo * 0.7, showName: false),
+                        child: widget.center ??
+                            BrandMark(size: logo * (widget._site ? 0.7 : 1.1), showName: false),
                       ),
                     ),
                     // …and the ones in front pass over it.
@@ -267,35 +265,6 @@ class _LogoChip extends StatelessWidget {
             ),
           ),
         ),
-    );
-  }
-}
-
-/// A partner's logo on its own: no disc, no shadow, no clip (the app).
-class _BareLogo extends StatelessWidget {
-  const _BareLogo({required this.item, required this.size});
-
-  final PartnerLogoItem item;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: size,
-      height: size,
-      child: Image.network(
-        item.logoUrl,
-        fit: BoxFit.contain,
-        filterQuality: FilterQuality.high,
-        webHtmlElementStrategy: WebHtmlElementStrategy.fallback,
-        errorBuilder: (_, __, ___) => Center(
-          child: Text(
-            FormatHelper.capitalize(
-                item.name.isEmpty ? '?' : item.name.characters.first),
-            style: StyleText.fontSize18Weight700.copyWith(color: AppColors.primary),
-          ),
-        ),
-      ),
     );
   }
 }

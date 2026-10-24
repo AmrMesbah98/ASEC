@@ -10,15 +10,17 @@
 ///          the app returns by itself.
 /// Author: ASEC team
 /// Created: 1/10/2026
+/// Updated: 24/10/2026 - Checks every 2 minutes (was every 4 seconds); the
+///          offline screen has no text — the animation and "Try again" only.
 ///
 /// HOW IT KNOWS
 /// ------------
-/// A tiny request to Google's "generate_204" address every 4 seconds and
-/// whenever the app comes back to the foreground. Being on Wi-Fi is not
-/// enough — a router with no internet, or a hotel login page, counts as
-/// offline. Two failures in a row are needed before the app closes, so one
-/// slow request does not flash the offline screen; one success brings the
-/// app back at once.
+/// A tiny request to Google's "generate_204" address every 2 MINUTES, when
+/// the app comes back to the foreground, and when the user taps "Try again"
+/// on the offline screen. Being on Wi-Fi is not enough — a router with no
+/// internet, or a hotel login page, counts as offline. A failure is checked
+/// once more a few seconds later before the app closes, so one slow request
+/// does not flash the offline screen; one success brings the app back.
 ///
 /// The web is never switched to the offline screen: a browser blocks that
 /// request (CORS), so it would look offline all the time.
@@ -47,7 +49,6 @@ import 'package:asec/features/tools/t5_plumbing_fire/presentation/ui/pages/fire_
 import 'package:asec/features/video/v1_videos/data/download/video_downloads.dart';
 import 'package:asec/features/video/v1_videos/presentation/ui/pages/downloads_page.dart';
 import 'package:asec/generated/l10n.dart';
-import 'package:asec/core/helper/main_helper/format_helper.dart';
 
 abstract final class AppConnectivity {
   static bool get enforced => !kIsWeb;
@@ -59,14 +60,21 @@ abstract final class AppConnectivity {
   static final RxBool checking = false.obs;
 
   static final Uri _probe = Uri.parse('https://www.gstatic.com/generate_204');
+  /// How often the internet is checked on its own.
+  static const Duration interval = Duration(minutes: 2);
+
+  /// A failed check is confirmed this much later before the app closes.
+  static const Duration _confirmAfter = Duration(seconds: 5);
+
   static Timer? _timer;
+  static Timer? _confirm;
   static _ResumeObserver? _observer;
   static int _failures = 0;
 
   static void start() {
     if (!enforced) return;
     check();
-    _timer ??= Timer.periodic(const Duration(seconds: 4), (_) => check());
+    _timer ??= Timer.periodic(interval, (_) => check());
     if (_observer == null) {
       _observer = _ResumeObserver();
       WidgetsBinding.instance.addObserver(_observer!);
@@ -87,10 +95,17 @@ abstract final class AppConnectivity {
     checking.value = false;
     if (ok) {
       _failures = 0;
+      _confirm?.cancel();
       if (offline.value) offline.value = false;
     } else {
       _failures++;
-      if (_failures >= 2 && !offline.value) offline.value = true;
+      if (_failures >= 2) {
+        if (!offline.value) offline.value = true;
+      } else if (!offline.value) {
+        // First failure while online: one quick second look, not 2 minutes.
+        _confirm?.cancel();
+        _confirm = Timer(_confirmAfter, check);
+      }
     }
   }
 
@@ -200,25 +215,8 @@ class _OfflineScreenState extends State<_OfflineScreen> {
                     height: 58,
                     fit: BoxFit.contain,
                   ),
-                  SizedBox(width: 12.w),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        Text(
-                          FormatHelper.capitalize(s.offlineTitle),
-                          style: StyleText.fontSize15Weight600.copyWith(color: AppColors.text),
-                        ),
-                        SizedBox(height: 2.h),
-                        Text(
-                          FormatHelper.capitalize(s.offlineBody),
-                          style: StyleText.fontSize12Weight400
-                              .copyWith(color: AppColors.secondaryText),
-                        ),
-                      ],
-                    ),
-                  ),
+                  // NO TEXT: the animation says it, the button acts.
+                  const Spacer(),
                   SizedBox(width: 8.w),
                   Obx(() => AppConnectivity.checking.value
                       ? const SizedBox(

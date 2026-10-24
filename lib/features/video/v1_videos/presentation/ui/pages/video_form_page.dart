@@ -26,6 +26,7 @@ import 'package:asec/features/onboarding/o2_authentication/presentation/controll
 import 'package:asec/features/onboarding/o2_authentication/domain/enums/admin_permission.dart';
 import 'package:asec/generated/l10n.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
+import 'package:asec/core/custom/114-app_messenger.dart';
 
 class VideoFormPage extends StatelessWidget {
   const VideoFormPage({
@@ -107,12 +108,11 @@ class _VideoFormViewState extends State<_VideoFormView> {
       listenWhen: (VideoFormState a, VideoFormState b) => a.status != b.status,
       listener: (BuildContext context, VideoFormState state) {
         if (state.status == VideoFormStatus.saved) {
-          // Pop first — see quiz_editor_page: a SnackBar outliving its
-          // Scaffold throws when its animation ends.
-          final ScaffoldMessengerState messenger =
-              ScaffoldMessenger.of(context);
+          // Keep the messenger, then pop: the message lives on the app's
+          // overlay, so it stays after this page has closed.
+          final AppMessenger messenger = AppMessenger.of(context);
           Navigator.of(context).pop(true);
-          messenger.showSnackBar(SnackBar(content: Text(FormatHelper.capitalize(s.videoSaved))));
+          messenger.show(AppMessage(content: Text(FormatHelper.capitalize(s.videoSaved))));
         }
       },
       builder: (BuildContext context, VideoFormState state) {
@@ -121,8 +121,8 @@ class _VideoFormViewState extends State<_VideoFormView> {
           canPop: state.status != VideoFormStatus.uploading,
           onPopInvokedWithResult: (bool didPop, Object? _) {
             if (!didPop) {
-              ScaffoldMessenger.of(context)
-                  .showSnackBar(SnackBar(content: Text(FormatHelper.capitalize(s.videoStillUploading))));
+              AppMessenger.of(context)
+                  .show(AppMessage(content: Text(FormatHelper.capitalize(s.videoStillUploading))));
             }
           },
           child: Scaffold(

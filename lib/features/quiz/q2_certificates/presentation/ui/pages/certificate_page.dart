@@ -21,6 +21,7 @@ import 'package:asec/features/quiz/q2_certificates/data/certificate_pdf.dart';
 import 'package:asec/features/quiz/q2_certificates/presentation/ui/widgets/certificate_view.dart';
 import 'package:asec/generated/l10n.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
+import 'package:asec/core/custom/114-app_messenger.dart';
 
 class CertificatePage extends StatefulWidget {
   const CertificatePage({super.key, required Quiz this.quiz, required QuizAttempt this.attempt})
@@ -51,12 +52,12 @@ class _CertificatePageState extends State<CertificatePage> {
   Future<void> _download() async {
     if (_busy) return;
     setState(() => _busy = true);
-    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+    final AppMessenger messenger = AppMessenger.of(context);
     final String failed = S.of(context).errUnknown;
     try {
       await CertificatePdf.share(_data);
     } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(FormatHelper.capitalize(failed))));
+      messenger.show(AppMessage(content: Text(FormatHelper.capitalize(failed))));
     } finally {
       if (mounted) setState(() => _busy = false);
     }

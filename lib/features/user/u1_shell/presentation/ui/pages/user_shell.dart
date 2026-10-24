@@ -13,6 +13,8 @@
 ///          the last entry under "More".
 /// Updated: 24/10/2026 - Calculators is the phone bar's centre button
 ///          (`phoneCenter`) on Android and iOS, same as the admin.
+/// Updated: 24/10/2026 - "The Best" (CVs) out of the menu (it is in the
+///          library); the website in the phone bar, Quizzes under "More".
 /// Created: 19/9/2026
 
 import 'package:flutter/material.dart';
@@ -21,7 +23,6 @@ import 'package:get/get.dart';
 import 'package:asec/features/admin/a1_shell/presentation/ui/widgets/app_shell.dart';
 import 'package:asec/features/onboarding/o2_authentication/domain/entities/app_user.dart';
 import 'package:asec/features/onboarding/o2_authentication/presentation/controller/session_controller.dart';
-import 'package:asec/features/cv/c1_cv/presentation/ui/pages/cv_directory_page.dart';
 import 'package:asec/features/quiz/q1_quizzes/presentation/ui/pages/user_quizzes_page.dart';
 import 'package:asec/features/settings/se1_settings/presentation/ui/pages/settings_page.dart';
 import 'package:asec/features/video/v1_videos/presentation/ui/pages/user_videos_page.dart';
@@ -151,22 +152,18 @@ class UserShell extends StatelessWidget {
                 icon: Icons.quiz_outlined,
                 label: s.quizzes,
                 page: UserQuizzesPage(user: user),
+                // On a phone: under "More", so the website gets the bar.
+                phoneMore: true,
               ),
-            // THE WEBSITE in the bar, where "The Best" used to be.
+            // THE WEBSITE in the phone bar (Quizzes moved to "More").
             ShellSection(
               id: MemberSectionIds.web,
               icon: Icons.language_rounded,
               label: s.webTab,
               page: SitePreviewPage(title: s.webTab, closable: false),
             ),
-            // "The Best" (the CVs) — on a phone it sits under "More".
-            if (f.isOn(AppFeature.sectionCvDirectory))
-              ShellSection(
-                id: MemberSectionIds.cvs,
-                icon: Icons.assignment_outlined,
-                label: s.cvs,
-                page: const CvDirectoryPage(),
-              ),
+            // "The Best" (the CVs) is not in the menu: it opens from its
+            // tile in the home page's library.
             // SETTINGS LAST: the final item of the list, and on a phone
             // always under "More" (at the bottom of it).
             ShellSection(

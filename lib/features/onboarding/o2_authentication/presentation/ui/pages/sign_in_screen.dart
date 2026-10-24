@@ -27,6 +27,7 @@ import 'package:asec/generated/l10n.dart';
 import 'package:asec/core/settings/app_features.dart';
 import 'package:get/get.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
+import 'package:asec/core/custom/114-app_messenger.dart';
 
 class SignInScreen extends StatelessWidget {
   const SignInScreen({super.key});
@@ -42,8 +43,8 @@ class SignInScreen extends StatelessWidget {
             AppRouter.go(context, state.user);
           }
           if (state.status == LoginStatus.resetSent) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(FormatHelper.capitalize(S.of(context).resetEmailSent))),
+            AppMessenger.of(context).show(
+              AppMessage(content: Text(FormatHelper.capitalize(S.of(context).resetEmailSent))),
             );
           }
         },
