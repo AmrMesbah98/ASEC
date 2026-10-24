@@ -55,6 +55,20 @@ class Doc {
     return out.isEmpty ? fallback : out;
   }
 
+  /// ENGLISH ONLY: the `_en` twin, else the built-in English of starter
+  /// content, else ''. Never falls back to the Arabic, and an `_en` field
+  /// that still holds Arabic letters counts as empty.
+  String en(String key) {
+    String out = raw('${key}_en').trim();
+    if (out.isEmpty) {
+      final Object? built = _builtInEnglish?[key];
+      if (built is String) out = built.trim();
+    }
+    return _arabic.hasMatch(out) ? '' : out;
+  }
+
+  static final RegExp _arabic = RegExp(r'[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]');
+
   /// A text with a built-in default in both languages. Arabic: the field,
   /// else `def.ar`. English: the `_en` field, else `def.en`.
   String txt(String key, L def) {

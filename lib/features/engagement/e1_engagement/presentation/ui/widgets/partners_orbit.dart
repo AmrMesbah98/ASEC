@@ -7,6 +7,8 @@
 ///          turning gear, on the member's home page.
 /// Author: ASEC team
 /// Created: 16/10/2026
+/// Updated: 24/10/2026 - In the app the logos turn bare (no white disc,
+///          no shadow) and the ASEC logo sits alone, exactly centred.
 ///
 /// THE SAME PARTNERS AS THE WEBSITE: `site_partners` (name, logo_url,
 /// order, published). The admin adds them in Engagement → Partners (or
@@ -151,12 +153,14 @@ class _PartnersOrbitState extends State<PartnersOrbit>
                     top: y,
                     child: Opacity(
                       opacity: 0.4 + 0.6 * k,
-                      child: _LogoChip(
-                        item: widget.items[p.$1],
-                        size: size,
-                        depth: k,
-                        accent: widget.accent,
-                      ),
+                      child: widget._site
+                          ? _LogoChip(
+                              item: widget.items[p.$1],
+                              size: size,
+                              depth: k,
+                              accent: widget.accent,
+                            )
+                          : _BareLogo(item: widget.items[p.$1], size: size),
                     ),
                   );
                 }
@@ -178,7 +182,13 @@ class _PartnersOrbitState extends State<PartnersOrbit>
                     // The logos behind the centre…
                     for (final p in placed)
                       if (math.sin(p.$2) < 0) logoAt(p),
-                    // …ASEC in the middle ("around us")…
+                    // …ASEC in the middle ("around us"): in the app just the
+                    // logo, no disc, exactly in the centre…
+                    if (!widget._site)
+                      Center(
+                        child: BrandMark(size: logo * 0.85, showName: false),
+                      )
+                    else
                     Center(
                       child: Container(
                         width: logo * 1.25,
@@ -257,6 +267,35 @@ class _LogoChip extends StatelessWidget {
             ),
           ),
         ),
+    );
+  }
+}
+
+/// A partner's logo on its own: no disc, no shadow, no clip (the app).
+class _BareLogo extends StatelessWidget {
+  const _BareLogo({required this.item, required this.size});
+
+  final PartnerLogoItem item;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Image.network(
+        item.logoUrl,
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.high,
+        webHtmlElementStrategy: WebHtmlElementStrategy.fallback,
+        errorBuilder: (_, __, ___) => Center(
+          child: Text(
+            FormatHelper.capitalize(
+                item.name.isEmpty ? '?' : item.name.characters.first),
+            style: StyleText.fontSize18Weight700.copyWith(color: AppColors.primary),
+          ),
+        ),
+      ),
     );
   }
 }

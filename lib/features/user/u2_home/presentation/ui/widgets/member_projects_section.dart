@@ -4,11 +4,14 @@
 /// File Name: member_projects_section.dart
 /// Purpose: Declares `MemberProjectsSection` — the website's projects as
 ///          their own section on the member's home page: a horizontal list
-///          (three cards on screen, the rest one swipe away) that slides by
+///          (two cards on screen, the rest one swipe away) that slides by
 ///          itself, and `MemberProjectPage`, one project in the app's own
 ///          look (not the website in a frame).
 /// Author: ASEC team
 /// Created: 21/10/2026
+/// Updated: 24/10/2026 - Two cards on screen. English mode shows English
+///          only (no Arabic fallback). The project page keeps one title
+///          (the app bar), no second big one.
 ///
 /// The projects are the published `site_projects` the website shows, read
 /// live, so a project added in Website → Projects appears here too.
@@ -23,18 +26,28 @@ import 'package:asec/core/theme/app_colors.dart';
 import 'package:asec/core/theme/app_theme.dart';
 import 'package:asec/features/web/core/doc.dart';
 import 'package:asec/features/web/data/site_repo.dart';
-import 'package:asec/features/web/site/widgets/cards.dart' show kProjectCategories;
 import 'package:asec/generated/l10n.dart';
 
-/// A text field of [d] in the APP's language: the `_en` twin in English
-/// when it is filled, else the Arabic.
-String _txt(BuildContext context, Doc d, String key) {
-  final bool ar = Localizations.localeOf(context).languageCode == 'ar';
-  if (!ar) {
-    final String en = d.raw('${key}_en').trim();
-    if (en.isNotEmpty) return en;
-  }
-  return d.raw(key).trim();
+bool _isAr(BuildContext context) =>
+    Localizations.localeOf(context).languageCode == 'ar';
+
+/// A text field of [d] in the APP's language. English shows the English
+/// only — never the Arabic, even when the English is missing.
+String _txt(BuildContext context, Doc d, String key) =>
+    _isAr(context) ? d.raw(key).trim() : d.en(key);
+
+/// The project's category in the APP's language (the website's own
+/// language switch is not the app's).
+String _category(BuildContext context, Doc d) {
+  const Map<String, (String, String)> names = <String, (String, String)>{
+    'medical': ('طبي', 'Medical'),
+    'residential': ('سكني', 'Residential'),
+    'commercial': ('تجاري', 'Commercial'),
+    'industrial': ('صناعي', 'Industrial'),
+  };
+  final (String, String)? n = names[d.raw('category')];
+  if (n == null) return '';
+  return _isAr(context) ? n.$1 : n.$2;
 }
 
 class MemberProjectsSection extends StatefulWidget {
@@ -97,9 +110,9 @@ class _MemberProjectsSectionState extends State<MemberProjectsSection> {
             SizedBox(height: 10.h),
             LayoutBuilder(
               builder: (BuildContext context, BoxConstraints c) {
-                // THREE ON SCREEN, then scroll.
+                // TWO ON SCREEN, then scroll.
                 final double gap = 12.w;
-                final double width = (c.maxWidth - gap * 2) / 3;
+                final double width = (c.maxWidth - gap) / 2;
                 _step = width + gap;
                 final double imageH = width * 3 / 4;
                 final double height = imageH + 58.h;
@@ -144,7 +157,7 @@ class _ProjectCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final String title = _txt(context, doc, 'title');
-    final String category = kProjectCategories[doc.raw('category')] ?? '';
+    final String category = _category(context, doc);
     return Material(
       color: AppColors.card,
       borderRadius: BorderRadius.circular(16.r),
@@ -167,12 +180,13 @@ class _ProjectCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: <Widget>[
-                    Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: StyleText.fontSize13Weight600.copyWith(color: AppColors.text),
-                    ),
+                    if (title.isNotEmpty)
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: StyleText.fontSize13Weight600.copyWith(color: AppColors.text),
+                      ),
                     if (category.isNotEmpty)
                       Text(
                         category,
@@ -223,9 +237,9 @@ class MemberProjectPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool ar = Localizations.localeOf(context).languageCode == 'ar';
+    final bool ar = _isAr(context);
     final String title = _txt(context, doc, 'title');
-    final String category = kProjectCategories[doc.raw('category')] ?? '';
+    final String category = _category(context, doc);
     final String description = _txt(context, doc, 'description');
     final List<String> gallery = doc.l('gallery');
     final List<(String, String)> facts = <(String, String)>[
@@ -258,10 +272,9 @@ class MemberProjectPage extends StatelessWidget {
               child: Hero(tag: 'project_${doc.id}', child: _Cover(url: doc.raw('cover'))),
             ),
           ),
-          SizedBox(height: 14.h),
-          Text(title, style: StyleText.fontSize20Weight600.copyWith(color: AppColors.text)),
+          // ONE TITLE: the app bar's. No second, bigger one here.
           if (category.isNotEmpty) ...<Widget>[
-            SizedBox(height: 4.h),
+            SizedBox(height: 14.h),
             Text(category, style: StyleText.fontSize13Weight600.copyWith(color: AppColors.primary)),
           ],
           if (facts.isNotEmpty) ...<Widget>[

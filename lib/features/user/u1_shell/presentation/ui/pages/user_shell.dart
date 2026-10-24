@@ -11,6 +11,8 @@
 ///          Calculators menu, driven by the Control centre switches.
 /// Updated: 23/10/2026 - Settings is the last item, and on a phone always
 ///          the last entry under "More".
+/// Updated: 24/10/2026 - Calculators is the phone bar's centre button
+///          (`phoneCenter`) on Android and iOS, same as the admin.
 /// Created: 19/9/2026
 
 import 'package:flutter/material.dart';
@@ -139,6 +141,9 @@ class UserShell extends StatelessWidget {
                 icon: Icons.calculate_rounded,
                 label: s.engineeringCalcShort,
                 children: calcs,
+                // Phone (Android AND iOS): the raised centre button of the
+                // bar, like the admin's; its calculators stack up above it.
+                phoneCenter: true,
               ),
             if (f.isOn(AppFeature.sectionQuizzes))
               ShellSection(
