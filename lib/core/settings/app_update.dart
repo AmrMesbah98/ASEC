@@ -58,16 +58,22 @@ abstract final class AppUpdate {
 
   static bool get _isAndroid => !kIsWeb && Platform.isAndroid;
 
+  /// Shorebird code push works on iOS too (App Store builds made with
+  /// `shorebird release ios`). Before 25/10/2026 only Android checked for
+  /// patches, so iPhone users only got changes through the App Store.
+  static bool get _isIOS => !kIsWeb && Platform.isIOS;
+
   /// Called once the first real screen is up (see `AppRouter.go`). Runs once
   /// per launch; later calls do nothing.
   ///
   /// NOT from `main`: the splash replaces the whole route stack when it
   /// leaves, and a dialog opened before that would be swept away with it.
   static void checkSoon() {
-    if (_started || !_isAndroid) return;
+    if (_started || !(_isAndroid || _isIOS)) return;
     _started = true;
     Future<void>.delayed(const Duration(milliseconds: 1500), () async {
-      final bool storeDialogShown = await _checkStore();
+      // The store check is Google Play only; iOS goes straight to patches.
+      final bool storeDialogShown = _isAndroid && await _checkStore();
       // A store update replaces the app anyway — no need to talk patches.
       if (!storeDialogShown) await _checkPatch();
     });
@@ -194,8 +200,8 @@ abstract final class AppUpdate {
         message: s.patchReadyMessage,
         primaryLabel: s.patchRestart,
         primaryIcon: Icons.restart_alt_rounded,
-        // Android can't relaunch itself; closing is the honest version. The
-        // patch is applied the next time the app opens.
+        // Android / iOS can't relaunch themselves; closing is the honest
+        // version. The patch is applied the next time the app opens.
         onPrimary: () => SystemNavigator.pop(),
         secondaryLabel: s.updateLater,
       );

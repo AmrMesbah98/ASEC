@@ -26,7 +26,15 @@ abstract final class MemberAccess {
   /// admin sets their access. Any other course stays locked until the admin
   /// ticks it on Members → Edit access. Names must match the Drive folder
   /// names exactly. firestore.rules `hasCourse` holds the same list.
-  static const List<String> defaultCourses = <String>['GENERAL NOTES', 'Reals'];
+  ///
+  /// The Drive folders are "General Notes" and "Tips and Tricks"; the older
+  /// spellings stay in the list so a course imported under them still opens.
+  static const List<String> defaultCourses = <String>[
+    'General Notes',
+    'Tips and Tricks',
+    'GENERAL NOTES',
+    'Reals',
+  ];
 
   /// Every platform key the admin can choose from, in display order.
   static const List<String> allPlatforms = <String>[

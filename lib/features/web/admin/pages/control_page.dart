@@ -49,7 +49,6 @@ const List<SwitchGroup> kWebsiteSwitches = <SwitchGroup>[
         Icons.star_outline_rounded),
     Switch3('show_projects', L('سابقة الأعمال', 'Projects'), L('شبكة الأعمال المميزة.', 'Featured projects grid.'), Icons.apartment_rounded),
     Switch3('show_partners', L('شركاء النجاح', 'Partners'), L('شعارات الشركاء.', 'Partner logos.'), Icons.handshake_outlined),
-    Switch3('show_blog', L('من المدونة', 'From the blog'), L('آخر 6 مقالات.', 'Latest 6 articles.'), Icons.article_outlined),
     Switch3('show_ceo', L('المدير التنفيذي', 'CEO'), L('الصورة والكلمة.', 'Photo and message.'), Icons.person_outline_rounded),
     Switch3('show_testimonials', L('أراء العملاء', 'Testimonials'), L('آراء العملاء في الرئيسية والصفحات.', 'Client quotes.'),
         Icons.format_quote_rounded),

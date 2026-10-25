@@ -46,7 +46,10 @@ class PartnerLogoItem {
 
 /// "Our partners" + the orbit. Shows nothing while there are no partners.
 class PartnersSection extends StatelessWidget {
-  const PartnersSection({super.key});
+  const PartnersSection({super.key, this.fill = false});
+
+  /// Fill the height it is given (desktop / tablet home, no page scroll).
+  final bool fill;
 
   @override
   Widget build(BuildContext context) {
@@ -59,6 +62,7 @@ class PartnersSection extends StatelessWidget {
               PartnerLogoItem(name: d.s('name'), logoUrl: d.raw('logo_url')),
         ];
         if (items.isEmpty) return const SizedBox.shrink();
+        if (fill) return PartnersOrbit(items: items);
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
@@ -119,10 +123,13 @@ class _PartnersOrbitState extends State<PartnersOrbit>
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints c) {
         final double width = c.maxWidth;
-        final double height = (width * 0.55).clamp(240.0, 380.0);
+        // Given a height (home page without scrolling): fit inside it.
+        final double height = c.hasBoundedHeight
+            ? math.min(c.maxHeight, (width * 0.75).clamp(160.0, 380.0))
+            : (width * 0.55).clamp(240.0, 380.0);
         final double rx = math.max(60.0, width / 2 - (widget._site ? 56.0 : 56.r)); // ring radius, sideways
         final double ry = height * 0.22; // the tilt: a flat ellipse
-        final double logo = (height * 0.26).clamp(58.0, 92.0);
+        final double logo = (height * 0.26).clamp(c.hasBoundedHeight ? 40.0 : 58.0, 92.0);
 
         return GestureDetector(
           onHorizontalDragUpdate: (DragUpdateDetails d) =>

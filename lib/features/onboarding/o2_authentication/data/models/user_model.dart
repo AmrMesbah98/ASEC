@@ -30,6 +30,10 @@ abstract final class UserModel {
   // Member access — written by an admin with the 'members' permission.
   static const String coursesAll = 'courses_all';
   static const String courses = 'courses';
+
+  /// Default courses (MemberAccess.defaultCourses) the admin switched OFF
+  /// for this member. Every other default course is open to everyone.
+  static const String closedCourses = 'closed_courses';
   static const String platforms = 'platforms';
   static const String courseAccess = 'course_access';
   static const String accessFrom = 'access_from';
@@ -56,12 +60,15 @@ abstract final class UserModel {
       canCreateCv: data.boolean(FirebaseCollections.canCreateCvField),
       canUseCalcs: data.boolean(FirebaseCollections.canUseCalcsField),
       createdAt: data.date(FirebaseCollections.createdAtField),
-      // Default for a member the admin has not set up: NOT every course —
-      // only MemberAccess.defaultCourses.
+      // THE DEFAULT COURSES (GENERAL NOTES, Reals = Tips & Tricks) are open
+      // to every member, on top of the courses the admin gave them, until
+      // the admin switches one off for that member (`closed_courses`).
       allCourses: data.boolean(coursesAll, false),
-      courses: data.stringList(courses).isEmpty
-          ? MemberAccess.defaultCourses
-          : data.stringList(courses),
+      courses: <String>{
+        ...data.stringList(courses),
+        for (final String c in MemberAccess.defaultCourses)
+          if (!data.stringList(closedCourses).contains(c)) c,
+      }.toList(),
       platforms: data.stringList(platforms),
       courseAccess: <String, CourseAccess>{
         for (final MapEntry<String, dynamic> e in data.nested(courseAccess).entries)
@@ -123,6 +130,13 @@ abstract final class UserModel {
       <String, dynamic>{
         coursesAll: allCourses,
         courses: courseList,
+        // A default course left unticked is switched off for this member.
+        closedCourses: allCourses
+            ? const <String>[]
+            : <String>[
+                for (final String c in MemberAccess.defaultCourses)
+                  if (!courseList.contains(c)) c,
+              ],
         platforms: platformList,
         courseAccess: <String, dynamic>{
           for (final MapEntry<String, CourseAccess> e in perCourse.entries)

@@ -138,14 +138,16 @@ service cloud.firestore {
 
     // May this member open [course]? "Every course" if the admin turned it
     // on, or the course is in the list the admin ticked on the Members page.
-    // Until the admin sets a list, only the default courses are open —
+    // The default courses are open to everyone unless switched off —
     // keep this list the same as MemberAccess.defaultCourses in the app.
     function hasCourse(course) {
       return isStaff()
         || ((me().get('courses_all', false) == true
               || course in me().get('courses', [])
-              || (me().get('courses', []).size() == 0
-                  && course in ['GENERAL NOTES', 'Reals']))
+              // General Notes and Tips and Tricks are open to every member
+              // until the admin switches one off for them.
+              || (course in ['General Notes', 'Tips and Tricks', 'GENERAL NOTES', 'Reals']
+                  && !(course in me().get('closed_courses', []))))
             && courseWindowOpen(course));
     }
 
@@ -233,14 +235,14 @@ service cloud.firestore {
         && resource.data.role == 'user'
         && onlyChanged([
                'active', 'can_create_cv', 'can_use_calcs', 'updated_at',
-               'courses_all', 'courses', 'platforms', 'course_access',
+               'courses_all', 'courses', 'closed_courses', 'platforms', 'course_access',
                'access_from', 'access_until', 'paused_at',
                'device_id', 'device_name', 'device_bound_at', 'video_devices'
              ])
         && (!changed('active') || canDo('members', 'block'))
         && (!changed('can_create_cv') || canDo('cvs', 'grant'))
         && (!request.resource.data.diff(resource.data).affectedKeys().hasAny([
-               'can_use_calcs', 'courses_all', 'courses', 'platforms', 'course_access',
+               'can_use_calcs', 'courses_all', 'courses', 'closed_courses', 'platforms', 'course_access',
                'access_from', 'access_until', 'paused_at'])
             || canDo('members', 'access'))
         && (!request.resource.data.diff(resource.data).affectedKeys().hasAny([

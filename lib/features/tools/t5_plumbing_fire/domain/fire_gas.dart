@@ -54,6 +54,14 @@ enum Fm200Nozzles {
 
   const Fm200Nozzles(this.label, this.page, this.table, this.figure);
 
+  /// The catalogue figure (pipe lengths A / B / C and the 12 in drop),
+  /// taken from the original Plumbing & Fire Calculator.
+  String get figureAsset => switch (this) {
+        Fm200Nozzles.one => 'assets/tools/fire/fm200_one_nozzle.png',
+        Fm200Nozzles.two => 'assets/tools/fire/fm200_two_nozzles.png',
+        Fm200Nozzles.four => 'assets/tools/fire/fm200_four_nozzles.png',
+      };
+
   final String label;
   final int page;
   final String table;

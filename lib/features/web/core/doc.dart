@@ -20,6 +20,7 @@ import 'package:flutter/widgets.dart' show TextDirection;
 
 import 'package:asec/features/web/core/builtin_en.dart';
 import 'package:asec/features/web/core/i18n.dart';
+import 'package:asec/features/web/core/seed_english.dart';
 
 class Doc {
   const Doc(this.id, this.data);
@@ -48,11 +49,24 @@ class Doc {
       final String en = raw('${key}_en');
       if (en.trim().isNotEmpty) return en;
       // Starter content the admin has not translated yet.
+      final Object? seed = SeedEnglish.value(id, key);
+      if (seed is String) return seed;
       final Object? built = _builtInEnglish?[key];
       if (built is String) return built;
     }
-    final String out = raw(key);
+    String out = raw(key);
+    // Imported titles hold both languages ("برج المختار El-Moktar Tower");
+    // the Arabic site shows only the Arabic part.
+    if (AppLang.isAr && key == 'title') out = _arabicOnly(out);
     return out.isEmpty ? fallback : out;
+  }
+
+  static final RegExp _latinTail = RegExp(r"\s+[A-Za-z][A-Za-z0-9 .,&'()\-]*$");
+
+  static String _arabicOnly(String text) {
+    if (!_arabic.hasMatch(text)) return text;
+    final String cut = text.replaceFirst(_latinTail, '').trim();
+    return _arabic.hasMatch(cut) ? cut : text;
   }
 
   /// ENGLISH ONLY: the `_en` twin, else the built-in English of starter
@@ -60,6 +74,10 @@ class Doc {
   /// that still holds Arabic letters counts as empty.
   String en(String key) {
     String out = raw('${key}_en').trim();
+    if (out.isEmpty) {
+      final Object? seed = SeedEnglish.value(id, key);
+      if (seed is String) out = seed.trim();
+    }
     if (out.isEmpty) {
       final Object? built = _builtInEnglish?[key];
       if (built is String) out = built.trim();
@@ -77,7 +95,9 @@ class Doc {
       return out.isEmpty ? def.ar : out;
     }
     final String en = raw('${key}_en');
-    return en.trim().isEmpty ? def.en : en;
+    if (en.trim().isNotEmpty) return en;
+    final Object? seed = SeedEnglish.value(id, key);
+    return seed is String ? seed : def.en;
   }
 
   /// The stored value exactly, whatever the language.
@@ -89,6 +109,7 @@ class Doc {
   /// Is there an English version of [key]? (Used to pick the text direction
   /// of long content such as an article body.)
   bool hasEn(String key) {
+    if (SeedEnglish.value(id, key) != null) return true;
     final Object? v = data['${key}_en'];
     if (v is List) return v.isNotEmpty;
     return v != null && v.toString().trim().isNotEmpty;
@@ -115,6 +136,8 @@ class Doc {
     if (!AppLang.isAr) {
       final List<String> en = _list('${key}_en');
       if (en.isNotEmpty) return en;
+      final Object? seed = SeedEnglish.value(id, key);
+      if (seed is List<String>) return seed;
       final Object? built = _builtInEnglish?[key];
       if (built is List<String>) return built;
     }

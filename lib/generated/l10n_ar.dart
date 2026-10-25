@@ -3464,10 +3464,12 @@ class SAr extends S {
   String get accessVideoDevices => 'أجهزة الفيديو';
 
   @override
-  String get accessVideoDevicesCaption => 'يستطيع العضو تسجيل الدخول من أي جهاز، لكن الفيديوهات تعمل على جهاز واحد لكل منصة. أول جهاز يفتح الفيديوهات على المنصة يأخذها. أزل الجهاز ليختار العضو جهازًا آخر.';
+  String get accessVideoDevicesCaption =>
+      'يستطيع العضو تسجيل الدخول من أي جهاز، لكن الفيديوهات تعمل على جهاز واحد لكل منصة. أول جهاز يفتح الفيديوهات على المنصة يأخذها. أزل الجهاز ليختار العضو جهازًا آخر.';
 
   @override
-  String get accessVideoDeviceEmpty => 'لم يُحدَّد بعد — أول جهاز يفتح الفيديوهات يأخذه.';
+  String get accessVideoDeviceEmpty =>
+      'لم يُحدَّد بعد — أول جهاز يفتح الفيديوهات يأخذه.';
 
   @override
   String accessVideoDeviceRemoveBody(String device, String platform) {
@@ -3475,7 +3477,14 @@ class SAr extends S {
   }
 
   @override
-  String get accessVideoDeviceRemoved => 'تمت إزالة الجهاز. يمكن للعضو الآن فتح الفيديوهات على جهاز جديد.';
+  String get accessVideoDeviceRemoved =>
+      'تمت إزالة الجهاز. يمكن للعضو الآن فتح الفيديوهات على جهاز جديد.';
+
+  @override
+  String get courseFilesLocked => 'ملفات هذا الكورس مقفلة';
+
+  @override
+  String get courseFilesLockedSub => 'ستُفتح عندما تمنحك ASEC هذا الكورس.';
 
   @override
   String get accessBlockedDevices => 'الأجهزة المحظورة';

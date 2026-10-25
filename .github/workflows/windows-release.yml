@@ -31,6 +31,9 @@ jobs:
   build-windows:
     name: Build Windows Release
     runs-on: windows-latest
+    env:
+      # True when the Firebase service-account key is set (see the last steps).
+      HAS_SA_KEY: ${{ secrets.GCP_SA_KEY != '' }}
 
     steps:
       - name: Checkout repository
@@ -104,3 +107,36 @@ jobs:
           files: |
             ASEC-Setup.exe
             ASEC-windows.zip
+
+      # THE WEBSITE SERVES THE FILE ITSELF: the installer is copied to the
+      # project's Firebase Storage (downloads/), and the site's "Download for
+      # Windows" button downloads it from there — visitors never see GitHub.
+      # Needs the repo secret GCP_SA_KEY (a Firebase service-account JSON
+      # key); without it this step is skipped and the button falls back to
+      # the GitHub release file.
+      - name: Publish installer to the website (Firebase Storage)
+        if: github.ref_type == 'tag' && env.HAS_SA_KEY == 'true'
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up gcloud
+        if: github.ref_type == 'tag' && env.HAS_SA_KEY == 'true'
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Upload installer + latest.json
+        if: github.ref_type == 'tag' && env.HAS_SA_KEY == 'true'
+        shell: pwsh
+        run: |
+          $bucket = "gs://asec-a811b.firebasestorage.app/downloads"
+          $tag = "${{ github.ref_name }}"
+          $file = "ASEC-Setup-$tag.exe"
+          gcloud storage cp "ASEC-Setup.exe" "$bucket/$file" `
+            --content-type="application/octet-stream" `
+            --content-disposition='attachment; filename="ASEC-Setup.exe"'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $size = (Get-Item "ASEC-Setup.exe").Length
+          @{ version = $tag; file = $file; size = $size } | ConvertTo-Json | Set-Content -Encoding utf8NoBOM latest.json
+          gcloud storage cp latest.json "$bucket/latest.json" `
+            --content-type="application/json" --cache-control="no-cache, max-age=0"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

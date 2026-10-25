@@ -125,6 +125,32 @@ class _Fm200TabState extends State<Fm200Tab> {
                 ],
               ),
               const SizedBox(height: 16),
+              // The catalogue figure for this layout — what A, B, C mean.
+              Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 520),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: ColoredBox(
+                      // White even in dark mode: the drawing is on white.
+                      color: Colors.white,
+                      child: Image.asset(
+                        _nozzles.figureAsset,
+                        fit: BoxFit.contain,
+                        filterQuality: FilterQuality.high,
+                        semanticLabel: _nozzles.figure,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                _nozzles.figure,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 16),
               AppDataTable<Fm200Section>(
                 shrinkWrap: true,
                 rows: layout.sections,

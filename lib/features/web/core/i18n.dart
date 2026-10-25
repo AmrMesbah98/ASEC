@@ -63,6 +63,10 @@ abstract final class AppLang {
   /// Pages are `const` widgets whose texts are picked while they build, so a
   /// language change must rebuild them. Mark every element dirty — state
   /// (scroll position, typed form fields) is kept.
+  /// Re-renders every page (used when late content such as the bundled
+  /// English arrives).
+  static void rebuildAll() => _rebuildAll();
+
   static void _rebuildAll() {
     final WidgetsBinding? binding = _binding;
     final Element? root = binding?.rootElement;

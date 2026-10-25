@@ -8,6 +8,7 @@
 
 import 'package:asec/core/constants/app_constants.dart';
 import 'package:asec/features/onboarding/o2_authentication/domain/entities/course_access.dart';
+import 'package:asec/features/onboarding/o2_authentication/domain/entities/member_access.dart';
 import 'package:asec/features/onboarding/o2_authentication/domain/enums/admin_permission.dart';
 import 'package:asec/features/onboarding/o2_authentication/domain/enums/user_role.dart';
 
@@ -92,7 +93,7 @@ class AppUser {
     this.permissions = const <AdminPermission>[],
     this.permissionKeys = const <String>{},
     this.allCourses = false,
-    this.courses = const <String>['GENERAL NOTES', 'Reals'],
+    this.courses = MemberAccess.defaultCourses,
     this.platforms = const <String>[],
     this.courseAccess = const <String, CourseAccess>{},
     this.accessFrom,
@@ -117,6 +118,9 @@ class AppUser {
     if (!allCourses && !courses.contains(c)) return false;
     final CourseAccess? a = courseAccess[c];
     if (a != null) return a.openHere;
+    // The default courses (GENERAL NOTES, Reals) open on every platform
+    // unless the admin set this course's own dates / platforms.
+    if (MemberAccess.defaultCourses.contains(c)) return true;
     return allowsPlatform(CourseAccess.currentPlatform);
   }
 
@@ -127,6 +131,7 @@ class AppUser {
     if (!allCourses && !courses.contains(c)) return false;
     final CourseAccess? a = courseAccess[c];
     if (a != null) return !a.openHere;
+    if (MemberAccess.defaultCourses.contains(c)) return false;
     return !allowsPlatform(CourseAccess.currentPlatform);
   }
 

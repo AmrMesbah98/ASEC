@@ -26,6 +26,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -301,6 +302,94 @@ class _HomeBody extends StatelessWidget {
             _TileGrid(tiles: main, big: true),
           ],
         );
+
+        // DESKTOP / TABLET / iPAD / macOS: everything on one screen, no
+        // scrolling, in full-width rows:
+        //   welcome card
+        //   "continue watching" | library
+        //   projects — 5 cards on Mac / Windows / a wide browser, 3 on iPad
+        //   partners ring in whatever height is left (hidden if too little)
+        // A window too short for that keeps the scrolling layout below.
+        final bool fits = MediaQuery.sizeOf(context).shortestSide >= 600 &&
+            c.maxWidth >= 700 &&
+            c.maxHeight >= 560;
+        if (fits) {
+          const double gap = 16;
+          final bool desktopOs = !kIsWeb &&
+              (defaultTargetPlatform == TargetPlatform.macOS ||
+                  defaultTargetPlatform == TargetPlatform.windows ||
+                  defaultTargetPlatform == TargetPlatform.linux);
+          final int perRow = desktopOs || c.maxWidth >= 1100 ? 5 : 3;
+          return Padding(
+            padding: EdgeInsets.fromLTRB(AppPadding.h, 16, AppPadding.h, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                FadeSlideIn(child: hero),
+                const SizedBox(height: gap),
+                // LEVEL: both titles on one line, both cards the same height
+                // with the same top and bottom.
+                FadeSlideIn(
+                  delay: const Duration(milliseconds: 80),
+                  child: resumeCard == null
+                      ? tiles
+                      : Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: <Widget>[
+                            Row(
+                              children: <Widget>[
+                                Expanded(flex: 5, child: _SectionTitle(s.homeContinue)),
+                                const SizedBox(width: gap),
+                                Expanded(flex: 6, child: _SectionTitle(s.engLibrary)),
+                              ],
+                            ),
+                            SizedBox(height: 10.h),
+                            SizedBox(
+                              height: 136,
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: <Widget>[
+                                  Expanded(
+                                    flex: 5,
+                                    child: _ResumeCard(
+                                      resume: resume,
+                                      loading: loading,
+                                      allDone: total > 0 && watched == total,
+                                      onPlay: onPlay,
+                                      onBrowse: () => go(MemberSectionIds.videos),
+                                      titled: false,
+                                    ),
+                                  ),
+                                  const SizedBox(width: gap),
+                                  Expanded(flex: 6, child: _TileGrid(tiles: main, big: true, fill: true)),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                ),
+                const SizedBox(height: gap),
+                FadeSlideIn(
+                  delay: const Duration(milliseconds: 140),
+                  child: MemberProjectsSection(perRow: perRow),
+                ),
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (BuildContext context, BoxConstraints p) => p.maxHeight < 150
+                        ? const SizedBox.shrink()
+                        : const FadeSlideIn(
+                            delay: Duration(milliseconds: 200),
+                            child: Padding(
+                              padding: EdgeInsets.only(top: gap),
+                              child: Center(child: PartnersSection(fill: true)),
+                            ),
+                          ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
 
         return SingleChildScrollView(
           padding: EdgeInsets.fromLTRB(AppPadding.h, 20.h, AppPadding.h, 28.h),
@@ -579,7 +668,12 @@ class _ResumeCard extends StatelessWidget {
     required this.allDone,
     required this.onPlay,
     required this.onBrowse,
+    this.titled = true,
   });
+
+  /// False on the wide home page: the title sits above the card, level
+  /// with "Library", and the card fills the row's height.
+  final bool titled;
 
   final _Resume? resume;
   final bool loading;
@@ -705,7 +799,8 @@ class _ResumeCard extends StatelessWidget {
     }
 
     return _Panel(
-      title: s.homeContinue,
+      title: titled ? s.homeContinue : null,
+      fill: !titled,
       child: content,
     );
   }
@@ -849,7 +944,11 @@ class _Tile {
 }
 
 class _TileGrid extends StatelessWidget {
-  const _TileGrid({required this.tiles, required this.big});
+  const _TileGrid({required this.tiles, required this.big, this.fill = false});
+
+  /// Fill the height it is given (wide home page: level with the
+  /// Continue watching card).
+  final bool fill;
 
   final List<_Tile> tiles;
 
@@ -869,6 +968,17 @@ class _TileGrid extends StatelessWidget {
             : math.max(1, math.min(tiles.length, (c.maxWidth + gap) ~/ (230 + gap)));
         final double width = (c.maxWidth - gap * (cols - 1)) / cols;
         // THE MAIN ROW: every card as tall as the tallest one.
+        if (big && fill && c.hasBoundedHeight) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              for (int i = 0; i < tiles.length; i++) ...<Widget>[
+                if (i > 0) SizedBox(width: gap),
+                Expanded(child: _TileCard(tile: tiles[i], big: true, index: i)),
+              ],
+            ],
+          );
+        }
         if (big) {
           return IntrinsicHeight(
             child: Row(
@@ -1031,10 +1141,14 @@ class _SectionTitle extends StatelessWidget {
 
 /// A titled card in the house surface.
 class _Panel extends StatelessWidget {
-  const _Panel({required this.title, required this.child});
+  const _Panel({required this.title, required this.child, this.fill = false});
 
-  final String title;
+  /// Null = no title inside (the title sits above the card instead).
+  final String? title;
   final Widget child;
+
+  /// Fill the height it is given, content centred.
+  final bool fill;
 
   @override
   Widget build(BuildContext context) {
@@ -1047,11 +1161,23 @@ class _Panel extends StatelessWidget {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
+        mainAxisSize: fill ? MainAxisSize.max : MainAxisSize.min,
+        mainAxisAlignment: fill ? MainAxisAlignment.center : MainAxisAlignment.start,
         children: <Widget>[
-          _SectionTitle(title),
-          SizedBox(height: 8.h),
-          child,
+          if (title != null) ...<Widget>[
+            _SectionTitle(title!),
+            SizedBox(height: 8.h),
+          ],
+          // In a fixed height a taller message is clipped, never an overflow.
+          if (fill)
+            Flexible(
+              child: SingleChildScrollView(
+                physics: const NeverScrollableScrollPhysics(),
+                child: child,
+              ),
+            )
+          else
+            child,
         ],
       ),
     );

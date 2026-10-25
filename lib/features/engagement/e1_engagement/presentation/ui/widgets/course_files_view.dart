@@ -11,6 +11,7 @@
 /// NOT A SCROLL VIEW. It is a plain column, so the Videos page can put it
 /// under the course header inside the scroll it already has.
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -135,6 +136,15 @@ class _CourseFilesViewState extends State<CourseFilesView> {
       stream: _entries,
       builder: (BuildContext context, AsyncSnapshot<List<CourseEntry>> snap) {
         if (snap.hasError) {
+          // Refused = the member has not been given this course (or it is
+          // outside its dates). Say so, instead of "something went wrong".
+          final Object? e = snap.error;
+          if (e is FirebaseException && e.code == 'permission-denied') {
+            return SizedBox(
+              height: _emptyHeight(context),
+              child: AppEmptyView(title: s.courseFilesLocked, subtitle: s.courseFilesLockedSub),
+            );
+          }
           return SizedBox(height: 200.h, child: AppErrorView(message: s.errUnknown));
         }
         if (!snap.hasData) return SizedBox(height: 160.h, child: const AppLoading());
@@ -192,8 +202,9 @@ class _CourseFilesViewState extends State<CourseFilesView> {
           SizedBox(height: 14.h),
         ],
         if (folders.isEmpty)
-          Padding(
-            padding: EdgeInsets.symmetric(vertical: 30.h),
+          // CENTRED in the free space below the header, not stuck at the top.
+          SizedBox(
+            height: _emptyHeight(context),
             child: AppEmptyView(
               title: widget.emptyTitle ?? s.engCourseFilesEmpty,
               subtitle: widget.admin ? s.engCourseFilesEmptyAdmin : null,
@@ -299,8 +310,8 @@ class _CourseFilesViewState extends State<CourseFilesView> {
         ),
         SizedBox(height: 14.h),
         if (files.isEmpty)
-          Padding(
-            padding: EdgeInsets.symmetric(vertical: 30.h),
+          SizedBox(
+            height: _emptyHeight(context),
             child: AppEmptyView(title: s.engFolderEmpty, size: 120),
           )
         else
@@ -561,3 +572,8 @@ class _FolderPickerDialogState extends State<_FolderPickerDialog> {
     );
   }
 }
+
+/// Height for an empty state inside a scrolling page: most of the window,
+/// so the animation sits in the middle of the screen rather than at the top.
+double _emptyHeight(BuildContext context) =>
+    (MediaQuery.sizeOf(context).height * 0.6).clamp(280.0, 720.0);

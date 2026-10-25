@@ -1547,6 +1547,8 @@
   "accessVideoDeviceRemoveBody": "Videos stop playing on {device}. The next {platform} device that opens Videos takes its place.",
   "@accessVideoDeviceRemoveBody": {"placeholders": {"device": {"type": "String"}, "platform": {"type": "String"}}},
   "accessVideoDeviceRemoved": "Device removed. The member can open videos on a new device now.",
+  "courseFilesLocked": "This course's files are locked",
+  "courseFilesLockedSub": "They open once ASEC gives you this course.",
   "accessBlockedDevices": "Blocked devices",
   "captureAlertsTitle": "Screen capture alerts",
   "captureAlertsCaption": "Members who took a screenshot or recorded the screen inside the app. Detected on iPhone / iPad and Android 14+.",

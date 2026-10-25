@@ -17,19 +17,15 @@ class MainFlutterWindow: NSWindow {
 
     // MINIMUM SIZE
     //
-    // A Mac running ASEC is the admin console, so a release build keeps room
-    // for the rail and a table: 960 x 640.
-    //
-    // DEBUG builds allow 380 x 480 so the member-side layouts (videos, quiz
-    // attempt) can be previewed at phone width without a simulator.
+    // The window can't be made smaller than this — narrower or shorter and
+    // the desktop layouts (home page, admin tables) would have to squeeze.
     //
     // `contentMinSize`, not `minSize`: `minSize` includes the title bar, so the
     // number would not be the width Flutter's LayoutBuilder actually sees.
-    #if DEBUG
-    let minimumContentSize = NSSize(width: 380, height: 480)
-    #else
-    let minimumContentSize = NSSize(width: 960, height: 640)
-    #endif
+    // 25/10/2026: one minimum for debug and release, big enough for the
+    // home page to show everything without scrolling. Fits a 1366 x 768
+    // laptop screen.
+    let minimumContentSize = NSSize(width: 1100, height: 700)
 
     var windowFrame = self.frame
     windowFrame.size = defaultSize

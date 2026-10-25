@@ -53,6 +53,15 @@ service firebase.storage {
       allow delete: if isAdmin();
     }
 
+    // downloads/ — the Windows installer the website's "Download for
+    // Windows" button serves (ASEC-Setup-<version>.exe + latest.json).
+    // Anyone may download; only the release workflow writes (it uses a
+    // service account, which these rules do not apply to).
+    match /downloads/{fileName} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     // cvs/{uid}/{timestamp}_{name} — the member's CV photo. Owned by the
     // path: only that member writes there, and every signed-in account can
     // see it, because the CV directory shows it.

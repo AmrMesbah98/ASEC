@@ -310,15 +310,20 @@ class AppEmptyView extends StatelessWidget {
   final String? subtitle;
   final double size;
 
+  /// From this window width on, the animation is drawn twice as big — on a
+  /// desktop window the phone size looks like a stray icon.
+  static const double desktopWidth = 900;
+
   @override
   Widget build(BuildContext context) {
+    final bool desktop = MediaQuery.sizeOf(context).width >= desktopWidth;
     return Center(
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: AppPadding.h),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            CustomEmptyState(size: size, verticalPadding: 8),
+            CustomEmptyState(size: desktop ? size * 2 : size, verticalPadding: 8),
             Text(FormatHelper.capitalize(title),
                 textAlign: TextAlign.center, style: StyleText.fontSize16Weight600),
             if (subtitle != null) ...<Widget>[

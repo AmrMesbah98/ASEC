@@ -8,7 +8,13 @@
 /// Author: ASEC team
 /// Created: 25/10/2026
 ///
-/// WHERE THE FILE COMES FROM: every `v*` tag builds the Windows app on
+/// WHERE THE FILE COMES FROM (25/10/2026): the WEBSITE serves it. The
+/// release workflow copies the installer to Firebase Storage
+/// (downloads/ASEC-Setup-<tag>.exe + downloads/latest.json) and the button
+/// downloads it from there, so visitors never land on GitHub. Until that
+/// copy exists the GitHub release file is used, as before:
+///
+/// every `v*` tag builds the Windows app on
 /// GitHub Actions (.github/workflows/windows-release.yml) and attaches
 /// `ASEC-Setup.exe` (the installer) and `ASEC-windows.zip` (portable) to
 /// that tag's release; the button offers the installer, else the zip. [WindowsRelease] asks the
@@ -51,6 +57,12 @@ const String kWindowsSetupName = 'ASEC-Setup.exe';
 /// The portable zip attached beside it (fallback).
 const String kWindowsAssetName = 'ASEC-windows.zip';
 
+/// Where the release workflow publishes the installer for the website:
+/// Firebase Storage, `downloads/` (public read — storage.rules).
+const String kStorageBucket = 'asec-a811b.firebasestorage.app';
+const String kStorageFolder = 'downloads';
+const String _storageBase = 'https://firebasestorage.googleapis.com/v0/b/$kStorageBucket/o';
+
 class WindowsReleaseInfo {
   const WindowsReleaseInfo({required this.version, required this.url});
 
@@ -73,6 +85,35 @@ abstract final class WindowsRelease {
   }
 
   static Future<void> _fetch() async {
+    // 1. The website's own copy (Firebase Storage). The visitor downloads
+    //    from the site and never sees GitHub.
+    if (await _fromWebsite()) return;
+    // 2. Until the first release has been published there: GitHub's file.
+    await _fromGitHub();
+  }
+
+  /// `downloads/latest.json` → {"version": "v1.0.6", "file": "ASEC-Setup-v1.0.6.exe"}
+  static Future<bool> _fromWebsite() async {
+    try {
+      final http.Response res = await http.get(Uri.parse(
+        '$_storageBase/${Uri.encodeComponent('$kStorageFolder/latest.json')}?alt=media',
+      ));
+      if (res.statusCode != 200) return false;
+      final Object? json = jsonDecode(utf8.decode(res.bodyBytes));
+      if (json is! Map) return false;
+      final String file = '${json['file'] ?? ''}';
+      if (file.isEmpty) return false;
+      latest.value = WindowsReleaseInfo(
+        version: '${json['version'] ?? ''}',
+        url: '$_storageBase/${Uri.encodeComponent('$kStorageFolder/$file')}?alt=media',
+      );
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<void> _fromGitHub() async {
     try {
       final http.Response res = await http.get(
         Uri.parse('https://api.github.com/repos/$kReleaseRepo/releases/latest'),
@@ -99,6 +140,15 @@ abstract final class WindowsRelease {
       // Offline / rate-limited: the button simply stays hidden.
     }
   }
+}
+
+/// A panel link that only opens a GitHub PAGE (the releases list, the repo)
+/// sends the visitor to GitHub instead of downloading — ignored, so the
+/// button downloads the file itself. A direct file link is still honoured.
+bool _isGitHubPage(String url) {
+  final Uri? u = Uri.tryParse(url);
+  if (u == null || !u.host.endsWith('github.com')) return false;
+  return !u.path.contains('/releases/download/') && !u.path.contains('/releases/latest/download/');
 }
 
 enum _Phase { idle, downloading, done }
@@ -179,7 +229,8 @@ class _DownloadAppButtonState extends State<DownloadAppButton> with TickerProvid
     return ValueListenableBuilder<WindowsReleaseInfo?>(
       valueListenable: WindowsRelease.latest,
       builder: (BuildContext context, WindowsReleaseInfo? info, _) {
-        final String override = widget.overrideUrl.trim();
+        String override = widget.overrideUrl.trim();
+        if (_isGitHubPage(override)) override = '';
         final String url = override.isNotEmpty ? override : (info?.url ?? '');
         if (url.isEmpty) return const SizedBox.shrink();
         final String version = override.isNotEmpty ? '' : (info?.version ?? '');

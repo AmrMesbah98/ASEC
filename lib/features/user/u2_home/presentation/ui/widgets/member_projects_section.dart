@@ -21,6 +21,7 @@
 /// live, so a project added in Website → Projects appears here too.
 
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -118,7 +119,15 @@ String _category(BuildContext context, Doc d) {
 }
 
 class MemberProjectsSection extends StatefulWidget {
-  const MemberProjectsSection({super.key});
+  const MemberProjectsSection({super.key, this.fill = false, this.perRow});
+
+  /// How many cards side by side (5 on Mac / Windows, 3 on iPad). Null =
+  /// two, the phone layout. The rest are one swipe away.
+  final int? perRow;
+
+  /// Fill the height it is given (desktop / tablet home, no page scroll):
+  /// the cards shrink to fit it and as many as fit sit side by side.
+  final bool fill;
 
   @override
   State<MemberProjectsSection> createState() => _MemberProjectsSectionState();
@@ -178,21 +187,30 @@ class _MemberProjectsSectionState extends State<MemberProjectsSection> {
         if (items.isEmpty) return const SizedBox.shrink();
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisSize: MainAxisSize.min,
+          mainAxisSize: widget.fill ? MainAxisSize.max : MainAxisSize.min,
           children: <Widget>[
             Text(
               s.libraryProjects,
               style: StyleText.fontSize18Weight600.copyWith(color: AppColors.text),
             ),
             SizedBox(height: 10.h),
-            LayoutBuilder(
+            _wrapFill(LayoutBuilder(
               builder: (BuildContext context, BoxConstraints c) {
-                // TWO ON SCREEN, then scroll.
+                // TWO ON SCREEN, then scroll. In fill mode the height is
+                // given: the card is sized from it (4:3 picture) and as many
+                // as fit are shown.
                 final double gap = 12.w;
-                final double width = (c.maxWidth - gap) / 2;
+                final double label = 58.h;
+                final int n = widget.perRow ?? 2;
+                double width = (c.maxWidth - gap * (n - 1)) / n;
+                // Wide rows get a flatter picture so the row stays short.
+                double imageH = width * (n > 2 ? 0.62 : 0.75);
+                if (widget.fill && c.hasBoundedHeight && widget.perRow == null) {
+                  imageH = math.max(60, c.maxHeight - label);
+                  width = math.min(width, imageH * 4 / 3);
+                }
                 _step = width + gap;
-                final double imageH = width * 3 / 4;
-                final double height = imageH + 58.h;
+                final double height = imageH + label;
                 return SizedBox(
                   height: height,
                   child: Listener(
@@ -217,12 +235,14 @@ class _MemberProjectsSectionState extends State<MemberProjectsSection> {
                   ),
                 );
               },
-            ),
+            )),
           ],
         );
       },
     );
   }
+
+  Widget _wrapFill(Widget child) => widget.fill ? Expanded(child: child) : child;
 }
 
 class _ProjectCard extends StatelessWidget {

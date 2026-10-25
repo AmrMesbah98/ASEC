@@ -30,6 +30,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 
 import 'package:asec/features/web/core/doc.dart';
+import 'package:asec/features/web/core/seed_english.dart';
 
 abstract final class Coll {
   static const String settings = 'site_settings';
@@ -216,6 +217,8 @@ abstract final class SiteRepo {
 /// `site_settings/main`, read once and kept live for every page.
 class SiteSettings extends ValueNotifier<Doc> {
   SiteSettings._() : super(Doc.empty) {
+    // The English of the starter content, for fields not translated yet.
+    SeedEnglish.load();
     _sub = SiteRepo.settingsDoc.snapshots().listen(
       (DocumentSnapshot<Map<String, dynamic>> s) {
         value = Doc('main', s.data() ?? <String, dynamic>{});

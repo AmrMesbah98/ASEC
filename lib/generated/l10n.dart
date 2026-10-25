@@ -6398,6 +6398,18 @@ abstract class S {
   /// **'Device removed. The member can open videos on a new device now.'**
   String get accessVideoDeviceRemoved;
 
+  /// No description provided for @courseFilesLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'This course\'s files are locked'**
+  String get courseFilesLocked;
+
+  /// No description provided for @courseFilesLockedSub.
+  ///
+  /// In en, this message translates to:
+  /// **'They open once ASEC gives you this course.'**
+  String get courseFilesLockedSub;
+
   /// No description provided for @accessBlockedDevices.
   ///
   /// In en, this message translates to:

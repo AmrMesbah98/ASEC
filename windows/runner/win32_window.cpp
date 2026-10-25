@@ -197,6 +197,17 @@ Win32Window::MessageHandler(HWND hwnd,
 
       return 0;
     }
+    // MINIMUM WINDOW SIZE (same as the Mac app): 1100 x 700 at 100%
+    // scaling, grown with the screen's DPI, so the desktop layouts never have
+    // to squeeze. Fits a 1366 x 768 laptop screen.
+    case WM_GETMINMAXINFO: {
+      auto info = reinterpret_cast<MINMAXINFO*>(lparam);
+      HMONITOR monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+      double scale = FlutterDesktopGetDpiForMonitor(monitor) / 96.0;
+      info->ptMinTrackSize.x = Scale(1100, scale);
+      info->ptMinTrackSize.y = Scale(700, scale);
+      return 0;
+    }
     case WM_SIZE: {
       RECT rect = GetClientArea();
       if (child_content_ != nullptr) {

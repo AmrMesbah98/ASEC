@@ -1,6 +1,6 @@
 /// الرئيسية — the same sections, in the same order, as asecbim.com:
 /// hero video · map · counters · خدماتنا · مميزات العمل معنا · سابقة الأعمال ·
-/// شركاء النجاح · من المدونة · المدير التنفيذى · أراء العملاء.
+/// شركاء النجاح · المدير التنفيذى · أراء العملاء.
 ///
 /// Each section after the hero can be switched off in the panel
 /// (site_settings/main → show_*).
@@ -39,7 +39,8 @@ class HomePage extends StatelessWidget {
           if (s.b('show_features')) FeaturesSection(settings: s),
           if (s.b('show_projects')) ProjectsSection(settings: s, limit: 8),
           if (s.b('show_partners')) PartnersSection(settings: s),
-          if (s.b('show_blog')) BlogSection(settings: s),
+          // "من المدونة" removed from the home page (25/10/2026). The
+          // articles stay on the Blog page.
           if (s.b('show_ceo')) CeoSection(settings: s),
         ],
       ),

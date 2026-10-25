@@ -3522,10 +3522,12 @@ class SEn extends S {
   String get accessVideoDevices => 'Video devices';
 
   @override
-  String get accessVideoDevicesCaption => 'The member can sign in on any device, but videos play on one device per platform. The first device that opens Videos on a platform takes it. Remove a device to let the member pick another.';
+  String get accessVideoDevicesCaption =>
+      'The member can sign in on any device, but videos play on one device per platform. The first device that opens Videos on a platform takes it. Remove a device to let the member pick another.';
 
   @override
-  String get accessVideoDeviceEmpty => 'Not chosen yet — the first device that opens Videos takes it.';
+  String get accessVideoDeviceEmpty =>
+      'Not chosen yet — the first device that opens Videos takes it.';
 
   @override
   String accessVideoDeviceRemoveBody(String device, String platform) {
@@ -3533,7 +3535,15 @@ class SEn extends S {
   }
 
   @override
-  String get accessVideoDeviceRemoved => 'Device removed. The member can open videos on a new device now.';
+  String get accessVideoDeviceRemoved =>
+      'Device removed. The member can open videos on a new device now.';
+
+  @override
+  String get courseFilesLocked => 'This course\'s files are locked';
+
+  @override
+  String get courseFilesLockedSub =>
+      'They open once ASEC gives you this course.';
 
   @override
   String get accessBlockedDevices => 'Blocked devices';
