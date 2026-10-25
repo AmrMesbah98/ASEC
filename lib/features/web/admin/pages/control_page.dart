@@ -62,6 +62,9 @@ const List<SwitchGroup> kWebsiteSwitches = <SwitchGroup>[
         Icons.work_outline_rounded),
     Switch3('show_whatsapp_button', L('زر تواصل معانا', 'WhatsApp button'), L('الزر العائم أسفل الصفحة.', 'Floating button.'),
         Icons.chat_outlined),
+    Switch3('show_download_button', L('زر تحميل نسخة ويندوز', 'Windows download button'),
+        L('الزر المتحرك في الشريط العلوي — يحمّل آخر إصدار ويندوز.', 'The animated button in the top bar — downloads the latest Windows release.'),
+        Icons.download_rounded),
   ]),
   SwitchGroup(L('الموقع كله', 'Whole site'), <Switch3>[
     Switch3('maintenance_mode', L('وضع الصيانة', 'Maintenance mode'),

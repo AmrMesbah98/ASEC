@@ -1149,7 +1149,7 @@
   "ctlRegistration": "New sign-ups",
   "ctlRegistrationHint": "Show \"Register\" on the sign-in screen.",
   "ctlScreenProtection": "Block screenshots",
-  "ctlScreenProtectionHint": "On: screenshots and screen recordings of the app come out black (Android, iOS, macOS, Windows). Off: allowed.",
+  "ctlScreenProtectionHint": "On: screenshots and screen recordings of lesson videos come out black (Android, iOS, macOS, Windows). Off: allowed.",
   "ctlScreenshotException": "Allow screenshots for amrmesbah33@gmail.com",
   "ctlScreenshotExceptionHint": "On: this account can take screenshots and screen recordings even while they are blocked for everyone else. Off: blocked like everyone.",
   "shotAllowedTitle": "Screenshots are allowed",

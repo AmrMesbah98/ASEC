@@ -3,7 +3,7 @@
 ///*************************** FILE INFO ****************************///
 /// File Name: fire_gas.dart
 /// Purpose: Clean-agent fire suppression — FM-200 (Kidde pre-engineered
-///          systems) and CO₂ (dry electrical hazards).
+///          systems).
 /// Author: ASEC team
 /// Created: 22/10/2026
 ///
@@ -19,11 +19,8 @@
 ///          cylinder is "not available" (the original left the previous
 ///          table on screen), and its 4-nozzle row for the 20 lb cylinder
 ///          — a copy of the 200 lb row — is dropped.
-/// CO₂:     W = V × 1.6 kg/m³ below 56 m³, else V × 1.33 kg/m³;
-///          45 kg cylinders.
+/// CO₂, Novec and aerosol: clean_agents.dart (25/10/2026).
 library;
-
-import 'dart:math' as math;
 
 // ── FM-200 ────────────────────────────────────────────────────────────────
 
@@ -167,46 +164,6 @@ class Fm200 {
       agentWeight: w,
       takeWeight: take,
       cylinder: cyl,
-    );
-  }
-}
-
-// ── CO₂ ───────────────────────────────────────────────────────────────────
-
-class Co2Result {
-  const Co2Result({
-    required this.volume,
-    required this.factor,
-    required this.weight,
-    required this.cylinders,
-  });
-
-  /// m³
-  final double volume;
-
-  /// kg/m³
-  final double factor;
-
-  /// kg
-  final double weight;
-  final int cylinders;
-}
-
-class Co2 {
-  const Co2._();
-
-  static const double cylinderKg = 45;
-  static const double smallRoomLimitM3 = 56;
-
-  static Co2Result calculate({required double areaM2, required double heightM}) {
-    final double v = areaM2 * heightM;
-    final double factor = v < smallRoomLimitM3 ? 1.6 : 1.33;
-    final double w = v * factor;
-    return Co2Result(
-      volume: v,
-      factor: factor,
-      weight: w,
-      cylinders: math.max(1, (w / cylinderKg).ceil()),
     );
   }
 }

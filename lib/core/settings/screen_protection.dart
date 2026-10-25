@@ -27,6 +27,13 @@
 /// member may take screenshots), an admin gets a warning in the centre of
 /// the screen every minute. The super admin can block again from it.
 ///
+/// VIDEO ONLY (25/10/2026): the block is applied only while a lesson video
+/// is on screen. VideoPlayerPage calls [enterVideo] in initState and
+/// [leaveVideo] in dispose; the rest of the app can be captured freely.
+/// The Control centre switch still decides whether videos are protected.
+/// Native code still STARTS protected; the first [apply] (from [start])
+/// lifts it at once because no video is open yet.
+///
 /// SCREEN CAPTURE ALERTS: the native side calls back on the same channel,
 /// `captured("screenshot" | "recording")` — iOS (screenshot + recording /
 /// mirroring), Android 14+ (screenshot) and 15+ (recording). Each is saved
@@ -51,6 +58,24 @@ abstract final class ScreenProtection {
   static const MethodChannel _channel = MethodChannel('asec/screen_protection');
 
   static bool? _applied;
+
+  /// How many video screens are open (a lesson can open the next one on
+  /// top). The block is on only while this is above zero.
+  static int _videoScreens = 0;
+
+  static bool get isVideoOpen => _videoScreens > 0;
+
+  /// A lesson video came on screen: block capture (if the switch is on).
+  static void enterVideo() {
+    _videoScreens++;
+    apply(_shouldBlock());
+  }
+
+  /// A lesson video left the screen: lift the block once none are open.
+  static void leaveVideo() {
+    if (_videoScreens > 0) _videoScreens--;
+    apply(_shouldBlock());
+  }
 
   /// Admin reminder: fires every minute while screenshots are allowed.
   static Timer? _reminder;
@@ -115,6 +140,7 @@ abstract final class ScreenProtection {
   /// The global block, unless the signed-in account is the allowed one and
   /// its exception switch is on.
   static bool _shouldBlock() {
+    if (!isVideoOpen) return false; // video only
     final AppFeatures features = AppFeatures.to;
     if (!features.isOn(AppFeature.screenProtection)) return false;
     if (!features.isOn(AppFeature.screenshotException)) return true;
@@ -125,6 +151,8 @@ abstract final class ScreenProtection {
 
   static Future<void> _onNative(MethodCall call) async {
     if (call.method != 'captured') return;
+    // Capture is only blocked on videos, so only alert from there.
+    if (!isVideoOpen) return;
     final String type = '${call.arguments}';
     final DateTime now = DateTime.now();
     final DateTime? last = _lastAlert[type];

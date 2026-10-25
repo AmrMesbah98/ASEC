@@ -18,6 +18,7 @@ import 'package:asec/features/web/core/theme.dart';
 import 'package:asec/features/web/core/widgets.dart';
 import 'package:asec/features/web/data/site_repo.dart';
 import 'package:asec/features/web/site/site_nav.dart';
+import 'package:asec/features/web/site/widgets/download_button.dart';
 import 'package:asec/features/web/site/widgets/motion.dart';
 
 class NavItem {
@@ -195,6 +196,14 @@ class _Header extends StatelessWidget {
                 )
               else
                 const Spacer(),
+              // Animated "Download for Windows" (latest GitHub release).
+              if (!context.isMobile && settings.b('show_download_button')) ...<Widget>[
+                DownloadAppButton(
+                  overrideUrl: settings.s('windows_download_url'),
+                  showVersion: MediaQuery.sizeOf(context).width >= 1320,
+                ),
+                const SizedBox(width: 12),
+              ],
               if (!context.isMobile || desktop)
                 ElevatedButton(
                   onPressed: () => openLink(telLink(settings.s('phone', '+201093460618'))),
@@ -464,6 +473,14 @@ class _MobileMenu extends StatelessWidget {
           padding: const EdgeInsets.all(12),
           children: <Widget>[
             const Padding(padding: EdgeInsets.all(12), child: _Logo(size: 70)),
+            if (context.isMobile && SiteSettings.instance.value.b('show_download_button'))
+              Padding(
+                padding: const EdgeInsets.fromLTRB(4, 0, 4, 12),
+                child: DownloadAppButton(
+                  overrideUrl: SiteSettings.instance.value.s('windows_download_url'),
+                  fullWidth: true,
+                ),
+              ),
             for (final NavItem n in kNav)
               if (n.children.isEmpty)
                 ListTile(

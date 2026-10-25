@@ -2,16 +2,20 @@
 ///
 ///*************************** FILE INFO ****************************///
 /// File Name: co2_tab.dart
-/// Purpose: CO₂ tab — room area and height in; room volume, CO₂ weight
-///          and number of 45 kg cylinders out.
+/// Purpose: CO₂ tab — enclosure and the band coefficients in; CO₂ weight
+///          and number of cylinders out. Concept estimate only.
 /// Author: ASEC team
 /// Created: 22/10/2026
+/// Updated: 25/10/2026 - Back in the Fire fighting calculator. Uses the
+///          ASEC gas calculator workbook: the first 56.5 m³ at 1.6 kg/m³,
+///          the rest at 1.33 kg/m³, every value editable.
 library;
 
 import 'package:flutter/material.dart';
 
 import 'package:asec/features/tools/t3_duct_calc/presentation/ui/widgets/duct_fields.dart';
-import 'package:asec/features/tools/t5_plumbing_fire/domain/fire_gas.dart';
+import 'package:asec/features/tools/t5_plumbing_fire/domain/clean_agents.dart';
+import 'package:asec/features/tools/t5_plumbing_fire/presentation/ui/widgets/agent_fields.dart';
 
 class Co2Tab extends StatefulWidget {
   const Co2Tab({super.key});
@@ -20,48 +24,54 @@ class Co2Tab extends StatefulWidget {
   State<Co2Tab> createState() => _Co2TabState();
 }
 
-class _Co2TabState extends State<Co2Tab> {
-  final TextEditingController _area = TextEditingController(text: '50');
-  final TextEditingController _height = TextEditingController(text: '3');
-
-  @override
-  void dispose() {
-    _area.dispose();
-    _height.dispose();
-    super.dispose();
-  }
-
+class _Co2TabState extends AgentTabState<Co2Tab> {
   @override
   Widget build(BuildContext context) {
-    final double? a = parseNumber(_area.text);
-    final double? h = parseNumber(_height.text);
-    final Co2Result? r = (a == null || h == null || a <= 0 || h <= 0)
+    final double? v = netVolumeFromFields();
+    final Co2BandResult? r = v == null
         ? null
-        : Co2.calculate(areaM2: a, heightM: h);
-    void changed(String _) => setState(() {});
+        : Co2Band.calculate(
+            volume: v,
+            firstBandM3: value('band') ?? Co2Band.firstBandM3,
+            firstCoefficient: value('c1') ?? Co2Band.firstCoefficient,
+            excessCoefficient: value('c2') ?? Co2Band.excessCoefficient,
+            allowancePct: value('allow') ?? 0,
+            cylinderKg: value('fill') ?? 0,
+          );
 
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: 16),
       children: <Widget>[
+        const AgentHeading('Enclosure'),
+        ResponsiveFields(children: enclosureFields()),
+        const SizedBox(height: 8),
+        const AgentHeading('Preliminary inputs'),
         ResponsiveFields(
           children: <Widget>[
-            NumberField(controller: _area, label: 'Room area', unit: 'm²', onChanged: changed),
-            NumberField(controller: _height, label: 'Room height', unit: 'm', onChanged: changed),
+            number('band', Co2Band.firstBandM3, 'First volume band', 'm³'),
+            number('c1', Co2Band.firstCoefficient, 'First band coefficient', 'kg/m³'),
+            number('c2', Co2Band.excessCoefficient, 'Excess band coefficient', 'kg/m³'),
+            number('allow', Co2Band.allowancePct, 'Allowance', '%'),
+            number('fill', Co2Band.cylinderKg, 'Cylinder fill', 'kg'),
           ],
         ),
         const SizedBox(height: 16),
         if (r == null)
-          const Text('Enter the room area and height.')
+          const Text('Enter the room length, width and height.')
         else
           ResultTable(
             items: <ResultItem>[
-              ResultItem('Room volume (V)', fmt(r.volume, 2), 'm³'),
-              ResultItem('Flooding factor', fmt(r.factor, 2), 'kg/m³'),
-              ResultItem('Total weight of CO₂ required', fmt(r.weight, 1), 'kg'),
-              ResultItem('Weight of one cylinder', fmt(Co2.cylinderKg, 0), 'kg'),
-              ResultItem('Number of cylinders required', '${r.cylinders}'),
+              ResultItem('Net protected volume', fmt(r.volume, 2), 'm³'),
+              ResultItem('First-band volume', fmt(r.firstBandVolume, 2), 'm³'),
+              ResultItem('Excess volume', fmt(r.excessVolume, 2), 'm³'),
+              ResultItem('Total weight of CO₂', fmt(r.weight, 1), 'kg'),
+              ResultItem('Indicative cylinder count', '${r.cylinders}'),
             ],
           ),
+        const PreliminaryNote(
+          'Concept estimate only, NOT an NFPA 12 design. CO₂ total flooding must be engineered for the '
+          'hazard type, openings, temperature, retention, exposure and life safety.',
+        ),
       ],
     );
   }

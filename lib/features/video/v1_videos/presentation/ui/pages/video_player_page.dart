@@ -46,6 +46,7 @@ import 'package:asec/core/animation/app_animations.dart';
 import 'package:asec/core/settings/app_connectivity.dart';
 import 'package:asec/core/settings/app_features.dart';
 import 'package:asec/core/settings/app_integrity.dart';
+import 'package:asec/core/settings/screen_protection.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
 import 'package:asec/core/custom/114-app_messenger.dart';
 
@@ -112,6 +113,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage>
   @override
   void initState() {
     super.initState();
+    ScreenProtection.enterVideo(); // block screenshots on videos only
     WidgetsBinding.instance.addObserver(this);
     // The app is only HIDDEN when it goes offline or the device fails the
     // security check — stop the lesson so it does not play on behind it.
@@ -365,6 +367,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage>
 
   @override
   void dispose() {
+    ScreenProtection.leaveVideo();
     WidgetsBinding.instance.removeObserver(this);
     _video?.pause();
     _savePosition();

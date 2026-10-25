@@ -683,7 +683,7 @@
   "ctlRegistration": "التسجيل الجديد",
   "ctlRegistrationHint": "إظهار \"تسجيل\" في شاشة الدخول.",
   "ctlScreenProtection": "منع لقطات الشاشة",
-  "ctlScreenProtectionHint": "تشغيل: لقطات الشاشة وتسجيل الشاشة للتطبيق تظهر سوداء (أندرويد، iOS، ماك، ويندوز). إيقاف: مسموح.",
+  "ctlScreenProtectionHint": "تشغيل: لقطات الشاشة وتسجيل الشاشة لفيديوهات الدروس تظهر سوداء (أندرويد، iOS، ماك، ويندوز). إيقاف: مسموح.",
   "ctlScreenshotException": "السماح بلقطات الشاشة لـ amrmesbah33@gmail.com",
   "ctlScreenshotExceptionHint": "تشغيل: هذا الحساب يمكنه أخذ لقطات وتسجيل الشاشة حتى لو كانت ممنوعة على الجميع. إيقاف: ممنوع مثل الجميع.",
   "shotAllowedTitle": "لقطات الشاشة مسموحة",

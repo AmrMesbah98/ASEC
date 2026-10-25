@@ -1,0 +1,77 @@
+name: Windows Release
+
+# Builds the ASEC Windows app (same setup as services_module):
+#  - push a tag that starts with "v" (e.g. v1.0.3) -> builds and attaches
+#    ASEC-windows.zip to a GitHub release named after the tag. The name is
+#    FIXED on purpose: the website's "Download for Windows" button
+#    (lib/features/web/site/widgets/download_button.dart) looks for it on
+#    the latest release.
+#  - Actions tab -> "Windows Release" -> "Run workflow" -> builds only; the
+#    zip is under the run's Artifacts (kept 7 days)
+#
+#   git tag v1.0.3
+#   git push origin v1.0.3
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# A newer run for the same tag / branch cancels the older one.
+concurrency:
+  group: windows-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-windows:
+    name: Build Windows Release
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Build Windows release
+        env:
+          # MSVC 14.51 (VS 18.6+) turns <experimental/coroutine> into a hard
+          # error; some Windows plugins still include it.
+          CXXFLAGS: /D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS
+          # The Firebase C++ SDK's CMakeLists.txt still declares
+          # cmake_minimum_required(VERSION 3.1), which CMake 4.x rejects.
+          CMAKE_POLICY_VERSION_MINIMUM: "3.5"
+        run: flutter build windows --release
+
+      - name: Create release archive
+        id: zip
+        shell: pwsh
+        run: |
+          $archive = "ASEC-windows.zip"
+          if (Test-Path $archive) { Remove-Item $archive }
+          Compress-Archive -Path "build/windows/x64/runner/Release\*" -DestinationPath $archive
+          "archive=$archive" >> $env:GITHUB_OUTPUT
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: asec-windows-${{ github.ref_name }}
+          path: ${{ steps.zip.outputs.archive }}
+          retention-days: 7
+          compression-level: 0
+
+      - name: Attach to GitHub release
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.zip.outputs.archive }}

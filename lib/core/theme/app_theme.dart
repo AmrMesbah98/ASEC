@@ -25,7 +25,11 @@ import './app_font_weights.dart';
 abstract class AppTheme {
   static bool isDark = false;
 
-  static final ThemeData lightTheme = ThemeData.light().copyWith(
+  // Getters, not `static final`: a final is built ONCE with whichever palette
+  // is current at first read (dark, if the app opens in dark mode), so the
+  // light theme kept white `onSurface` and every IconButton / ListTile icon
+  // vanished after switching to light. A getter rebuilds with live colours.
+  static ThemeData get lightTheme => ThemeData.light().copyWith(
     textTheme: TextTheme(
 
       headlineMedium: StyleText.fontSize20Weight500,
@@ -118,7 +122,7 @@ abstract class AppTheme {
     ),
   );
 
-  static final ThemeData darkTheme = ThemeData.dark().copyWith(
+  static ThemeData get darkTheme => ThemeData.dark().copyWith(
     primaryColor: AppColors.primary,
     textTheme: TextTheme(
       headlineMedium: StyleText.fontSize20Weight500,
