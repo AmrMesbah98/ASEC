@@ -10,7 +10,8 @@
 ///
 /// WHERE THE FILE COMES FROM: every `v*` tag builds the Windows app on
 /// GitHub Actions (.github/workflows/windows-release.yml) and attaches
-/// `ASEC-windows.zip` to that tag's release. [WindowsRelease] asks the
+/// `ASEC-Setup.exe` (the installer) and `ASEC-windows.zip` (portable) to
+/// that tag's release; the button offers the installer, else the zip. [WindowsRelease] asks the
 /// GitHub API for the LATEST release once per visit, so the button always
 /// offers the newest version and shows its tag ("v1.0.3"). The panel can
 /// override the link (Site settings → Downloads) and hide the button
@@ -44,7 +45,10 @@ import 'package:asec/features/web/core/theme.dart';
 /// The GitHub repository the Windows build is released from.
 const String kReleaseRepo = 'AmrMesbah82/asec-app';
 
-/// The file the workflow attaches to every release.
+/// The installer the workflow attaches to every release (preferred).
+const String kWindowsSetupName = 'ASEC-Setup.exe';
+
+/// The portable zip attached beside it (fallback).
 const String kWindowsAssetName = 'ASEC-windows.zip';
 
 class WindowsReleaseInfo {
@@ -53,7 +57,7 @@ class WindowsReleaseInfo {
   /// The release tag, e.g. "v1.0.3".
   final String version;
 
-  /// Direct download link of the zip.
+  /// Direct download link of the installer (or the zip).
   final String url;
 }
 
@@ -76,6 +80,7 @@ abstract final class WindowsRelease {
       );
       if (res.statusCode != 200) return; // 404 = no release yet
       final Map<String, dynamic> json = jsonDecode(res.body) as Map<String, dynamic>;
+      String? setup;
       String? exact;
       String? anyZip;
       for (final Object? a in (json['assets'] as List<dynamic>?) ?? const <dynamic>[]) {
@@ -83,10 +88,11 @@ abstract final class WindowsRelease {
         final String name = '${a['name'] ?? ''}';
         final String link = '${a['browser_download_url'] ?? ''}';
         if (link.isEmpty) continue;
+        if (name == kWindowsSetupName) setup = link;
         if (name == kWindowsAssetName) exact = link;
         if (name.toLowerCase().endsWith('.zip')) anyZip ??= link;
       }
-      final String? url = exact ?? anyZip;
+      final String? url = setup ?? exact ?? anyZip;
       if (url == null) return;
       latest.value = WindowsReleaseInfo(version: '${json['tag_name'] ?? ''}', url: url);
     } catch (_) {

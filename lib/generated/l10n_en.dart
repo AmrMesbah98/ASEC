@@ -2312,7 +2312,7 @@ class SEn extends S {
 
   @override
   String get ctlScreenProtectionHint =>
-      'On: screenshots and screen recordings of the app come out black (Android, iOS, macOS, Windows). Off: allowed.';
+      'On: screenshots and screen recordings of lesson videos come out black (Android, iOS, macOS, Windows). Off: allowed.';
 
   @override
   String get ctlScreenshotException =>

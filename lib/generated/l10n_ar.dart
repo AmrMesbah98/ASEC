@@ -2265,7 +2265,7 @@ class SAr extends S {
 
   @override
   String get ctlScreenProtectionHint =>
-      'تشغيل: لقطات الشاشة وتسجيل الشاشة للتطبيق تظهر سوداء (أندرويد، iOS، ماك، ويندوز). إيقاف: مسموح.';
+      'تشغيل: لقطات الشاشة وتسجيل الشاشة لفيديوهات الدروس تظهر سوداء (أندرويد، iOS، ماك، ويندوز). إيقاف: مسموح.';
 
   @override
   String get ctlScreenshotException =>

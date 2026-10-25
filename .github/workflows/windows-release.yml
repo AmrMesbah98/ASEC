@@ -2,10 +2,12 @@ name: Windows Release
 
 # Builds the ASEC Windows app (same setup as services_module):
 #  - push a tag that starts with "v" (e.g. v1.0.3) -> builds and attaches
-#    ASEC-windows.zip to a GitHub release named after the tag. The name is
-#    FIXED on purpose: the website's "Download for Windows" button
-#    (lib/features/web/site/widgets/download_button.dart) looks for it on
-#    the latest release.
+#    to a GitHub release named after the tag:
+#      ASEC-Setup.exe   — the installer (windows/installer/asec_setup.iss)
+#      ASEC-windows.zip — the same app as a portable folder
+#    The names are FIXED on purpose: the website's "Download for Windows"
+#    button (lib/features/web/site/widgets/download_button.dart) looks for
+#    them on the latest release (the installer first).
 #  - Actions tab -> "Windows Release" -> "Run workflow" -> builds only; the
 #    zip is under the run's Artifacts (kept 7 days)
 #
@@ -53,20 +55,45 @@ jobs:
           CMAKE_POLICY_VERSION_MINIMUM: "3.5"
         run: flutter build windows --release
 
-      - name: Create release archive
-        id: zip
+      # A clean Windows PC may not have the Visual C++ runtime the app
+      # needs; ship its DLLs next to ASEC.exe so it starts everywhere.
+      - name: Bundle Visual C++ runtime
         shell: pwsh
         run: |
-          $archive = "ASEC-windows.zip"
-          if (Test-Path $archive) { Remove-Item $archive }
-          Compress-Archive -Path "build/windows/x64/runner/Release\*" -DestinationPath $archive
-          "archive=$archive" >> $env:GITHUB_OUTPUT
+          $dest = "build/windows/x64/runner/Release"
+          foreach ($dll in "msvcp140.dll", "vcruntime140.dll", "vcruntime140_1.dll") {
+            Copy-Item "$env:WINDIR\System32\$dll" $dest -Force
+          }
+
+      - name: Create portable zip
+        shell: pwsh
+        run: |
+          if (Test-Path "ASEC-windows.zip") { Remove-Item "ASEC-windows.zip" }
+          Compress-Archive -Path "build/windows/x64/runner/Release\*" -DestinationPath "ASEC-windows.zip"
+
+      - name: Build installer (ASEC-Setup.exe)
+        shell: pwsh
+        run: |
+          # Version: the tag without "v" (v1.0.3 -> 1.0.3), else pubspec.yaml.
+          if ("${{ github.ref_type }}" -eq "tag") {
+            $version = "${{ github.ref_name }}".TrimStart("v")
+          } else {
+            $version = ((Select-String -Path pubspec.yaml -Pattern '^version:\s*([^+\s]+)').Matches[0].Groups[1].Value)
+          }
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            choco install innosetup -y --no-progress
+          }
+          & $iscc "/DAppVersion=$version" "/DSourceDir=$PWD\build\windows\x64\runner\Release" "/DOutputDir=$PWD" "windows\installer\asec_setup.iss"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: asec-windows-${{ github.ref_name }}
-          path: ${{ steps.zip.outputs.archive }}
+          path: |
+            ASEC-Setup.exe
+            ASEC-windows.zip
           retention-days: 7
           compression-level: 0
 
@@ -74,4 +101,6 @@ jobs:
         if: github.ref_type == 'tag'
         uses: softprops/action-gh-release@v2
         with:
-          files: ${{ steps.zip.outputs.archive }}
+          files: |
+            ASEC-Setup.exe
+            ASEC-windows.zip
