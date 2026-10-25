@@ -149,8 +149,15 @@ class AsecApp extends StatelessWidget {
             builder: (BuildContext context, Widget? widget) => Directionality(
               textDirection:
                   language == 'ar' ? TextDirection.rtl : TextDirection.ltr,
-              child: AppIntegrity.gate(
-                AppConnectivity.gate(widget ?? const SizedBox.shrink()),
+              // TAP OUTSIDE = KEYBOARD AWAY. A tap on empty space anywhere
+              // (converter, calculators, forms) closes the keyboard. Buttons
+              // and fields still get their own taps first.
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+                child: AppIntegrity.gate(
+                  AppConnectivity.gate(widget ?? const SizedBox.shrink()),
+                ),
               ),
             ),
             home: const SplashScreen(),
