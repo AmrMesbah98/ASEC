@@ -102,6 +102,17 @@ service cloud.firestore {
       return isStaff();
     }
 
+    // Exactly one new platform key in `video_devices`, nothing else touched.
+    function claimsVideoSlot() {
+      let d = request.resource.data.get('video_devices', {})
+        .diff(resource.data.get('video_devices', {}));
+      return onlyChanged(['video_devices'])
+        && d.removedKeys().size() == 0
+        && d.changedKeys().size() == 0
+        && d.addedKeys().size() == 1
+        && d.addedKeys().hasOnly(['android', 'ios', 'windows', 'macos', 'web']);
+    }
+
     function isSelf(uid) {
       return signedIn() && request.auth.uid == uid;
     }
@@ -204,20 +215,27 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data)
              .affectedKeys().hasOnly(['device_id', 'device_name', 'device_bound_at']);
 
+      // ONE VIDEO DEVICE PER PLATFORM: signing in works on any device, but
+      // videos play on one device per platform. The app ADDS this
+      // platform's slot the first time Videos opens on a platform that has
+      // none — it can never change or remove a slot that is set. Freeing
+      // one is the admin's (Members → Reset device, rule below).
+      allow update: if isSelf(uid) && claimsVideoSlot();
+
       // An admin may change these fields of a MEMBER — each group needs its
       // own action. Nothing else: not the role, not the email, and never
       // another admin.
       //   active                         Members → Activate / block
       //   can_create_cv                  CVs → Give CV rights
       //   courses, period, pause, calcs  Members → Edit access
-      //   device_*                       Members → Reset device
+      //   device_*, video_devices        Members → Reset device
       allow update: if (can('members') || can('cvs'))
         && resource.data.role == 'user'
         && onlyChanged([
                'active', 'can_create_cv', 'can_use_calcs', 'updated_at',
                'courses_all', 'courses', 'platforms', 'course_access',
                'access_from', 'access_until', 'paused_at',
-               'device_id', 'device_name', 'device_bound_at'
+               'device_id', 'device_name', 'device_bound_at', 'video_devices'
              ])
         && (!changed('active') || canDo('members', 'block'))
         && (!changed('can_create_cv') || canDo('cvs', 'grant'))
@@ -226,7 +244,7 @@ service cloud.firestore {
                'access_from', 'access_until', 'paused_at'])
             || canDo('members', 'access'))
         && (!request.resource.data.diff(resource.data).affectedKeys().hasAny([
-               'device_id', 'device_name', 'device_bound_at'])
+               'device_id', 'device_name', 'device_bound_at', 'video_devices'])
             || canDo('members', 'device'));
 
       // The super admin creates admins and manages them: role 'admin',

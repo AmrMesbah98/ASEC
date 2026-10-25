@@ -3511,6 +3511,31 @@ class SEn extends S {
   String get accessDeviceUnblocked => 'Device unblocked.';
 
   @override
+  String get videoLockTitle => 'Videos are on another device';
+
+  @override
+  String videoLockBody(String platform, String device) {
+    return 'On $platform, your videos play only on $device. The rest of the app works here as usual. To watch on this device instead, ask the admin to remove that device.';
+  }
+
+  @override
+  String get accessVideoDevices => 'Video devices';
+
+  @override
+  String get accessVideoDevicesCaption => 'The member can sign in on any device, but videos play on one device per platform. The first device that opens Videos on a platform takes it. Remove a device to let the member pick another.';
+
+  @override
+  String get accessVideoDeviceEmpty => 'Not chosen yet — the first device that opens Videos takes it.';
+
+  @override
+  String accessVideoDeviceRemoveBody(String device, String platform) {
+    return 'Videos stop playing on $device. The next $platform device that opens Videos takes its place.';
+  }
+
+  @override
+  String get accessVideoDeviceRemoved => 'Device removed. The member can open videos on a new device now.';
+
+  @override
   String get accessBlockedDevices => 'Blocked devices';
 
   @override

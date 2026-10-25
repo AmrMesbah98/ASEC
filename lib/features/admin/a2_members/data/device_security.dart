@@ -28,6 +28,7 @@ import 'package:asec/features/onboarding/o2_authentication/data/device/device_id
 import 'package:asec/features/onboarding/o2_authentication/data/models/user_model.dart';
 import 'package:asec/features/onboarding/o2_authentication/domain/entities/app_user.dart';
 import 'package:asec/features/onboarding/o2_authentication/domain/entities/member_access.dart';
+import 'package:asec/features/video/v1_videos/data/device/video_device_lock.dart';
 
 class BlockedDevice {
   const BlockedDevice({
@@ -64,6 +65,28 @@ abstract final class DeviceBlocks {
       UserModel.deviceId: '',
       UserModel.deviceName: '',
       UserModel.deviceBoundAt: null,
+      FirebaseCollections.updatedAtField: FieldValue.serverTimestamp(),
+    });
+    await b.commit();
+  }
+
+  /// Blocks the device holding [member]'s [platform] video slot and frees
+  /// that slot, so the next device of that platform can take it.
+  static Future<void> blockVideoDevice(
+    AppUser member,
+    String platform,
+    VideoDevice device,
+  ) async {
+    final WriteBatch b = AppFirebase.db.batch();
+    b.set(_col.doc(device.id), <String, dynamic>{
+      'device_name': device.name,
+      'uid': member.uid,
+      'member_name': member.displayName,
+      'blocked_by': AppFirebase.uid ?? '',
+      'blocked_at': FieldValue.serverTimestamp(),
+    });
+    b.update(AppFirebase.db.collection(FirebaseCollections.users).doc(member.uid), <String, dynamic>{
+      '${VideoDeviceLock.field}.$platform': FieldValue.delete(),
       FirebaseCollections.updatedAtField: FieldValue.serverTimestamp(),
     });
     await b.commit();

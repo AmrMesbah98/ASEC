@@ -53,6 +53,13 @@ abstract final class AppFirebase {
         options: DefaultFirebaseOptions.currentPlatform,
       );
 
+      // AUTH BEFORE FIRESTORE. On Windows (and Linux) Firebase runs on the
+      // C++ SDK, where Firestore only picks up the signed-in user's token if
+      // the Auth instance already exists when Firestore is created. Touching
+      // `db` first leaves every request unauthenticated (`request.auth ==
+      // null`), so the rules refuse even a member reading their own profile.
+      auth;
+
       // Bounded offline cache — a classroom tablet left on for a term should
       // not grow its cache without limit.
       db.settings = const Settings(

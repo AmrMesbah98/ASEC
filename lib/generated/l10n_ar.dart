@@ -3453,6 +3453,31 @@ class SAr extends S {
   String get accessDeviceUnblocked => 'تم إلغاء حظر الجهاز.';
 
   @override
+  String get videoLockTitle => 'الفيديوهات مفعّلة على جهاز آخر';
+
+  @override
+  String videoLockBody(String platform, String device) {
+    return 'على $platform تعمل فيديوهاتك على $device فقط، وباقي التطبيق يعمل هنا بشكل طبيعي. لمشاهدة الفيديوهات على هذا الجهاز اطلب من الإدارة إزالة ذلك الجهاز.';
+  }
+
+  @override
+  String get accessVideoDevices => 'أجهزة الفيديو';
+
+  @override
+  String get accessVideoDevicesCaption => 'يستطيع العضو تسجيل الدخول من أي جهاز، لكن الفيديوهات تعمل على جهاز واحد لكل منصة. أول جهاز يفتح الفيديوهات على المنصة يأخذها. أزل الجهاز ليختار العضو جهازًا آخر.';
+
+  @override
+  String get accessVideoDeviceEmpty => 'لم يُحدَّد بعد — أول جهاز يفتح الفيديوهات يأخذه.';
+
+  @override
+  String accessVideoDeviceRemoveBody(String device, String platform) {
+    return 'ستتوقف الفيديوهات على $device، وأول جهاز $platform يفتح الفيديوهات بعدها يأخذ مكانه.';
+  }
+
+  @override
+  String get accessVideoDeviceRemoved => 'تمت إزالة الجهاز. يمكن للعضو الآن فتح الفيديوهات على جهاز جديد.';
+
+  @override
   String get accessBlockedDevices => 'الأجهزة المحظورة';
 
   @override

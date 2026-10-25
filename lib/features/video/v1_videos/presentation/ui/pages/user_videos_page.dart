@@ -29,6 +29,7 @@ import 'package:asec/features/video/v1_videos/domain/entities/video_item.dart';
 import 'package:asec/features/video/v1_videos/presentation/ui/pages/video_player_page.dart';
 import 'package:asec/features/video/v1_videos/data/download/video_downloads.dart';
 import 'package:asec/features/video/v1_videos/presentation/ui/widgets/video_categories.dart';
+import 'package:asec/features/video/v1_videos/presentation/ui/widgets/video_device_gate.dart';
 import 'package:asec/features/video/v1_videos/presentation/ui/widgets/video_download_button.dart';
 import 'package:asec/features/video/v1_videos/presentation/ui/widgets/video_grid.dart';
 import 'package:asec/features/video/v1_videos/presentation/ui/widgets/video_watch_store.dart';
@@ -53,14 +54,24 @@ import 'package:asec/core/custom/114-app_messenger.dart';
 /// files the admin put in this course.
 enum _VideoFilter { files, all, continueWatching }
 
-class UserVideosPage extends StatefulWidget {
+/// The Videos tab opens only on the device that holds this platform's video
+/// slot (VideoDeviceGate). Every other tab works on any device.
+class UserVideosPage extends StatelessWidget {
   const UserVideosPage({super.key});
 
   @override
-  State<UserVideosPage> createState() => _UserVideosPageState();
+  Widget build(BuildContext context) =>
+      const VideoDeviceGate(child: _UserVideosView());
 }
 
-class _UserVideosPageState extends State<UserVideosPage> {
+class _UserVideosView extends StatefulWidget {
+  const _UserVideosView();
+
+  @override
+  State<_UserVideosView> createState() => _UserVideosPageState();
+}
+
+class _UserVideosPageState extends State<_UserVideosView> {
   // What this member may play (firestore.rules checks it too), and the
   // link-free catalog of EVERY lesson — the courses they were not given
   // show too, locked.

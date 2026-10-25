@@ -38,6 +38,7 @@ import 'package:asec/features/video/v1_videos/data/download/video_file.dart';
 import 'package:asec/features/video/v1_videos/domain/entities/video_item.dart';
 import 'package:asec/features/video/v1_videos/domain/entities/video_link.dart';
 import 'package:asec/features/video/v1_videos/presentation/ui/widgets/video_card.dart';
+import 'package:asec/features/video/v1_videos/presentation/ui/widgets/video_device_gate.dart';
 import 'package:asec/features/video/v1_videos/presentation/ui/widgets/video_loading_view.dart';
 import 'package:asec/features/video/v1_videos/presentation/ui/widgets/video_watch_store.dart';
 import 'package:asec/features/onboarding/o2_authentication/presentation/controller/session_controller.dart';
@@ -50,8 +51,34 @@ import 'package:asec/core/settings/screen_protection.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
 import 'package:asec/core/custom/114-app_messenger.dart';
 
-class VideoPlayerPage extends StatefulWidget {
+/// ONE VIDEO DEVICE PER PLATFORM: a member's lesson plays only on the
+/// device that holds this platform's video slot (VideoDeviceGate). The
+/// player itself is not even built anywhere else, so nothing starts loading.
+class VideoPlayerPage extends StatelessWidget {
   const VideoPlayerPage({
+    super.key,
+    required this.video,
+    this.playlist = const <VideoItem>[],
+    this.sequential = false,
+  });
+
+  final VideoItem video;
+  final List<VideoItem> playlist;
+  final bool sequential;
+
+  @override
+  Widget build(BuildContext context) => VideoDeviceGate(
+        fullPage: true,
+        child: _VideoPlayerView(
+          video: video,
+          playlist: playlist,
+          sequential: sequential,
+        ),
+      );
+}
+
+class _VideoPlayerView extends StatefulWidget {
+  const _VideoPlayerView({
     super.key,
     required this.video,
     this.playlist = const <VideoItem>[],
@@ -69,10 +96,10 @@ class VideoPlayerPage extends StatefulWidget {
   final List<VideoItem> playlist;
 
   @override
-  State<VideoPlayerPage> createState() => _VideoPlayerPageState();
+  State<_VideoPlayerView> createState() => _VideoPlayerPageState();
 }
 
-class _VideoPlayerPageState extends State<VideoPlayerPage>
+class _VideoPlayerPageState extends State<_VideoPlayerView>
     with WidgetsBindingObserver {
   static const List<double> _speeds = <double>[0.5, 0.75, 1, 1.25, 1.5, 2];
 

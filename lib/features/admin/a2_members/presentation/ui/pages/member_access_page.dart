@@ -38,6 +38,7 @@ import 'package:asec/features/onboarding/o2_authentication/domain/entities/app_u
 import 'package:asec/features/onboarding/o2_authentication/domain/entities/member_access.dart';
 import 'package:asec/features/onboarding/o2_authentication/domain/entities/course_access.dart';
 import 'package:asec/features/quiz/q1_quizzes/presentation/ui/widgets/date_time_field.dart';
+import 'package:asec/features/video/v1_videos/data/device/video_device_lock.dart';
 import 'package:asec/features/video/v1_videos/data/repository/video_repository.dart';
 import 'package:asec/features/video/v1_videos/domain/entities/video_item.dart';
 import 'package:asec/features/onboarding/o2_authentication/presentation/controller/session_controller.dart';
@@ -114,21 +115,27 @@ class _MemberAccessPageState extends State<MemberAccessPage> {
   late final Stream<List<BlockedDevice>> _blockedDevices =
       DeviceBlocks.watchForMember(widget.member.uid);
 
+  late final Stream<Map<String, VideoDevice>> _videoDevices =
+      VideoDeviceLock.watch(widget.member.uid);
+
+  String _deviceLabel(S s, VideoDevice d) =>
+      d.name.isEmpty ? s.accessDeviceUnknown : d.name;
+
   /// BLOCK, not just remove: the device goes on the blocked list (whoever
-  /// signs in on it sees "This device is blocked") and the member's device
-  /// slot is freed, so they can still use the app on another device.
-  Future<void> _blockDevice(AppUser live) async {
+  /// signs in on it sees "This device is blocked") and its video slot is
+  /// freed, so the member can watch on another device of that platform.
+  Future<void> _blockVideoDevice(AppUser live, String platform, VideoDevice d) async {
     final S s = S.of(context);
     await CustomDialogManager.showConfirm(
       context: context,
       title: s.accessDeviceBlockQuestion,
-      subtitle: s.accessDeviceBlockBody(live.deviceName.isEmpty ? '—' : live.deviceName),
+      subtitle: s.accessDeviceBlockBody(_deviceLabel(s, d)),
       confirmLabel: s.accessDeviceBlock,
       cancelLabel: s.cancel,
       onConfirm: () async {
         setState(() => _removingDevice = true);
         try {
-          await DeviceBlocks.block(live);
+          await DeviceBlocks.blockVideoDevice(live, platform, d);
           if (mounted) _toast(s.accessDeviceBlocked);
         } catch (e) {
           if (mounted) _toast(AppFailure.from(e).message(context));
@@ -148,26 +155,29 @@ class _MemberAccessPageState extends State<MemberAccessPage> {
     }
   }
 
-  /// ONE DEVICE PER MEMBER. Frees the account's device right away (not on
-  /// Save): the old device is shut out at once, and the next device the
-  /// member signs in on becomes theirs.
-  Future<void> _removeDevice(AppUser live) async {
+  /// ONE VIDEO DEVICE PER PLATFORM. Frees [platform]'s slot right away
+  /// (not on Save): videos stop on the old device at once, and the next
+  /// device of that platform that opens Videos takes the slot.
+  Future<void> _removeVideoDevice(String platform, VideoDevice d) async {
     final S s = S.of(context);
     await CustomDialogManager.showConfirm(
       context: context,
       title: s.accessDeviceRemoveQuestion,
-      subtitle: s.accessDeviceRemoveBody(live.deviceName.isEmpty ? '—' : live.deviceName),
+      subtitle: s.accessVideoDeviceRemoveBody(
+        _deviceLabel(s, d),
+        MemberAccess.platformLabel(platform),
+      ),
       confirmLabel: s.accessDeviceRemove,
       cancelLabel: s.cancel,
       onConfirm: () async {
         setState(() => _removingDevice = true);
-        final result = await _users.clearDevice(live.uid);
-        if (!mounted) return;
-        setState(() => _removingDevice = false);
-        result.fold(
-          (AppFailure f) => _toast(f.message(context)),
-          (_) => _toast(s.accessDeviceRemoved),
-        );
+        try {
+          await VideoDeviceLock.release(widget.member.uid, platform);
+          if (mounted) _toast(s.accessVideoDeviceRemoved);
+        } catch (e) {
+          if (mounted) _toast(AppFailure.from(e).message(context));
+        }
+        if (mounted) setState(() => _removingDevice = false);
       },
     );
   }
@@ -409,71 +419,87 @@ class _MemberAccessPageState extends State<MemberAccessPage> {
                   final bool canDevice =
                       SessionController.to.current.canDo(AdminAction.membersDevice);
                   return AppCard(
-                    title: s.accessDevice,
-                    caption: s.accessDeviceCaption,
+                    title: s.accessVideoDevices,
+                    caption: s.accessVideoDevicesCaption,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       mainAxisSize: MainAxisSize.min,
                       children: <Widget>[
-                    Row(
-                      children: <Widget>[
-                        Icon(
-                          live.hasDevice ? Icons.phonelink_lock_rounded : Icons.devices_other_rounded,
-                          color: live.hasDevice ? AppColors.primary : AppColors.secondaryText,
-                          size: 26,
-                        ),
-                        SizedBox(width: 10.w),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: <Widget>[
-                              Text(
-                                FormatHelper.capitalize(live.hasDevice
-                                    ? (live.deviceName.isEmpty ? s.accessDeviceUnknown : live.deviceName)
-                                    : s.accessDeviceNone),
-                                style: StyleText.fontSize13Weight500.copyWith(color: AppColors.text),
+                    // One row per platform: the device that plays this
+                    // member's videos there, with Remove / Block.
+                    StreamBuilder<Map<String, VideoDevice>>(
+                      stream: _videoDevices,
+                      builder: (BuildContext context, AsyncSnapshot<Map<String, VideoDevice>> v) {
+                        final Map<String, VideoDevice> slots =
+                            v.data ?? const <String, VideoDevice>{};
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          mainAxisSize: MainAxisSize.min,
+                          children: <Widget>[
+                            for (final String p in VideoDeviceLock.platforms)
+                              Padding(
+                                padding: EdgeInsets.only(top: 8.h),
+                                child: Row(
+                                  children: <Widget>[
+                                    Icon(
+                                      slots[p] == null
+                                          ? Icons.devices_other_rounded
+                                          : Icons.phonelink_lock_rounded,
+                                      color: slots[p] == null
+                                          ? AppColors.secondaryText
+                                          : AppColors.primary,
+                                      size: 22,
+                                    ),
+                                    SizedBox(width: 10.w),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: <Widget>[
+                                          Text(
+                                            MemberAccess.platformLabel(p),
+                                            style: StyleText.fontSize13Weight600
+                                                .copyWith(color: AppColors.text),
+                                          ),
+                                          SizedBox(height: 2.h),
+                                          Text(
+                                            slots[p] == null
+                                                ? FormatHelper.capitalize(s.accessVideoDeviceEmpty)
+                                                : <String>[
+                                                    _deviceLabel(s, slots[p]!),
+                                                    if (slots[p]!.at != null)
+                                                      s.accessDeviceSince(
+                                                          AppDates.day(context, slots[p]!.at)),
+                                                  ].join(' · '),
+                                            style: StyleText.fontSize12Weight400
+                                                .copyWith(color: AppColors.secondaryText),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    if (slots[p] != null && canDevice) ...<Widget>[
+                                      TextButton(
+                                        onPressed: _removingDevice
+                                            ? null
+                                            : () => _removeVideoDevice(p, slots[p]!),
+                                        child: Text(FormatHelper.capitalize(s.accessDeviceRemove)),
+                                      ),
+                                      IconButton(
+                                        tooltip: s.accessDeviceBlock,
+                                        onPressed: _removingDevice
+                                            ? null
+                                            : () => _blockVideoDevice(live, p, slots[p]!),
+                                        icon: Icon(Icons.block_rounded,
+                                            color: AppColors.red, size: 20),
+                                      ),
+                                    ],
+                                  ],
+                                ),
                               ),
-                              if (live.hasDevice && live.deviceBoundAt != null) ...<Widget>[
-                                SizedBox(height: 2.h),
-                                Text(
-                                  FormatHelper.capitalize(s.accessDeviceSince(AppDates.day(context, live.deviceBoundAt))),
-                                  style: StyleText.fontSize12Weight400.copyWith(color: AppColors.secondaryText),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                      ],
+                          ],
+                        );
+                      },
                     ),
-                    // Members → Reset device: remove (they may sign in on a
-                    // new device) or block (this device is shut out for good).
-                    if (live.hasDevice && canDevice) ...<Widget>[
-                      SizedBox(height: 12.h),
-                      _removingDevice
-                          ? const Center(
-                              child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2.4)),
-                            )
-                          : Wrap(
-                              alignment: WrapAlignment.end,
-                              spacing: 10.w,
-                              runSpacing: 8.h,
-                              children: <Widget>[
-                                customButton(
-                                  title: s.accessDeviceRemove,
-                                  function: () => _removeDevice(live),
-                                  wrapContent: true,
-                                  color: AppColors.statusPending,
-                                ),
-                                customButton(
-                                  title: s.accessDeviceBlock,
-                                  function: () => _blockDevice(live),
-                                  wrapContent: true,
-                                  color: AppColors.red,
-                                ),
-                              ],
-                            ),
-                    ],
                     // Devices blocked from this member, each with Unblock.
                     StreamBuilder<List<BlockedDevice>>(
                       stream: _blockedDevices,

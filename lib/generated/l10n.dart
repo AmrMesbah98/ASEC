@@ -6356,6 +6356,48 @@ abstract class S {
   /// **'Device unblocked.'**
   String get accessDeviceUnblocked;
 
+  /// No description provided for @videoLockTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Videos are on another device'**
+  String get videoLockTitle;
+
+  /// No description provided for @videoLockBody.
+  ///
+  /// In en, this message translates to:
+  /// **'On {platform}, your videos play only on {device}. The rest of the app works here as usual. To watch on this device instead, ask the admin to remove that device.'**
+  String videoLockBody(String platform, String device);
+
+  /// No description provided for @accessVideoDevices.
+  ///
+  /// In en, this message translates to:
+  /// **'Video devices'**
+  String get accessVideoDevices;
+
+  /// No description provided for @accessVideoDevicesCaption.
+  ///
+  /// In en, this message translates to:
+  /// **'The member can sign in on any device, but videos play on one device per platform. The first device that opens Videos on a platform takes it. Remove a device to let the member pick another.'**
+  String get accessVideoDevicesCaption;
+
+  /// No description provided for @accessVideoDeviceEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Not chosen yet — the first device that opens Videos takes it.'**
+  String get accessVideoDeviceEmpty;
+
+  /// No description provided for @accessVideoDeviceRemoveBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Videos stop playing on {device}. The next {platform} device that opens Videos takes its place.'**
+  String accessVideoDeviceRemoveBody(String device, String platform);
+
+  /// No description provided for @accessVideoDeviceRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Device removed. The member can open videos on a new device now.'**
+  String get accessVideoDeviceRemoved;
+
   /// No description provided for @accessBlockedDevices.
   ///
   /// In en, this message translates to:

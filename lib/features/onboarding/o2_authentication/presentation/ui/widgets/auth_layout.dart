@@ -68,6 +68,12 @@ class AuthLayout extends StatelessWidget {
   static Widget _logo(double size) =>
       BrandMark(size: size, showName: false);
 
+  /// Tablets (and narrow desktop windows) get a smaller logo than phones:
+  /// the size is in `.r` units, which grow with the screen, so the phone
+  /// size looked oversized on a wide display.
+  static bool _isTablet(BuildContext context) =>
+      MediaQuery.sizeOf(context).shortestSide >= 600;
+
   /// From this width on, the layout splits in two.
   static const double splitWidth = 900;
 
@@ -102,7 +108,7 @@ class AuthLayout extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                _logo(110),
+                _logo(64),
                 const Spacer(),
                 Flexible(
                   flex: 3,
@@ -225,7 +231,9 @@ class AuthLayout extends StatelessWidget {
                     alignment: AlignmentDirectional.centerEnd,
                     child: AuthLanguageToggle(onLight: true),
                   ),
-                  _logo(compact ? 64 : 92),
+                  _logo(_isTablet(context)
+                      ? (compact ? 44 : 56)
+                      : (compact ? 64 : 92)),
                   if (illustrationHeight > 0) ...<Widget>[
                     SizedBox(height: 12.h),
                     SizedBox(
@@ -285,7 +293,7 @@ class AuthLayout extends StatelessWidget {
                   alignment: AlignmentDirectional.centerEnd,
                   child: AuthLanguageToggle(onLight: true),
                 ),
-                _logo(100),
+                _logo(_isTablet(context) ? 60 : 100),
                 SizedBox(height: 20.h),
                 SizedBox(
                   height: 140.h,
