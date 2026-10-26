@@ -13,6 +13,8 @@ import 'package:get/get.dart';
 
 import 'package:asec/features/onboarding/o2_authentication/data/repository/auth_repository.dart';
 import 'package:asec/features/onboarding/o2_authentication/domain/base_repository/auth_base_repository.dart';
+import 'package:asec/core/settings/crash_tracker.dart';
+import 'package:asec/core/settings/error_reports.dart';
 import 'package:asec/features/onboarding/o2_authentication/domain/entities/app_user.dart';
 import 'package:asec/features/onboarding/o2_authentication/domain/enums/auth_failure_type.dart';
 import 'package:asec/core/settings/app_features.dart';
@@ -54,6 +56,16 @@ class SessionController extends GetxController {
   void start(AppUser signedIn) {
     user.value = signedIn;
     AppFeatures.to.listen();
+    // If the LAST run crashed (e.g. vanished to the desktop on startup), it is
+    // reported now — a report needs a signed-in user, and we have one.
+    if (CrashTracker.hasPendingCrash) {
+      ErrorReports.reportStartupCrash(
+        CrashTracker.pendingCrashStage!,
+        CrashTracker.pendingCrashVersion,
+        CrashTracker.pendingCrashTime,
+      );
+      CrashTracker.clearPending();
+    }
     _sub?.cancel();
     _sub = _users.watchUser(signedIn.uid).listen(
       (AppUser? live) {

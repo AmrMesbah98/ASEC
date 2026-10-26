@@ -223,6 +223,21 @@ abstract final class ErrorReports {
     return _version!;
   }
 
+  /// Reports a crash the LAST run left behind (CrashTracker): the app died
+  /// at [stage] (a startup step) on version [version]. Saved as source
+  /// 'crash', with a clear message so the super admin sees where it died.
+  static void reportStartupCrash(String stage, String version, DateTime? when) {
+    final String ago = when == null ? '' : ' at ${when.toLocal()}';
+    report(
+      'The app closed unexpectedly before it finished opening$ago '
+      '(last step reached: "$stage"${version.isEmpty ? '' : ', build $version'}). '
+      'This is usually a crash to the desktop, a force-close, or the device '
+      'running out of memory.',
+      StackTrace.empty,
+      source: 'crash',
+    );
+  }
+
   // ── Reading (super admin) ─────────────────────────────────────────────────
 
   static Stream<List<ErrorReport>> watch({int limit = 200}) => _col

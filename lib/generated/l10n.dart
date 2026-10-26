@@ -4691,7 +4691,7 @@ abstract class S {
   /// No description provided for @engineeringCalcShort.
   ///
   /// In en, this message translates to:
-  /// **'Calculators'**
+  /// **'Calculations'**
   String get engineeringCalcShort;
 
   /// No description provided for @engineeringCalcSub.
@@ -5417,7 +5417,7 @@ abstract class S {
   /// No description provided for @unitConverterShort.
   ///
   /// In en, this message translates to:
-  /// **'Converter'**
+  /// **'Units'**
   String get unitConverterShort;
 
   /// No description provided for @sectionQuizLabel.

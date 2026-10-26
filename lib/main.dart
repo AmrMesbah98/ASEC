@@ -7,11 +7,14 @@
 /// Author: ASEC team
 /// Created: 19/9/2026
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:video_player_platform_interface/video_player_platform_interface.dart';
 
 import 'package:asec/core/constants/app_constants.dart';
@@ -27,6 +30,7 @@ import 'package:asec/generated/l10n.dart';
 import 'package:asec/core/settings/app_features.dart';
 import 'package:asec/core/settings/app_connectivity.dart';
 import 'package:asec/core/settings/app_integrity.dart';
+import 'package:asec/core/settings/crash_tracker.dart';
 import 'package:asec/core/settings/error_reports.dart';
 import 'package:asec/core/settings/screen_protection.dart';
 import 'package:asec/core/settings/super_admin_bootstrap.dart';
@@ -34,17 +38,21 @@ import 'package:asec/core/settings/super_admin_bootstrap.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // A hot restart (or a reload of the Dart side) loses the old
-  // VideoPlayerControllers without disposing them, so the native player kept
-  // playing with no screen. init() disposes every native player left over.
-  // Windows/Linux have no implementation — that throw is fine to ignore.
+  // Storage first — the theme controller reads it during construction, and
+  // the crash tracker writes its breadcrumb to it.
+  await GetStorage.init();
+
+  // Did the LAST run finish, or did it vanish (crash to desktop, force-close)?
+  // Read now; a crash is reported to the super admin once a session is up.
+  CrashTracker.startRun();
+
+  CrashTracker.stage('video_init');
+  // A hot restart loses old VideoPlayerControllers; init() disposes them.
   try {
     await VideoPlayerPlatform.instance.init();
   } catch (_) {}
 
-  // Storage first — the theme controller reads it during construction.
-  await GetStorage.init();
-
+  CrashTracker.stage('firebase');
   // Never throws: a Firebase that will not start sets `notConfigured`, and the
   // sign-in screen says so instead of spinning forever.
   await AppFirebase.initialize();
@@ -52,11 +60,21 @@ Future<void> main() async {
   // Every error any user hits is saved for the super admin
   // (Settings → Error reports). See lib/core/settings/error_reports.dart.
   ErrorReports.installGlobalHandlers();
+  // Name the build in any crash report (fire-and-forget).
+  unawaited(PackageInfo.fromPlatform()
+      .then((PackageInfo p) => CrashTracker.setVersion('${p.version}+${p.buildNumber}'))
+      .catchError((Object _) {}));
 
+  CrashTracker.stage('bootstrap');
   // Debug only, and only with --dart-define=SUPER_ADMIN_PASSWORD=…: creates
   // the super admin account on first launch (super_admin_bootstrap.dart).
-  await SuperAdminBootstrap.run();
+  try {
+    await SuperAdminBootstrap.run();
+  } catch (error, stack) {
+    ErrorReports.report(error, stack, source: 'startup');
+  }
 
+  CrashTracker.stage('controllers');
   Get.put(ThemeController(), permanent: true);
   Get.put(HapticController(), permanent: true);
   Get.put(SessionController(), permanent: true);
@@ -70,6 +88,14 @@ Future<void> main() async {
   // until the connection is back (lib/core/settings/app_connectivity.dart).
   AppConnectivity.start();
 
+  CrashTracker.stage('running');
+  // The breadcrumb is cleared only once the first frame is actually on screen,
+  // so a crash DURING the first build still counts as "did not open".
+  WidgetsBinding.instance.addPostFrameCallback((_) => CrashTracker.markClean());
+
+  // Uncaught async errors are already caught by PlatformDispatcher.onError
+  // (ErrorReports.installGlobalHandlers), which is zone-safe — no
+  // runZonedGuarded, which would clash with the binding above.
   runApp(const AsecApp());
 }
 
