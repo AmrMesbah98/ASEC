@@ -150,7 +150,7 @@ class _AttemptView extends StatelessWidget {
       case AttemptStage.finished:
         return _Result(state: state);
       case AttemptStage.failure:
-        return AppErrorView(message: s.errUnknown);
+        return AppErrorView(message: s.errUnknown, error: state.failure);
     }
   }
 }

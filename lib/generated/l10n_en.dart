@@ -2587,7 +2587,7 @@ class SEn extends S {
   String get engineeringCalc => 'Engineering calculators';
 
   @override
-  String get engineeringCalcShort => 'Calculators';
+  String get engineeringCalcShort => 'Calculations';
 
   @override
   String get engineeringCalcSub =>
@@ -2991,7 +2991,7 @@ class SEn extends S {
   }
 
   @override
-  String get unitConverterShort => 'Converter';
+  String get unitConverterShort => 'Units';
 
   @override
   String get sectionQuizLabel => 'Section';
@@ -3655,4 +3655,55 @@ class SEn extends S {
 
   @override
   String get webTab => 'Website';
+
+  @override
+  String get errorReportsTitle => 'Error reports';
+
+  @override
+  String get errorReportsCaption =>
+      'Every error any user hit — who, when, device, page and the full error. Tap one for details.';
+
+  @override
+  String get errorReportsNone => 'No errors reported';
+
+  @override
+  String get errorReportsCopy => 'Copy';
+
+  @override
+  String get errorReportsCopied => 'Copied';
+
+  @override
+  String get errorReportsClearQuestion => 'Clear all error reports?';
+
+  @override
+  String get errorReportsClearBody =>
+      'Every saved error report will be deleted.';
+
+  @override
+  String get securityAlertsTitle => 'Security alerts';
+
+  @override
+  String get securityAlertsCaption =>
+      'Every attempt to pull the lessons out of the app — who, when, device, and what was found. Tap one for details.';
+
+  @override
+  String get securityAlertsNone => 'No attempts detected';
+
+  @override
+  String get alertMitm => 'HTTPS sniffer detected';
+
+  @override
+  String get alertStreamGrab => 'Download tool blocked';
+
+  @override
+  String get alertDownloadBurst => 'Too many downloads at once';
+
+  @override
+  String get alertOther => 'Suspicious activity';
+
+  @override
+  String get alertClearQuestion => 'Clear all security alerts?';
+
+  @override
+  String get alertClearBody => 'Every saved security alert will be deleted.';
 }

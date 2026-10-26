@@ -20,6 +20,7 @@ class VelocitiesTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: const EdgeInsets.symmetric(vertical: 16),
       children: const <Widget>[
         Text('Recommended Velocities (m/s)'),

@@ -129,7 +129,7 @@ class _AdminResultsPageState extends State<AdminResultsPage> {
       body: StreamBuilder<_Results>(
         stream: _stream,
         builder: (BuildContext context, AsyncSnapshot<_Results> snapshot) {
-          if (snapshot.hasError) return AppErrorView(message: s.errUnknown);
+          if (snapshot.hasError) return AppErrorView(message: s.errUnknown, error: snapshot.error, stackTrace: snapshot.stackTrace);
           if (!snapshot.hasData) return const AppLoading();
 
           final _Results data = snapshot.data!;

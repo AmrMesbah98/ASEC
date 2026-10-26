@@ -59,7 +59,11 @@ class QuizAttemptsPage extends StatelessWidget {
           AsyncSnapshot<List<QuizAttempt>> snapshot,
         ) {
           if (snapshot.hasError) {
-            return AppErrorView(message: s.errUnknown);
+            return AppErrorView(
+              message: s.errUnknown,
+              error: snapshot.error,
+              stackTrace: snapshot.stackTrace,
+            );
           }
           if (!snapshot.hasData) return const AppLoading();
 

@@ -17,6 +17,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/widgets.dart';
 
 import 'package:asec/core/network/app_firebase.dart';
+import 'package:asec/core/settings/error_reports.dart';
 import 'package:asec/generated/l10n.dart';
 
 enum AppFailure {
@@ -48,7 +49,18 @@ enum AppFailure {
 
   /// Maps any error thrown by a Firebase SDK onto this set. Logs the raw error
   /// in debug builds — the mapped one is for users, the raw one is for you.
-  static AppFailure from(Object error) {
+  ///
+  /// Every error that comes through here is also saved for the super admin
+  /// (ErrorReports) — except sign-in mistakes (wrong password, email taken),
+  /// which are the user's typing, not a fault.
+  static AppFailure from(Object error, [StackTrace? stack]) {
+    if (error is! FirebaseAuthException) {
+      ErrorReports.report(error, stack ?? StackTrace.current, source: 'repository');
+    }
+    return _map(error);
+  }
+
+  static AppFailure _map(Object error) {
     if (AppFirebase.notConfigured) return AppFailure.notConfigured;
 
     if (error is FirebaseAuthException) {

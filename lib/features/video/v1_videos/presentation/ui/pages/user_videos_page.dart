@@ -19,6 +19,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
+import 'package:asec/core/security/content_crypto.dart';
 import 'package:asec/core/settings/capture_context.dart';
 import 'package:asec/core/custom/110-app_widgets.dart';
 import 'package:asec/core/custom/111-app_svg_icon.dart';
@@ -185,7 +186,7 @@ class _UserVideosPageState extends State<_UserVideosView> {
           BuildContext context,
           AsyncSnapshot<_Feed> snapshot,
         ) {
-          if (snapshot.hasError) return AppErrorView(message: s.errUnknown);
+          if (snapshot.hasError) return AppErrorView(message: s.errUnknown, error: snapshot.error, stackTrace: snapshot.stackTrace);
           if (!snapshot.hasData) return const AppLoading();
 
           // The courses the admin opened for this member, plus every
@@ -197,7 +198,11 @@ class _UserVideosPageState extends State<_UserVideosView> {
               .toList();
           // EVERY OTHER LESSON, LOCKED: listed with its course so the member
           // sees what exists, but it cannot be played or downloaded.
-          final Set<String> mineIds = <String>{for (final VideoItem v in mine) v.id};
+          // The catalog is keyed by hashed ids (it must not carry Drive
+          // ids), so the member's own lessons are compared hashed.
+          final Set<String> mineIds = <String>{
+            for (final VideoItem v in mine) ContentCrypto.hashId(v.id),
+          };
           final List<VideoItem> notGiven = snapshot.data!.catalog
               .where((VideoItem v) => !mineIds.contains(v.id))
               .toList();

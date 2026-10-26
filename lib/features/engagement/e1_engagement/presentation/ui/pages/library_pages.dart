@@ -198,7 +198,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
       stream: _data,
       builder: (BuildContext context,
           AsyncSnapshot<(List<VideoItem>, List<MemberProgress>)> snap) {
-        if (snap.hasError) return AppErrorView(message: s.errUnknown);
+        if (snap.hasError) return AppErrorView(message: s.errUnknown, error: snap.error, stackTrace: snap.stackTrace);
         if (!snap.hasData) return const AppLoading();
         final List<VideoItem> videos = snap.data!.$1
             .where((VideoItem v) => v.published)

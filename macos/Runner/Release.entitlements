@@ -12,6 +12,9 @@
 	<true/>
 	<key>com.apple.security.network.client</key>
 	<true/>
+	<!-- SecureVideoServer listens on 127.0.0.1 for the player. -->
+	<key>com.apple.security.network.server</key>
+	<true/>
 	<key>keychain-access-groups</key>
 	<array>
 		<string>$(AppIdentifierPrefix)com.asec.app</string>

@@ -31,6 +31,20 @@ double? parseNumber(String text) {
   return double.tryParse(t);
 }
 
+/// Every Word Capitalised — the calculators' labels (26/10/2026, Eng.
+/// Ahmed Shuhayb). Only a lower-case first letter changes, so symbols,
+/// units passed separately and words already in capitals ("CO₂", "FM-200") stay.
+String titleCase(String text) => text.splitMapJoin(
+      RegExp(r'[A-Za-z][^\s/()\-]*'),
+      onMatch: (Match m) {
+        final String w = m[0]!;
+        final String first = w[0];
+        return first == first.toLowerCase() && first != first.toUpperCase()
+            ? '${first.toUpperCase()}${w.substring(1)}'
+            : w;
+      },
+    );
+
 /// Fixed decimals, or "-" for NaN / infinity / null.
 String fmt(double? value, int decimals) {
   if (value == null || !value.isFinite) return '-';
@@ -77,7 +91,7 @@ class NumberField extends StatelessWidget {
       child: CustomTextField(
         controller: controller,
         fillColor: AppColors.card,
-        label: (unit == null || unit!.isEmpty) ? label : '$label ($unit)',
+        label: (unit == null || unit!.isEmpty) ? titleCase(label) : '${titleCase(label)} ($unit)',
         readOnly: readOnly,
         onChanged: onChanged,
         textDirection: TextDirection.ltr,
@@ -201,7 +215,7 @@ class ResultTable extends StatelessWidget {
           label: 'Item',
           flex: 3,
           cell: (BuildContext context, ResultItem r) =>
-              AppTableCellText(r.label, emphasis: true),
+              AppTableCellText(titleCase(r.label), emphasis: true),
         ),
         AppTableColumn<ResultItem>(
           label: 'Value',

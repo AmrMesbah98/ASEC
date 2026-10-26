@@ -7,6 +7,8 @@
 ///          size and the pipe limits for 1, 2 or 4 nozzles out.
 /// Author: ASEC team
 /// Created: 22/10/2026
+/// Updated: 26/10/2026 - Length × width instead of area, like the other
+///          fire tabs (Eng. Ahmed Shuhayb).
 library;
 
 import 'package:flutter/material.dart';
@@ -24,14 +26,16 @@ class Fm200Tab extends StatefulWidget {
 }
 
 class _Fm200TabState extends State<Fm200Tab> {
-  final TextEditingController _area = TextEditingController(text: '50');
+  final TextEditingController _length = TextEditingController(text: '10');
+  final TextEditingController _width = TextEditingController(text: '5');
   final TextEditingController _height = TextEditingController(text: '3');
   final TextEditingController _ambient = TextEditingController(text: '21');
   Fm200Nozzles _nozzles = Fm200Nozzles.one;
 
   @override
   void dispose() {
-    _area.dispose();
+    _length.dispose();
+    _width.dispose();
     _height.dispose();
     _ambient.dispose();
     super.dispose();
@@ -42,7 +46,9 @@ class _Fm200TabState extends State<Fm200Tab> {
 
   @override
   Widget build(BuildContext context) {
-    final double? a = parseNumber(_area.text);
+    final double? l = parseNumber(_length.text);
+    final double? w = parseNumber(_width.text);
+    final double? a = (l == null || w == null || l <= 0 || w <= 0) ? null : l * w;
     final double? h = parseNumber(_height.text);
     final double? t = parseNumber(_ambient.text);
     final Fm200Result? r = (a == null || h == null || t == null || a <= 0 || h <= 0)
@@ -76,24 +82,26 @@ class _Fm200TabState extends State<Fm200Tab> {
     ];
 
     return ListView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: const EdgeInsets.symmetric(vertical: 16),
       children: <Widget>[
         ResponsiveFields(
           children: <Widget>[
-            NumberField(controller: _area, label: 'Area', unit: 'm²', onChanged: changed),
+            NumberField(controller: _length, label: 'Length', unit: 'm', onChanged: changed),
+            NumberField(controller: _width, label: 'Width', unit: 'm', onChanged: changed),
             NumberField(controller: _height, label: 'Height', unit: 'm', onChanged: changed),
             NumberField(controller: _ambient, label: 'Ambient', unit: '°C', onChanged: changed),
           ],
         ),
         const SizedBox(height: 16),
         if (r == null)
-          const Text('Enter the room area, height and ambient temperature.')
+          const Text('Enter the room length, width, height and ambient temperature.')
         else ...<Widget>[
           ResultTable(
             items: <ResultItem>[
-              ResultItem('Room volume', fmt(r.volume, 2), 'm³'),
-              ResultItem('Total weight of FM-200', fmt(r.agentWeight, 2), 'kg'),
-              ResultItem('Take weight of FM-200 cylinder', fmt(r.takeWeight, 0), 'kg'),
+              ResultItem('Room Volume', fmt(r.volume, 2), 'm³'),
+              ResultItem('Total Weight Of FM-200', fmt(r.agentWeight, 2), 'kg'),
+              ResultItem('Take Weight Of FM-200 Cylinder', fmt(r.takeWeight, 0), 'kg'),
             ],
           ),
           const SizedBox(height: 16),

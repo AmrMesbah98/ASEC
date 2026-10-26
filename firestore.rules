@@ -117,6 +117,31 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == uid;
     }
 
+    // ── ACCOUNTS LOCKED TO A MINIMUM BUILD ─────────────────────────────────
+    //
+    // These accounts may only use the app from build 24 (1.0.7+24) on. Every
+    // build from 24 writes its number into `users/{uid}.app_build` before it
+    // reads anything (BuildGate.stamp); older builds never do, so for these
+    // emails they are refused everything — even the profile, so they cannot
+    // sign in at all. KEEP IN STEP WITH lib/core/settings/build_gate.dart.
+    function buildLocked() {
+      return signedIn()
+        && request.auth.token.email != null
+        && callerEmail() in [
+             'mmasba1988@gmail.com',
+             'bassam.edunners@gmail.com',
+             'alrmadymr0@gmail.com',
+             'hamada6663389@gmail.com',
+             'mahmoud5.edunners@gmail.com',
+             'abdallahhassan.eduneers@gmail.com'
+           ];
+    }
+
+    // [profile] = the caller's own users/{uid} data.
+    function buildOk(profile) {
+      return !buildLocked() || profile.get('app_build', 0) >= 24;
+    }
+
     // ── A MEMBER IN GOOD STANDING ───────────────────────────────────────────
     //
     // Signed in is not enough: the member's own profile must exist, be
@@ -133,7 +158,8 @@ service cloud.firestore {
             && (me().get('access_from', null) == null
                 || me().access_from <= request.time)
             && (me().get('access_until', null) == null
-                || me().access_until > request.time));
+                || me().access_until > request.time)
+            && buildOk(me()));
     }
 
     // May this member open [course]? "Every course" if the admin turned it
@@ -182,7 +208,9 @@ service cloud.firestore {
     // A member reads only their own profile; the admin reads everybody's
     // (the members list queries role == 'user', which this allows).
     match /users/{uid} {
-      allow read: if isSelf(uid) || isSuper()
+      // Own profile: a build-locked account only from build 24 on (a missing
+      // profile may still be checked, so it can be created).
+      allow read: if (isSelf(uid) && (resource == null || buildOk(resource.data))) || isSuper()
         || ((can('members') || can('dashboard') || can('results') || can('cvs'))
             && resource.data.role == 'user');
 
@@ -223,6 +251,12 @@ service cloud.firestore {
       // none — it can never change or remove a slot that is set. Freeing
       // one is the admin's (Members → Reset device, rule below).
       allow update: if isSelf(uid) && claimsVideoSlot();
+
+      // The app writes its own build number on every sign-in (BuildGate).
+      allow update: if isSelf(uid)
+        && onlyChanged(['app_build'])
+        && request.resource.data.app_build is int
+        && request.resource.data.app_build > 0;
 
       // An admin may change these fields of a MEMBER — each group needs its
       // own action. Nothing else: not the role, not the email, and never
@@ -292,14 +326,52 @@ service cloud.firestore {
     // screen. A member may only add an event about themself and never read
     // one back; admins with Members read and clear them.
     match /security_events/{id} {
+      // A member adds a capture alert about themself, or a content-protection
+      // alert ('attack' — a download tool, an HTTPS sniffer, a download burst;
+      // see SecurityMonitor). Both keep to a fixed, bounded shape.
       allow create: if signedIn()
         && request.resource.data.uid == request.auth.uid
-        && request.resource.data.type in ['screenshot', 'recording']
-        && request.resource.data.keys().hasOnly([
-             'type', 'uid', 'member_name', 'email', 'platform',
-             'device_name', 'device_id', 'page', 'course', 'detail', 'at'
-           ]);
+        && (
+             (request.resource.data.type in ['screenshot', 'recording']
+               && request.resource.data.keys().hasOnly([
+                    'type', 'uid', 'member_name', 'email', 'platform',
+                    'device_name', 'device_id', 'page', 'course', 'detail', 'at'
+                  ]))
+             || (request.resource.data.type == 'attack'
+               && request.resource.data.kind is string
+               && request.resource.data.kind.size() <= 40
+               && request.resource.data.detail is string
+               && request.resource.data.detail.size() <= 1000
+               && request.resource.data.keys().hasOnly([
+                    'type', 'kind', 'detail', 'uid', 'member_name', 'email',
+                    'role', 'platform', 'device_name', 'device_id',
+                    'page', 'course', 'at'
+                  ]))
+           );
+      // Read by any admin with Members (the card that shows attack alerts is
+      // itself super-admin only).
       allow read, delete: if can('members');
+    }
+
+    // ── error_reports (super admin only) ────────────────────────────────────
+    //
+    // The app adds one whenever any user hits an error (ErrorReports): who,
+    // where, the error and its stack trace. Anyone signed in may ADD a report
+    // about themself — even a member the other rules refuse, since that is
+    // exactly when a report matters. Only the super admin reads or deletes.
+    match /error_reports/{id} {
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.keys().hasOnly([
+             'uid', 'user_name', 'email', 'role', 'platform', 'device_name',
+             'device_id', 'app_version', 'source', 'page', 'course', 'detail',
+             'error_type', 'code', 'message', 'stack', 'at'
+           ])
+        && request.resource.data.message is string
+        && request.resource.data.message.size() <= 4000
+        && request.resource.data.stack is string
+        && request.resource.data.stack.size() <= 8000;
+      allow read, delete: if isSuper();
     }
 
     // ── admin_config (admins only) ──────────────────────────────────────────

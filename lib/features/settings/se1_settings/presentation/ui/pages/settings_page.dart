@@ -35,6 +35,8 @@ import 'package:asec/features/settings/se1_settings/presentation/ui/widgets/admi
 import 'package:asec/features/settings/se1_settings/presentation/ui/widgets/control_centre_card.dart';
 import 'package:asec/features/settings/se1_settings/presentation/ui/widgets/app_update_card.dart';
 import 'package:asec/features/settings/se1_settings/presentation/ui/widgets/capture_alerts_card.dart';
+import 'package:asec/features/settings/se1_settings/presentation/ui/widgets/error_reports_card.dart';
+import 'package:asec/features/settings/se1_settings/presentation/ui/widgets/security_alerts_card.dart';
 import 'package:asec/features/onboarding/o2_authentication/domain/enums/admin_permission.dart';
 import 'package:asec/features/user/u1_shell/presentation/ui/widgets/member_links.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
@@ -335,6 +337,12 @@ class SettingsPage extends StatelessWidget {
               SizedBox(height: 16.h),
             ],
             if (user.isSuperAdmin) ...<Widget>[
+              // Every attempt to pull the lessons out of the app.
+              const SecurityAlertsCard(),
+              SizedBox(height: 16.h),
+              // Every error any user hit, with full details.
+              const ErrorReportsCard(),
+              SizedBox(height: 16.h),
               const AdminsCard(),
               SizedBox(height: 16.h),
               const ControlCentreCard(),

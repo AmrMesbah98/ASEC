@@ -19,6 +19,8 @@ import 'dart:async';
 import 'package:chewie/chewie.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+
+import 'package:asec/core/security/secure_video_server.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart' show RxInterface, Worker, everAll;
@@ -34,7 +36,6 @@ import 'package:asec/core/theme/app_padding.dart';
 import 'package:asec/core/theme/app_radius.dart';
 import 'package:asec/core/theme/app_theme.dart';
 import 'package:asec/features/video/v1_videos/data/download/video_downloads.dart';
-import 'package:asec/features/video/v1_videos/data/download/video_file.dart';
 import 'package:asec/features/video/v1_videos/domain/entities/video_item.dart';
 import 'package:asec/features/video/v1_videos/domain/entities/video_link.dart';
 import 'package:asec/features/video/v1_videos/presentation/ui/widgets/video_card.dart';
@@ -137,6 +138,9 @@ class _VideoPlayerPageState extends State<_VideoPlayerView>
     return <VideoItem>[...list.sublist(at + 1), ...list.sublist(0, at)];
   }
 
+  /// The one-time local address the player plays (SecureVideoServer).
+  Uri? _stream;
+
   @override
   void initState() {
     super.initState();
@@ -166,12 +170,29 @@ class _VideoPlayerPageState extends State<_VideoPlayerView>
       await VideoDownloads.ensureLoaded();
       final String? localPath = VideoDownloads.localPath(widget.video.id);
       _local = localPath != null;
-      final VideoPlayerController video = localPath != null
-          ? localVideoController(localPath)
-          // A Google Drive share link becomes Drive's direct stream
-          // (see VideoLink); every other link plays as it is.
-          : VideoPlayerController.networkUrl(
-              Uri.parse(VideoLink.playable(widget.video.url)));
+      // THE PLAYER NEVER GETS THE DRIVE LINK OR THE FILE: it plays a
+      // one-time 127.0.0.1 address from SecureVideoServer, which fetches
+      // from Drive itself (pinned to Google, past any proxy) or decrypts the
+      // downloaded file in memory. Revoked in dispose().
+      final Uri stream = localPath != null
+          ? await SecureVideoServer.localEncrypted(
+              localPath,
+              VideoDownloads.fileKey,
+              label: widget.video.title,
+            )
+          : await SecureVideoServer.remote(
+              // A Google Drive share link becomes Drive's direct stream
+              // (see VideoLink); every other link plays as it is.
+              VideoLink.playable(widget.video.url),
+              sizeBytes: widget.video.sizeBytes,
+              label: widget.video.title,
+            );
+      _stream = stream;
+      if (!mounted) {
+        SecureVideoServer.revoke(stream);
+        return;
+      }
+      final VideoPlayerController video = VideoPlayerController.networkUrl(stream);
       await video.initialize();
       if (!mounted) {
         await video.dispose();
@@ -395,6 +416,7 @@ class _VideoPlayerPageState extends State<_VideoPlayerView>
   @override
   void dispose() {
     ScreenProtection.leaveVideo();
+    SecureVideoServer.revoke(_stream);
     WidgetsBinding.instance.removeObserver(this);
     _video?.pause();
     _savePosition();
@@ -571,11 +593,15 @@ class _VideoPlayerPageState extends State<_VideoPlayerView>
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          AppErrorView(message: s.videoFailed),
+          AppErrorView(
+            message: s.videoFailed,
+            // No link here: the report must not carry the Drive address.
+            error: 'Video failed: ${widget.video.title} (${widget.video.id})\n${_errorText ?? ''}',
+          ),
           if (kDebugMode && _errorText != null) ...<Widget>[
             SizedBox(height: 8.h),
             SelectableText(
-              '${widget.video.url}\n$_errorText',
+              '$_errorText',
               textAlign: TextAlign.center,
               style: StyleText.fontSize11Weight400
                   .copyWith(color: AppColors.red),

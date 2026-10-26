@@ -126,7 +126,11 @@ class _AdminQuizzesPageState extends State<AdminQuizzesPage> {
         stream: _quizzes,
         builder: (BuildContext context, AsyncSnapshot<List<Quiz>> snapshot) {
           if (snapshot.hasError) {
-            return AppErrorView(message: S.of(context).errUnknown);
+            return AppErrorView(
+              message: S.of(context).errUnknown,
+              error: snapshot.error,
+              stackTrace: snapshot.stackTrace,
+            );
           }
           if (!snapshot.hasData) return const AppLoading();
 

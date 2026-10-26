@@ -210,8 +210,9 @@ class _AppShellState extends State<AppShell> {
       anchor: anchor,
       items: <CircularMenuItem>[
         for (final ShellSection c in section.children)
-          // Full names: a child's short label can repeat the tab's own.
-          CircularMenuItem(icon: c.icon, label: c.label),
+          // Short names (Units, Ducts, Pipes, HVAC, Plumbing, Fire) — they
+          // sit under small bubbles in the arc.
+          CircularMenuItem(icon: c.icon, label: c.barLabel),
       ],
       selected: _index == i ? _pickOf(section) : null,
       vertical: vertical,
@@ -341,8 +342,10 @@ class _AppShellState extends State<AppShell> {
           : _CenterButton(
               icon: widget.sections[_centerIndex].icon,
               tooltip: widget.sections[_centerIndex].label,
-              onTap: (BuildContext c) =>
-                  _tap(_centerIndex, c, vertical: true),
+              // 26/10/2026 (Eng. Ahmed Shuhayb): the calculators fan out in
+              // a half circle over the button, like a protractor, instead
+              // of stacking up the screen.
+              onTap: (BuildContext c) => _tap(_centerIndex, c),
             ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     ),

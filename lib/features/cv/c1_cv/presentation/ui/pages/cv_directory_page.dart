@@ -82,7 +82,7 @@ class _CvDirectoryPageState extends State<CvDirectoryPage> {
       body: StreamBuilder<List<CvProfile>>(
         stream: _cvs,
         builder: (BuildContext context, AsyncSnapshot<List<CvProfile>> snap) {
-          if (snap.hasError) return AppErrorView(message: s.errUnknown);
+          if (snap.hasError) return AppErrorView(message: s.errUnknown, error: snap.error, stackTrace: snap.stackTrace);
           if (!snap.hasData) return const AppLoading();
 
           final List<CvProfile> all = snap.data!;

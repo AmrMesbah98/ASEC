@@ -193,7 +193,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
         stream: _notices,
         builder: (BuildContext context, AsyncSnapshot<List<AppNotice>> snap) {
           if (snap.hasError) {
-            return AppErrorView(message: engErrorText(context, snap.error));
+            return AppErrorView(message: engErrorText(context, snap.error), error: snap.error, stackTrace: snap.stackTrace);
           }
           if (!snap.hasData) return const AppLoading();
           final List<AppNotice> list = snap.data!;
@@ -330,7 +330,7 @@ class _SavedTipsPageState extends State<SavedTipsPage> {
         stream: _saved,
         builder: (BuildContext context, AsyncSnapshot<List<AppTip>> snap) {
           if (snap.hasError) {
-            return AppErrorView(message: engErrorText(context, snap.error));
+            return AppErrorView(message: engErrorText(context, snap.error), error: snap.error, stackTrace: snap.stackTrace);
           }
           if (!snap.hasData) return const AppLoading();
           final List<AppTip> list = snap.data!;

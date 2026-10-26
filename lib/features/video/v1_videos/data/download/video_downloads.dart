@@ -22,10 +22,15 @@
 /// The UI reads [items] and [active] (Rx) — a download started on a card
 /// shows its ring there and in the Downloads section at the same time.
 
+import 'dart:async';
+import 'dart:typed_data';
+
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 
 import 'package:asec/core/network/app_firebase.dart';
+import 'package:asec/core/security/content_crypto.dart';
+import 'package:asec/core/security/security_monitor.dart';
 import 'package:asec/features/video/v1_videos/data/download/video_file.dart';
 import 'package:asec/features/video/v1_videos/domain/entities/video_item.dart';
 import 'package:asec/features/video/v1_videos/domain/entities/video_link.dart';
@@ -76,12 +81,58 @@ abstract final class VideoDownloads {
     final List<VideoItem> list = <VideoItem>[
       for (final dynamic m in raw)
         if (m is Map) _fromMap(Map<String, dynamic>.from(m)),
-    ].where((VideoItem v) => videoFileExists(_path(v.id))).toList();
+    ].where((VideoItem v) =>
+        videoFileExists(_path(v.id)) || videoFileExists(legacyVideoPath(_path(v.id)))).toList();
     items.assignAll(list);
     if (list.length != raw.length) _save();
+    // Plain `.mp4` files from before encryption: encrypt them now, in the
+    // background. Until each is done it streams online like any lesson.
+    unawaited(_encryptLegacy(uid, list));
   }
 
-  static String _path(String id) => '$_dir/$id.mp4';
+  static Future<void> _encryptLegacy(String uid, List<VideoItem> list) async {
+    for (final VideoItem v in list) {
+      if (_loadedFor != uid) return;
+      final String p = _path(v.id);
+      if (videoFileExists(p)) continue;
+      try {
+        await encryptLegacyVideo(legacyVideoPath(p), p, ContentCrypto.deviceKey(uid));
+      } catch (_) {}
+    }
+  }
+
+  /// `.asv` — encrypted (ContentCrypto); see video_file_io.dart.
+  static String _path(String id) => '$_dir/$id.asv';
+
+  /// The key the account's files are encrypted with on this device.
+  static Uint8List get fileKey => ContentCrypto.deviceKey(_loadedFor);
+
+  // ── Download burst cap ────────────────────────────────────────────────────
+  //
+  // Nobody watches ten lessons in an hour. Pulling a whole course down at
+  // once is what a scraper does: more than [_burstMax] downloads in an hour
+  // are refused, and the super admin is told.
+  static const int _burstMax = 10;
+  static const String _burstKey = 'video_download_times';
+
+  static bool _burstAllowed(VideoItem video) {
+    final int now = DateTime.now().millisecondsSinceEpoch;
+    final List<int> times = <int>[
+      for (final dynamic t in _box.read<List<dynamic>>(_burstKey) ?? <dynamic>[])
+        if (t is int && now - t < const Duration(hours: 1).inMilliseconds) t,
+    ];
+    if (times.length >= _burstMax) {
+      SecurityMonitor.alert(
+        'download_burst',
+        'Tried to download more than $_burstMax lessons in one hour '
+        '(blocked at "${video.title}", ${video.category}).',
+      );
+      return false;
+    }
+    times.add(now);
+    _box.write(_burstKey, times);
+    return true;
+  }
 
   static bool isDownloaded(String id) =>
       items.any((VideoItem v) => v.id == id);
@@ -106,6 +157,10 @@ abstract final class VideoDownloads {
       return;
     }
     final String owner = _loadedFor;
+    if (!_burstAllowed(video)) {
+      failed.add(video.id);
+      return;
+    }
     failed.remove(video.id);
     _cancelled.remove(video.id);
     _pending[video.id] = video;
@@ -116,6 +171,7 @@ abstract final class VideoDownloads {
         url: VideoLink.playable(video.url),
         path: _path(video.id),
         expectedBytes: video.sizeBytes,
+        key: ContentCrypto.deviceKey(owner),
         cancelled: () => _cancelled.contains(video.id) || _loadedFor != owner,
         onProgress: (int received, int total) {
           size = received;

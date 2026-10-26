@@ -27,6 +27,7 @@ import 'package:asec/generated/l10n.dart';
 import 'package:asec/core/settings/app_features.dart';
 import 'package:asec/core/settings/app_connectivity.dart';
 import 'package:asec/core/settings/app_integrity.dart';
+import 'package:asec/core/settings/error_reports.dart';
 import 'package:asec/core/settings/screen_protection.dart';
 import 'package:asec/core/settings/super_admin_bootstrap.dart';
 
@@ -47,6 +48,10 @@ Future<void> main() async {
   // Never throws: a Firebase that will not start sets `notConfigured`, and the
   // sign-in screen says so instead of spinning forever.
   await AppFirebase.initialize();
+
+  // Every error any user hits is saved for the super admin
+  // (Settings → Error reports). See lib/core/settings/error_reports.dart.
+  ErrorReports.installGlobalHandlers();
 
   // Debug only, and only with --dart-define=SUPER_ADMIN_PASSWORD=…: creates
   // the super admin account on first launch (super_admin_bootstrap.dart).

@@ -39,14 +39,13 @@ abstract class AgentTabState<T extends StatefulWidget> extends State<T> {
   Widget number(String key, num initial, String label, [String? unit]) =>
       NumberField(controller: field(key, initial), label: label, unit: unit, onChanged: changed);
 
-  /// Length, width, height, voids and excluded volume — the workbook's
-  /// 5 × 5 × 5 m example room.
+  /// Length, width and height — the workbook's 5 × 5 × 5 m example room.
+  /// (26/10/2026: additional voids and excluded volume removed from the
+  /// screen at Eng. Ahmed Shuhayb's request; they count as 0.)
   List<Widget> enclosureFields() => <Widget>[
         number('l', 5, 'Length', 'm'),
         number('w', 5, 'Width', 'm'),
         number('h', 5, 'Height', 'm'),
-        number('voids', 0, 'Additional voids', 'm³'),
-        number('excluded', 0, 'Excluded volume', 'm³'),
       ];
 
   /// The net protected volume, or null until L, W and H are valid.
@@ -81,7 +80,7 @@ class AgentHeading extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.only(top: 8, bottom: 12),
-        child: Text(text, style: StyleText.fontSize14Weight600.copyWith(color: AppColors.text)),
+        child: Text(titleCase(text), style: StyleText.fontSize14Weight600.copyWith(color: AppColors.text)),
       );
 }
 

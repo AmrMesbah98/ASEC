@@ -63,19 +63,23 @@ import 'package:http/http.dart' as http;
 
 import 'package:asec/core/constants/firebase_collections.dart';
 import 'package:asec/core/network/app_firebase.dart';
+import 'package:asec/core/security/content_crypto.dart';
 import 'package:asec/features/video/v1_videos/data/models/video_model.dart';
 import 'package:asec/features/video/v1_videos/domain/entities/video_item.dart';
 import 'package:asec/firebase_options.dart';
 
 class DriveLesson {
   const DriveLesson({
-    required this.fileId,
+    required this.hidden,
     required this.title,
     required this.description,
     required this.sizeBytes,
   });
 
-  final String fileId;
+  /// The Drive file id, hidden (ContentCrypto.reveal) so the app's code
+  /// carries no readable Drive id.
+  final String hidden;
+  String get fileId => ContentCrypto.reveal(hidden);
   final String title;
   final String description;
   final int sizeBytes;
@@ -93,7 +97,7 @@ abstract final class DriveLessons {
   /// In lesson order.
   static const List<DriveLesson> all = <DriveLesson>[
     DriveLesson(
-      fileId: '1t4WahZDknqV7ySAUhi-FpskbIsWfspxj', // T01
+      hidden: '1GC511mQizj15ghmihbwnBG2z_S-yROKhdrehDemIASP', // T01
       title: 'لماذا نحتاج الهواء النقي؟ مدخل إلى التكييف والتهوية',
       description:
           'ما درجة الحرارة المريحة للإنسان؟ حوالي 24°م. لكن في غرفة مغلقة الشبابيك لا تكفي درجة الحرارة وحدها: '
@@ -102,7 +106,7 @@ abstract final class DriveLessons {
       sizeBytes: 57622971,
     ),
     DriveLesson(
-      fileId: '10-R_HFNIW_t6Z9iW8H2wZJrSqsHn6K7I', // T02
+      hidden: '1CSg0mewlzLX3yZEizWatBPm7uuP4yqTtOLemz_jG0us', // T02
       title: 'خطوات تصميم مجاري الهواء: من الأحمال إلى ضغط المروحة (ESP)',
       description:
           'كيف ترتبط خطوات التصميم ببعضها: حساب الأحمال ← كمية الهواء (CFM) ← اختيار المخارج ومعرفة الـ Pressure Drop '
@@ -111,7 +115,7 @@ abstract final class DriveLessons {
       sizeBytes: 66 * _mb + 410 * 1024,
     ),
     DriveLesson(
-      fileId: '1dEQ_fHsa5WjhPjpmk4wTsPBHqB-xFUKB', // T03
+      hidden: '1HDI0WeemQ__vS5a1T_JrSm1kq6syjCjr-Lv_imTBTen', // T03
       title: 'رسم مجاري الهواء: ضبط المقاسات والمسلوب (Transition)',
       description:
           'تطبيق عملي على برنامج الرسم: إدخال مقاس المجرى بالملّيمتر وتحويل البوصة (20 بوصة = 500 مم، 12 بوصة = 300 مم)، '
@@ -120,7 +124,7 @@ abstract final class DriveLessons {
       sizeBytes: 14 * _mb,
     ),
     DriveLesson(
-      fileId: '1SK4qkpTyctHU4FWrQdYYP-zAYAxFt1rt', // T04
+      hidden: '1EfGtEmToSjn6w146FvlijaPwoCh6U2bpsrsqxehYQ6R', // T04
       title: 'سوق المقاولات والـ MEP: لماذا الآن وقت الفرص؟',
       description:
           'الفرق بين الركود والموت في سوق العمل، ولماذا يعيش مجال الـ MEP والمقاولات الآن مرحلة ازدهار (Booming): '
@@ -129,7 +133,7 @@ abstract final class DriveLessons {
       sizeBytes: 31 * _mb + 922 * 1024,
     ),
     DriveLesson(
-      fileId: '1QVR8_iTyrU9X-Yz-8Yfxyfn2HST3Lvw1', // T05
+      hidden: '1EXb0gCnuCjn-iwJ5UL6p2nm_7-AwAaP1dv-h2KZJgvU', // T05
       title: 'قائمة Visibility/Graphics في Revit',
       description:
           'القائمة المسؤولة عن إظهار وإخفاء عناصر الرسم. Model Categories: كل ما يُرسم مثل الدكت والحوائط والشبابيك والمعدات '
@@ -138,7 +142,7 @@ abstract final class DriveLessons {
       sizeBytes: 9 * _mb + 512 * 1024,
     ),
     DriveLesson(
-      fileId: '1GJkaJJDn9CPIC5UEfbyEgD8PJsXS9wtl', // T06
+      hidden: '1FPH61mymzjwsTpg9CyWiAG4xKC93iTZt9neiwLsJwiJ', // T06
       title: 'اختيار مضخة الحريق: قراءة منحنى الأداء',
       description:
           'مضخة كهرباء أو ديزل مطلوب منها 500 GPM عند 9 بار: هل يكفي أن تحقق نقطة التشغيل؟ لا. '
@@ -147,7 +151,7 @@ abstract final class DriveLessons {
       sizeBytes: 68 * _mb + 102 * 1024,
     ),
     DriveLesson(
-      fileId: '10pwkXMoxpEE1wAuDwlWS0r1IXbpDiyBV', // T07
+      hidden: '1CT991OgnBPm-Dx1jBjiqACpyo6riRLQrsvPoxW8KT6z', // T07
       title: 'تشخيص وحدة تكييف: انسداد الملف (Coil) من فرق الضغط',
       description:
           'حالة حقيقية: الوحدة تعطي حوالي 62% فقط من كمية الهواء المطلوبة، بينما السرعة (RPM) والتيار (الأمبير) مضبوطان. '
@@ -156,7 +160,7 @@ abstract final class DriveLessons {
       sizeBytes: 77 * _mb + 410 * 1024,
     ),
     DriveLesson(
-      fileId: '1Z-8yWWqdnEJnszzh1IllLF4V1OviZguv', // T08
+      hidden: '1E6guEGvhg365jx60xzZpyzv77WU9SbVsaLipTiPNwmT', // T08
       title: 'السيكرومتري: إعادة التسخين للوصول إلى خط Room Sensible Heat',
       description:
           'على الخريطة السيكرومترية: المروحة وحدها ترفع حرارة الهواء درجة أو درجة ونصف فقط، وهذا لا يكفي. '
@@ -165,7 +169,7 @@ abstract final class DriveLessons {
       sizeBytes: 63 * _mb,
     ),
     DriveLesson(
-      fileId: '1WmxC_uCPWQdtklkWo5AXkPIEaJEks9Zi', // T09
+      hidden: '1EPg-HunpD_O3yhUyQTPthOxk5ig0jCoovLnljqmaSaM', // T09
       title: 'المكتب الفني: أقسامه ودوره في المشروع',
       description:
           'المكتب الفني هو "مايسترو" المشروع. ينقسم إلى جزء الدراسات وجزء التنفيذ: دراسة العقود ومستندات المشروع، '
@@ -174,7 +178,7 @@ abstract final class DriveLessons {
       sizeBytes: 87 * _mb + 819 * 1024,
     ),
     DriveLesson(
-      fileId: '1i0jY6VXp85A-UMw8VIKhgk6Tu4Fw49vs', // FINAL TOPICS
+      hidden: '1H296mHOhyTusExxkDruqnyI75KQ3gvXs-aZlSbhaQqW', // FINAL TOPICS
       title: 'الملخص الكامل: كل الموضوعات في فيديو واحد',
       description:
           'الدروس التسعة متتالية في فيديو واحد (حوالي 10 دقائق): الهواء النقي، تصميم مجاري الهواء والـ ESP، رسم الدكت والمسلوب، '

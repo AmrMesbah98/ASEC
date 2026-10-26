@@ -114,7 +114,7 @@ class _MembersPageState extends State<MembersPage> {
       body: StreamBuilder<List<AppUser>>(
         stream: _members,
         builder: (BuildContext context, AsyncSnapshot<List<AppUser>> snapshot) {
-          if (snapshot.hasError) return AppErrorView(message: s.errUnknown);
+          if (snapshot.hasError) return AppErrorView(message: s.errUnknown, error: snapshot.error, stackTrace: snapshot.stackTrace);
           if (!snapshot.hasData) return const AppLoading();
 
           final List<AppUser> all = snapshot.data!;

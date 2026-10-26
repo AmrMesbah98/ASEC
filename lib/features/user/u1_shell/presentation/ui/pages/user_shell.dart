@@ -29,6 +29,7 @@ import 'package:asec/features/video/v1_videos/presentation/ui/pages/user_videos_
 import 'package:asec/features/tools/t1_unit_converter/presentation/ui/pages/unit_converter_page.dart';
 import 'package:asec/features/tools/t2_engineering_calc/data/calc_access.dart';
 import 'package:asec/features/tools/t2_engineering_calc/presentation/ui/pages/engineering_calc_page.dart';
+import 'package:asec/features/tools/t2_engineering_calc/presentation/ui/pages/hvac_locked_page.dart';
 import 'package:asec/features/tools/t3_duct_calc/presentation/ui/pages/duct_calc_page.dart';
 import 'package:asec/features/tools/t4_pipe_calc/presentation/ui/pages/pipe_calc_page.dart';
 import 'package:asec/features/tools/t5_plumbing_fire/presentation/ui/pages/plumbing_fire_page.dart';
@@ -59,14 +60,6 @@ class UserShell extends StatelessWidget {
             shortLabel: s.unitConverterShort,
             page: const UnitConverterPage(),
           ),
-        if (f.calcOn(AppFeature.calcEngineering))
-          ShellSection(
-            id: 'engineeringCalc',
-            icon: Icons.engineering_rounded,
-            label: s.engineeringCalc,
-            shortLabel: s.engineeringCalcShort,
-            page: const EngineeringCalcPage(),
-          ),
         if (f.calcOn(AppFeature.calcDuct))
           ShellSection(
             id: 'ductCalc',
@@ -83,6 +76,19 @@ class UserShell extends StatelessWidget {
             shortLabel: s.pipeCalcShort,
             page: const PipeCalcPage(),
           ),
+        // 26/10/2026: the menu reads Units, Ducts, Pipes, HVAC, Plumbing,
+        // Fire. HVAC is always in it, LOCKED (HvacLockedPage) unless the
+        // Control centre switch is on and the admin unlocked the
+        // calculators for this member — it comes with the subscriptions.
+        ShellSection(
+          id: 'engineeringCalc',
+          icon: Icons.engineering_rounded,
+          label: s.engineeringCalc,
+          shortLabel: 'HVAC',
+          page: f.calcOn(AppFeature.calcEngineering) && user.mayUseCalcs
+              ? const EngineeringCalcPage()
+              : const HvacLockedPage(),
+        ),
         if (f.calcOn(AppFeature.calcPlumbing))
           ShellSection(
             id: 'plumbingFireCalc',

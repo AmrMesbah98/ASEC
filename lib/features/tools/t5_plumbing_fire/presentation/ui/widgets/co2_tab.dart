@@ -8,7 +8,9 @@
 /// Created: 22/10/2026
 /// Updated: 25/10/2026 - Back in the Fire fighting calculator. Uses the
 ///          ASEC gas calculator workbook: the first 56.5 m³ at 1.6 kg/m³,
-///          the rest at 1.33 kg/m³, every value editable.
+///          the rest at 1.33 kg/m³, in 45 kg cylinders (rounded up).
+/// Updated: 26/10/2026 - Only L, W, H are entered; bands, coefficients
+///          and cylinder size are fixed (Eng. Ahmed Shuhayb).
 library;
 
 import 'package:flutter/material.dart';
@@ -28,44 +30,27 @@ class _Co2TabState extends AgentTabState<Co2Tab> {
   @override
   Widget build(BuildContext context) {
     final double? v = netVolumeFromFields();
-    final Co2BandResult? r = v == null
-        ? null
-        : Co2Band.calculate(
-            volume: v,
-            firstBandM3: value('band') ?? Co2Band.firstBandM3,
-            firstCoefficient: value('c1') ?? Co2Band.firstCoefficient,
-            excessCoefficient: value('c2') ?? Co2Band.excessCoefficient,
-            allowancePct: value('allow') ?? 0,
-            cylinderKg: value('fill') ?? 0,
-          );
+    // 26/10/2026: the bands, coefficients and the 45 kg cylinder are fixed
+    // (Co2Band defaults) and no longer shown — like the FM-200 tab.
+    final Co2BandResult? r = v == null ? null : Co2Band.calculate(volume: v);
 
     return ListView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: const EdgeInsets.symmetric(vertical: 16),
       children: <Widget>[
         const AgentHeading('Enclosure'),
         ResponsiveFields(children: enclosureFields()),
-        const SizedBox(height: 8),
-        const AgentHeading('Preliminary inputs'),
-        ResponsiveFields(
-          children: <Widget>[
-            number('band', Co2Band.firstBandM3, 'First volume band', 'm³'),
-            number('c1', Co2Band.firstCoefficient, 'First band coefficient', 'kg/m³'),
-            number('c2', Co2Band.excessCoefficient, 'Excess band coefficient', 'kg/m³'),
-            number('allow', Co2Band.allowancePct, 'Allowance', '%'),
-            number('fill', Co2Band.cylinderKg, 'Cylinder fill', 'kg'),
-          ],
-        ),
         const SizedBox(height: 16),
         if (r == null)
           const Text('Enter the room length, width and height.')
         else
           ResultTable(
             items: <ResultItem>[
-              ResultItem('Net protected volume', fmt(r.volume, 2), 'm³'),
-              ResultItem('First-band volume', fmt(r.firstBandVolume, 2), 'm³'),
-              ResultItem('Excess volume', fmt(r.excessVolume, 2), 'm³'),
-              ResultItem('Total weight of CO₂', fmt(r.weight, 1), 'kg'),
-              ResultItem('Indicative cylinder count', '${r.cylinders}'),
+              ResultItem('Net Protected Volume', fmt(r.volume, 2), 'm³'),
+              ResultItem('First-Band Volume (× ${fmt(Co2Band.firstCoefficient, 1)} kg/m³)', fmt(r.firstBandVolume, 2), 'm³'),
+              ResultItem('Excess Volume (× ${fmt(Co2Band.excessCoefficient, 2)} kg/m³)', fmt(r.excessVolume, 2), 'm³'),
+              ResultItem('Total Weight Of CO₂', fmt(r.weight, 1), 'kg'),
+              ResultItem('Number Of Cylinders', '${r.cylinders} × ${fmt(Co2Band.cylinderKg, 0)} kg'),
             ],
           ),
         const PreliminaryNote(

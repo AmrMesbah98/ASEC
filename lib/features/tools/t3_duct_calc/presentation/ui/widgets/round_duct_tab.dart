@@ -141,6 +141,7 @@ class _FlexibleDuctTabState extends State<FlexibleDuctTab> {
     final List<int> sizes = _ip ? kFlexibleDuctDiametersIn : kFlexibleDuctDiametersMm;
 
     return ListView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: const EdgeInsets.symmetric(vertical: 16),
       children: <Widget>[
         ResponsiveFields(
@@ -153,7 +154,7 @@ class _FlexibleDuctTabState extends State<FlexibleDuctTab> {
                 value: _units,
                 items: const <DropdownItem<SizerUnits>>[
                   DropdownItem<SizerUnits>(value: SizerUnits.si, label: 'Metric'),
-                  DropdownItem<SizerUnits>(value: SizerUnits.ip, label: 'Inch (US units)'),
+                  DropdownItem<SizerUnits>(value: SizerUnits.ip, label: 'Imperial'),
                 ],
                 onChanged: (SizerUnits? u) {
                   if (u != null) _setUnits(u);

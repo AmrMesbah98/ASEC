@@ -216,7 +216,7 @@ class _AdminEngagementPageState extends State<AdminEngagementPage> {
       stream: stream,
       builder: (BuildContext context, AsyncSnapshot<List<T>> snap) {
         if (snap.hasError) {
-          return AppErrorView(message: engErrorText(context, snap.error));
+          return AppErrorView(message: engErrorText(context, snap.error), error: snap.error, stackTrace: snap.stackTrace);
         }
         if (!snap.hasData) return const AppLoading();
         final List<T> list = snap.data!;

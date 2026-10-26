@@ -40,6 +40,7 @@ class _FlowConversionTabState extends State<FlowConversionTab> {
         v == null ? null : DuctCalculator.convertFlow(v, _from);
 
     return ListView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: const EdgeInsets.symmetric(vertical: 16),
       children: <Widget>[
         ResponsiveFields(

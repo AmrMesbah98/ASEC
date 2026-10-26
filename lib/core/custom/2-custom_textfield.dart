@@ -670,6 +670,11 @@ class _CustomTextFieldState extends State<CustomTextField> {
           onChanged: widget.onChanged,
           onSubmitted: widget.onSubmitted,
           onTap: widget.onTap,
+          // 26/10/2026: a touch anywhere outside the field closes the
+          // keyboard — also where the app-wide tap (main.dart) loses the
+          // gesture to a list, a table or a button. iOS number pads have no
+          // "Done" key, so this is the only way to put them away.
+          onTapOutside: (PointerDownEvent _) => _focusNode.unfocus(),
           style: widget.valueStyle ??
               StyleText.fontSize14Weight400.copyWith(
                 color: isDisabled

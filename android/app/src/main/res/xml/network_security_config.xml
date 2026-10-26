@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Lessons play from SecureVideoServer on 127.0.0.1 (this device only), so
+     plain HTTP is allowed to the loopback address and nowhere else. Only the
+     system's certificates are trusted: a certificate a user installs (what
+     HTTPS sniffers need) is ignored. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">127.0.0.1</domain>
+        <domain includeSubdomains="false">localhost</domain>
+    </domain-config>
+</network-security-config>

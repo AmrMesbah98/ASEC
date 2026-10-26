@@ -194,7 +194,7 @@ class _AdminVideosPageState extends State<AdminVideosPage> {
           BuildContext context,
           AsyncSnapshot<List<VideoItem>> snapshot,
         ) {
-          if (snapshot.hasError) return AppErrorView(message: s.errUnknown);
+          if (snapshot.hasError) return AppErrorView(message: s.errUnknown, error: snapshot.error, stackTrace: snapshot.stackTrace);
           if (!snapshot.hasData) return const AppLoading();
 
           final List<VideoItem> all = snapshot.data!.toList()

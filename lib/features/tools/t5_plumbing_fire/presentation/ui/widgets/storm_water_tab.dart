@@ -77,6 +77,7 @@ class _StormWaterTabState extends State<StormWaterTab> {
     void changed(String _) => setState(() {});
 
     return ListView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: const EdgeInsets.symmetric(vertical: 16),
       children: <Widget>[
         ResponsiveFields(
@@ -86,7 +87,7 @@ class _StormWaterTabState extends State<StormWaterTab> {
               width: 140,
               child: CustomDropdown<_AreaUnit>(
                 fillColor: AppColors.card,
-                label: 'Area unit',
+                label: 'Area Unit',
                 value: _unit,
                 items: const <DropdownItem<_AreaUnit>>[
                   DropdownItem<_AreaUnit>(value: _AreaUnit.m2, label: 'm²'),
@@ -101,7 +102,7 @@ class _StormWaterTabState extends State<StormWaterTab> {
               width: 220,
               child: CustomDropdown<int>(
                 fillColor: AppColors.card,
-                label: 'Rainfall rate',
+                label: 'Rainfall Rate',
                 value: _rate,
                 items: <DropdownItem<int>>[
                   for (int i = 0; i < kRainfallRatesInH.length; i++)
@@ -119,7 +120,7 @@ class _StormWaterTabState extends State<StormWaterTab> {
               width: 240,
               child: CustomDropdown<int>(
                 fillColor: AppColors.card,
-                label: 'Horizontal pipes slope',
+                label: 'Horizontal Pipes Slope',
                 value: _slope,
                 items: <DropdownItem<int>>[
                   for (int i = 0; i < kStormSlopes.length; i++)
@@ -155,7 +156,7 @@ class _StormWaterTabState extends State<StormWaterTab> {
             ],
           ),
           const SizedBox(height: 24),
-          const Text('Actual gutter'),
+          const Text('Actual Gutter'),
           const SizedBox(height: 8),
           ResponsiveFields(
             children: <Widget>[
@@ -163,11 +164,11 @@ class _StormWaterTabState extends State<StormWaterTab> {
                 width: 200,
                 child: CustomDropdown<_GutterMode>(
                   fillColor: AppColors.card,
-                  label: 'Choose by',
+                  label: 'Choose By',
                   value: _mode,
                   items: const <DropdownItem<_GutterMode>>[
-                    DropdownItem<_GutterMode>(value: _GutterMode.byNumber, label: 'Number of gutters'),
-                    DropdownItem<_GutterMode>(value: _GutterMode.byDiameter, label: 'Gutter diameter'),
+                    DropdownItem<_GutterMode>(value: _GutterMode.byNumber, label: 'Number Of Gutters'),
+                    DropdownItem<_GutterMode>(value: _GutterMode.byDiameter, label: 'Gutter Diameter'),
                   ],
                   onChanged: (_GutterMode? m) {
                     if (m != null) setState(() => _mode = m);
@@ -175,13 +176,13 @@ class _StormWaterTabState extends State<StormWaterTab> {
                 ),
               ),
               if (_mode == _GutterMode.byNumber)
-                NumberField(controller: _count, label: 'Number of gutters', onChanged: changed)
+                NumberField(controller: _count, label: 'Number Of Gutters', onChanged: changed)
               else
                 SizedBox(
                   width: 200,
                   child: CustomDropdown<double>(
                     fillColor: AppColors.card,
-                    label: 'Gutter diameter',
+                    label: 'Gutter Diameter',
                     value: _diameter,
                     items: <DropdownItem<double>>[
                       for (final double d in kGutterSizes)

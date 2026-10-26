@@ -8,7 +8,9 @@
 /// Author: Manger Plus team
 /// Created: 18/9/2026
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
@@ -21,6 +23,8 @@ import 'package:asec/core/theme/app_theme.dart';
 import 'package:asec/generated/l10n.dart';
 import 'package:asec/core/custom/111-app_svg_icon.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
+import 'package:asec/core/settings/error_reports.dart';
+import 'package:asec/features/onboarding/o2_authentication/presentation/controller/session_controller.dart';
 
 // ── Buttons ─────────────────────────────────────────────────────────────────
 
@@ -265,16 +269,70 @@ class AppLoading extends StatelessWidget {
   }
 }
 
-class AppErrorView extends StatelessWidget {
-  const AppErrorView({super.key, required this.message, this.onRetry});
+/// The "Something went wrong" screen. Pass the [error] (and [stackTrace])
+/// that caused it: it is saved for the super admin (ErrorReports), and when
+/// the super admin is the one looking, the full details show right here
+/// under the message, with a Copy button.
+class AppErrorView extends StatefulWidget {
+  const AppErrorView({
+    super.key,
+    required this.message,
+    this.onRetry,
+    this.error,
+    this.stackTrace,
+  });
 
   final String message;
   final VoidCallback? onRetry;
+  final Object? error;
+  final StackTrace? stackTrace;
+
+  @override
+  State<AppErrorView> createState() => _AppErrorViewState();
+}
+
+class _AppErrorViewState extends State<AppErrorView> {
+  @override
+  void initState() {
+    super.initState();
+    _report();
+  }
+
+  @override
+  void didUpdateWidget(AppErrorView old) {
+    super.didUpdateWidget(old);
+    if (!identical(old.error, widget.error)) _report();
+  }
+
+  void _report() {
+    // No error object: still worth knowing which screen failed.
+    ErrorReports.report(
+      widget.error ?? 'AppErrorView shown without an error: ${widget.message}',
+      widget.stackTrace ?? (widget.error == null ? StackTrace.current : null),
+      source: 'screen',
+    );
+  }
+
+  bool get _isSuper {
+    try {
+      return SessionController.to.current.isSuperAdmin;
+    } catch (_) {
+      return false;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final Object? error = widget.error;
+    final String details = error == null
+        ? ''
+        : <String>[
+            '${error.runtimeType}',
+            if (error is FirebaseException) '[${error.plugin}/${error.code}] ${error.message ?? ''}' else '$error',
+          ].join('\n');
+
     return Center(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: EdgeInsets.symmetric(horizontal: AppPadding.h, vertical: 24.r),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -282,18 +340,52 @@ class AppErrorView extends StatelessWidget {
             AppIcon(Icons.cloud_off_rounded, size: 48.sp, color: AppColors.secondaryText),
             SizedBox(height: 12.h),
             Text(
-              FormatHelper.capitalize(message),
+              FormatHelper.capitalize(widget.message),
               textAlign: TextAlign.center,
               style: StyleText.fontSize14Weight500
                   .copyWith(color: AppColors.secondaryText),
             ),
-            if (onRetry != null) ...<Widget>[
+            // SUPER ADMIN ONLY: the real error, selectable and copyable.
+            if (_isSuper && details.isNotEmpty) ...<Widget>[
+              SizedBox(height: 12.h),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 640),
+                child: Container(
+                  padding: EdgeInsets.all(12.r),
+                  decoration: BoxDecoration(
+                    color: AppColors.red.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      SelectableText(
+                        details,
+                        style: StyleText.fontSize12Weight400.copyWith(color: AppColors.red),
+                      ),
+                      Align(
+                        alignment: AlignmentDirectional.centerEnd,
+                        child: TextButton.icon(
+                          onPressed: () => Clipboard.setData(ClipboardData(
+                            text: '$details\n\n${widget.stackTrace ?? ''}',
+                          )),
+                          icon: const Icon(Icons.copy_rounded, size: 16),
+                          label: Text(FormatHelper.capitalize(S.of(context).errorReportsCopy)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+            if (widget.onRetry != null) ...<Widget>[
               SizedBox(height: 16.h),
               AppButton(
                 label: S.of(context).retry,
                 icon: Icons.refresh_rounded,
                 kind: AppButtonKind.subtle,
-                onPressed: onRetry,
+                onPressed: widget.onRetry,
               ),
             ],
           ],

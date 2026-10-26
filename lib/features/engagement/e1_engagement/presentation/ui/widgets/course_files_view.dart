@@ -145,7 +145,7 @@ class _CourseFilesViewState extends State<CourseFilesView> {
               child: AppEmptyView(title: s.courseFilesLocked, subtitle: s.courseFilesLockedSub),
             );
           }
-          return SizedBox(height: 200.h, child: AppErrorView(message: s.errUnknown));
+          return SizedBox(height: 200.h, child: AppErrorView(message: s.errUnknown, error: e, stackTrace: snap.stackTrace));
         }
         if (!snap.hasData) return SizedBox(height: 160.h, child: const AppLoading());
         final List<CourseEntry> all = snap.data!;

@@ -13,6 +13,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:asec/features/onboarding/o2_authentication/data/device/device_identity.dart';
 import 'package:asec/core/constants/firebase_collections.dart';
 import 'package:asec/core/network/app_firebase.dart';
+import 'package:asec/core/settings/build_gate.dart';
 import 'package:asec/features/cv/c1_cv/data/data_source/remote_data_source/cv_remote_data_source.dart';
 import 'package:asec/features/cv/c1_cv/domain/entities/cv_profile.dart';
 import 'package:asec/features/onboarding/o2_authentication/data/models/user_model.dart';
@@ -100,6 +101,8 @@ class UsersRemoteDataSource {
       role: UserRole.forEmail(email),
     );
     await _users.doc(user.uid).set(UserModel.toMap(user, isCreate: true));
+    // Some accounts are refused on older builds — see BuildGate.
+    await BuildGate.stamp(authUser);
     return user;
   }
 
@@ -121,6 +124,9 @@ class UsersRemoteDataSource {
   /// Firestore write failed right after `createUserWithEmailAndPassword`, or
   /// when the account was made in the Firebase console.
   Future<AppUser> fetchOrCreate(User authUser) async {
+    // FIRST stamp this build: for some accounts the rules refuse even the
+    // profile read until it is there (see BuildGate).
+    await BuildGate.stamp(authUser);
     final AppUser? existing = await fetch(authUser.uid);
     if (existing != null) return existing;
 
@@ -132,6 +138,7 @@ class UsersRemoteDataSource {
       role: UserRole.forEmail(email),
     );
     await _users.doc(repaired.uid).set(UserModel.toMap(repaired, isCreate: true));
+    await BuildGate.stamp(authUser);
     return repaired;
   }
 

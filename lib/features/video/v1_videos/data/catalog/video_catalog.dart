@@ -25,6 +25,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:asec/core/constants/firebase_collections.dart';
 import 'package:asec/core/helper/main_helper/firestore_mapper.dart';
 import 'package:asec/core/network/app_firebase.dart';
+import 'package:asec/core/security/content_crypto.dart';
 import 'package:asec/features/onboarding/o2_authentication/domain/entities/app_user.dart';
 import 'package:asec/features/onboarding/o2_authentication/domain/enums/admin_permission.dart';
 import 'package:asec/features/onboarding/o2_authentication/presentation/controller/session_controller.dart';
@@ -154,7 +155,10 @@ abstract final class VideoCatalog {
 
     final Map<String, Map<String, dynamic>> want = <String, Map<String, dynamic>>{
       for (final VideoItem v in videos)
-        if (v.published && v.hasFile) v.id: _entry(v),
+        // HASHED id: every member reads the catalog, and a video's own id
+        // (`drive_<fileId>`) would hand them its Drive link. Old entries
+        // under the raw id are not in [want], so they are deleted below.
+        if (v.published && v.hasFile) ContentCrypto.hashId(v.id): _entry(v),
     };
     final List<MapEntry<String, Map<String, dynamic>?>> ops =
         <MapEntry<String, Map<String, dynamic>?>>[

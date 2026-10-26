@@ -73,7 +73,7 @@ class _UserQuizzesPageState extends State<UserQuizzesPage> {
       body: StreamBuilder<_QuizFeed>(
         stream: _feed,
         builder: (BuildContext context, AsyncSnapshot<_QuizFeed> snapshot) {
-          if (snapshot.hasError) return AppErrorView(message: s.errUnknown);
+          if (snapshot.hasError) return AppErrorView(message: s.errUnknown, error: snapshot.error, stackTrace: snapshot.stackTrace);
           if (!snapshot.hasData) return const AppLoading();
 
           final _QuizFeed feed = snapshot.data!;

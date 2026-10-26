@@ -100,23 +100,19 @@ class _PipeCalcPageState extends State<PipeCalcPage> {
     ];
   }
 
+  /// 26/10/2026: only velocity and head loss (Reynolds number, friction
+  /// factor and elbow loss removed — Eng. Ahmed Shuhayb).
   List<ResultItem> _flowItems(PipeResult r, PipeFluid f) {
     if (_ip) {
       return <ResultItem>[
         ResultItem('Fluid velocity', fmt(r.velocity, 2), 'ft/s'),
-        ResultItem('Reynolds number', fmtGrouped(r.reynolds)),
-        ResultItem('Friction factor', fmt(r.frictionFactor, 5)),
         ResultItem('Head loss', fmt(r.headLoss, 3), 'ft/100 ft'),
-        ResultItem('Elbow loss', fmt(r.elbowLoss, 3), 'ft'),
       ];
     }
     return <ResultItem>[
       ResultItem('Fluid velocity', fmt(r.velocity * PipeSi.ftToM, 2), 'm/s'),
-      ResultItem('Reynolds number', fmtGrouped(r.reynolds)),
-      ResultItem('Friction factor', fmt(r.frictionFactor, 5)),
       ResultItem('Head loss', fmt(PipeSi.headLossPaPerM(r.headLoss, f), 1), 'Pa/m'),
       ResultItem('Head loss', fmt(r.headLoss, 3), 'm/100 m'),
-      ResultItem('Elbow loss', fmt(PipeSi.headPa(r.elbowLoss, f), 1), 'Pa'),
     ];
   }
 
@@ -144,6 +140,7 @@ class _PipeCalcPageState extends State<PipeCalcPage> {
       child: Material(
       type: MaterialType.transparency,
       child: ListView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         padding: const EdgeInsets.only(bottom: 16),
         children: <Widget>[
           ResponsiveFields(
@@ -155,7 +152,7 @@ class _PipeCalcPageState extends State<PipeCalcPage> {
                   label: 'Units',
                   value: _units,
                   items: const <DropdownItem<PipeUnits>>[
-                    DropdownItem<PipeUnits>(value: PipeUnits.ip, label: 'US (gpm, in, ft)'),
+                    DropdownItem<PipeUnits>(value: PipeUnits.ip, label: 'Imperial (gpm, in, ft)'),
                     DropdownItem<PipeUnits>(value: PipeUnits.si, label: 'Metric (L/s, mm, Pa)'),
                   ],
                   onChanged: (PipeUnits? u) {

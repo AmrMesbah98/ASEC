@@ -2535,7 +2535,7 @@ class SAr extends S {
   String get engineeringCalc => 'الحاسبات الهندسية';
 
   @override
-  String get engineeringCalcShort => 'الحاسبات';
+  String get engineeringCalcShort => 'الحسابات';
 
   @override
   String get engineeringCalcSub =>
@@ -2940,7 +2940,7 @@ class SAr extends S {
   }
 
   @override
-  String get unitConverterShort => 'المحوّل';
+  String get unitConverterShort => 'الوحدات';
 
   @override
   String get sectionQuizLabel => 'القسم';
@@ -3594,4 +3594,54 @@ class SAr extends S {
 
   @override
   String get webTab => 'الموقع';
+
+  @override
+  String get errorReportsTitle => 'تقارير الأخطاء';
+
+  @override
+  String get errorReportsCaption =>
+      'كل خطأ واجهه أي مستخدم — من، متى، الجهاز، الصفحة والخطأ كاملاً. اضغط على أي خطأ للتفاصيل.';
+
+  @override
+  String get errorReportsNone => 'لا توجد أخطاء';
+
+  @override
+  String get errorReportsCopy => 'نسخ';
+
+  @override
+  String get errorReportsCopied => 'تم النسخ';
+
+  @override
+  String get errorReportsClearQuestion => 'مسح كل تقارير الأخطاء؟';
+
+  @override
+  String get errorReportsClearBody => 'سيتم حذف كل تقارير الأخطاء المحفوظة.';
+
+  @override
+  String get securityAlertsTitle => 'تنبيهات الحماية';
+
+  @override
+  String get securityAlertsCaption =>
+      'كل محاولة لسحب الدروس من التطبيق — من، متى، الجهاز، وما تم اكتشافه. اضغط على أي تنبيه للتفاصيل.';
+
+  @override
+  String get securityAlertsNone => 'لم يتم اكتشاف أي محاولة';
+
+  @override
+  String get alertMitm => 'تم اكتشاف أداة اعتراض HTTPS';
+
+  @override
+  String get alertStreamGrab => 'تم حظر أداة تحميل';
+
+  @override
+  String get alertDownloadBurst => 'عدد كبير من التحميلات دفعة واحدة';
+
+  @override
+  String get alertOther => 'نشاط مشبوه';
+
+  @override
+  String get alertClearQuestion => 'مسح كل تنبيهات الحماية؟';
+
+  @override
+  String get alertClearBody => 'سيتم حذف كل تنبيهات الحماية المحفوظة.';
 }

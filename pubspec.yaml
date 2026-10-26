@@ -2,7 +2,7 @@ name: asec
 description: "ASEC — videos and timed quizzes for members, run by one admin."
 publish_to: 'none'
 
-version: 1.0.6+23
+version: 1.0.7+24
 
 environment:
   sdk: ^3.12.2
@@ -49,6 +49,8 @@ dependencies:
   chewie: ^1.8.5                     # player UI: scrubbing, speed, volume, full screen
   url_launcher: ^6.3.1               # "open externally" fallback
   path_provider: ^2.1.4              # the app's private folder for offline lessons
+  crypto: ^3.0.6                     # hashed ids (core/security/content_crypto.dart)
+  pointycastle: ^3.9.1               # AES for downloaded lessons
 
   # ── Updates (lib/core/settings/app_update.dart) ────────────────────────────
   shorebird_code_push: ^2.0.4        # over-the-air Dart patches (shorebird patch android)

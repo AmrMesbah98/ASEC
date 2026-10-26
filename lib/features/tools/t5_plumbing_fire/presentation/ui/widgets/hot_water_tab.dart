@@ -80,6 +80,7 @@ class _HotWaterTabState extends State<HotWaterTab> {
     final List<MapEntry<HotWaterFixture, int>> lines = _lines.entries.toList();
 
     return ListView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: const EdgeInsets.symmetric(vertical: 16),
       children: <Widget>[
         ResponsiveFields(
@@ -88,7 +89,7 @@ class _HotWaterTabState extends State<HotWaterTab> {
               width: 240,
               child: CustomDropdown<int>(
                 fillColor: AppColors.card,
-                label: 'Building type',
+                label: 'Building Type',
                 value: _building,
                 maxOverlayHeight: 360,
                 items: <DropdownItem<int>>[
@@ -111,7 +112,7 @@ class _HotWaterTabState extends State<HotWaterTab> {
               width: 240,
               child: CustomDropdown<HotWaterFixture>(
                 fillColor: AppColors.card,
-                label: 'Fixture type',
+                label: 'Fixture Type',
                 value: _fixture,
                 maxOverlayHeight: 360,
                 items: <DropdownItem<HotWaterFixture>>[
@@ -135,7 +136,7 @@ class _HotWaterTabState extends State<HotWaterTab> {
             rows: lines,
             columns: <AppTableColumn<MapEntry<HotWaterFixture, int>>>[
               AppTableColumn<MapEntry<HotWaterFixture, int>>(
-                label: 'Fixture type',
+                label: 'Fixture Type',
                 flex: 3,
                 cell: (BuildContext c, MapEntry<HotWaterFixture, int> e) =>
                     AppTableCellText(e.key.label, emphasis: true),

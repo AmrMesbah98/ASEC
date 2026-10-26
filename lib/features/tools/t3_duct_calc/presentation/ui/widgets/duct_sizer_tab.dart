@@ -213,7 +213,6 @@ class _DuctSizerTabState extends State<DuctSizerTab> {
   @override
   Widget build(BuildContext context) {
     final bool ip = _units == SizerUnits.ip;
-    final FluidProperties props = FluidProperties.of(kAirConditions[_air], _units);
     final SizerResult? r = _result;
     final String len = ip ? 'in' : 'mm';
 
@@ -223,6 +222,7 @@ class _DuctSizerTabState extends State<DuctSizerTab> {
         final bool narrow = c.maxWidth - 32 < kDuctNarrowWidth;
 
         return ListView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           padding: const EdgeInsets.symmetric(vertical: 16),
           children: <Widget>[
             ResponsiveFields(
@@ -234,7 +234,7 @@ class _DuctSizerTabState extends State<DuctSizerTab> {
                     label: 'Units',
                     value: _units,
                     items: const <DropdownItem<SizerUnits>>[
-                      DropdownItem<SizerUnits>(value: SizerUnits.ip, label: 'ips (US units)'),
+                      DropdownItem<SizerUnits>(value: SizerUnits.ip, label: 'Imperial'),
                       DropdownItem<SizerUnits>(value: SizerUnits.si, label: 'Metric'),
                     ],
                     onChanged: (SizerUnits? u) {
@@ -275,19 +275,8 @@ class _DuctSizerTabState extends State<DuctSizerTab> {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            ResultTable(
-              items: <ResultItem>[
-                ResultItem('Fluid density', fmt(props.density, 4), props.densityUnit),
-                ResultItem(
-                  'Fluid viscosity',
-                  ip ? fmt(props.viscosity, 4) : props.viscosity.toStringAsExponential(3),
-                  props.viscosityUnit,
-                ),
-                ResultItem('Specific heat', fmt(props.specificHeat, ip ? 2 : 3), props.specificHeatUnit),
-                ResultItem('Energy factor', fmt(props.energyFactor, 2), props.energyFactorUnit),
-              ],
-            ),
+            // 26/10/2026: the fluid properties table (density, viscosity,
+            // specific heat, energy factor) is no longer shown.
             const SizedBox(height: 16),
             const Text('Tick any two values; the other two are solved.'),
             const SizedBox(height: 8),

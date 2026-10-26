@@ -91,7 +91,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       body: StreamBuilder<DashboardData>(
         stream: _stream,
         builder: (BuildContext context, AsyncSnapshot<DashboardData> snapshot) {
-          if (snapshot.hasError) return AppErrorView(message: s.errUnknown);
+          if (snapshot.hasError) return AppErrorView(message: s.errUnknown, error: snapshot.error, stackTrace: snapshot.stackTrace);
           if (!snapshot.hasData) return const AppLoading();
 
           final DashboardData data = snapshot.data!;

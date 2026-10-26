@@ -430,7 +430,7 @@ class _PartnersAdminTabState extends State<PartnersAdminTab> {
       stream: _all,
       builder: (BuildContext context, AsyncSnapshot<List<Doc>> snap) {
         if (snap.hasError) {
-          return AppErrorView(message: engErrorText(context, snap.error));
+          return AppErrorView(message: engErrorText(context, snap.error), error: snap.error, stackTrace: snap.stackTrace);
         }
         if (!snap.hasData) return const AppLoading();
         final List<Doc> docs = snap.data!;

@@ -133,13 +133,6 @@ class AdminShell extends StatelessWidget {
                 page: const UnitConverterPage(),
               ),
               ShellSection(
-                id: 'engineeringCalc',
-                icon: Icons.engineering_rounded,
-                label: s.engineeringCalc,
-                shortLabel: s.engineeringCalcShort,
-                page: const EngineeringCalcPage(),
-              ),
-              ShellSection(
                 id: 'ductCalc',
                 icon: Icons.air_rounded,
                 label: s.ductCalc,
@@ -152,6 +145,14 @@ class AdminShell extends StatelessWidget {
                 label: s.pipeCalc,
                 shortLabel: s.pipeCalcShort,
                 page: const PipeCalcPage(),
+              ),
+              ShellSection(
+                id: 'engineeringCalc',
+                icon: Icons.engineering_rounded,
+                label: s.engineeringCalc,
+                // 26/10/2026: the menu reads Units, Ducts, Pipes, HVAC, Plumbing, Fire.
+                shortLabel: 'HVAC',
+                page: const EngineeringCalcPage(),
               ),
               ShellSection(
                 id: 'plumbingFireCalc',

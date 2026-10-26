@@ -6613,6 +6613,102 @@ abstract class S {
   /// In en, this message translates to:
   /// **'Website'**
   String get webTab;
+
+  /// No description provided for @errorReportsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Error reports'**
+  String get errorReportsTitle;
+
+  /// No description provided for @errorReportsCaption.
+  ///
+  /// In en, this message translates to:
+  /// **'Every error any user hit — who, when, device, page and the full error. Tap one for details.'**
+  String get errorReportsCaption;
+
+  /// No description provided for @errorReportsNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No errors reported'**
+  String get errorReportsNone;
+
+  /// No description provided for @errorReportsCopy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get errorReportsCopy;
+
+  /// No description provided for @errorReportsCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied'**
+  String get errorReportsCopied;
+
+  /// No description provided for @errorReportsClearQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear all error reports?'**
+  String get errorReportsClearQuestion;
+
+  /// No description provided for @errorReportsClearBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Every saved error report will be deleted.'**
+  String get errorReportsClearBody;
+
+  /// No description provided for @securityAlertsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Security alerts'**
+  String get securityAlertsTitle;
+
+  /// No description provided for @securityAlertsCaption.
+  ///
+  /// In en, this message translates to:
+  /// **'Every attempt to pull the lessons out of the app — who, when, device, and what was found. Tap one for details.'**
+  String get securityAlertsCaption;
+
+  /// No description provided for @securityAlertsNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No attempts detected'**
+  String get securityAlertsNone;
+
+  /// No description provided for @alertMitm.
+  ///
+  /// In en, this message translates to:
+  /// **'HTTPS sniffer detected'**
+  String get alertMitm;
+
+  /// No description provided for @alertStreamGrab.
+  ///
+  /// In en, this message translates to:
+  /// **'Download tool blocked'**
+  String get alertStreamGrab;
+
+  /// No description provided for @alertDownloadBurst.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many downloads at once'**
+  String get alertDownloadBurst;
+
+  /// No description provided for @alertOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Suspicious activity'**
+  String get alertOther;
+
+  /// No description provided for @alertClearQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear all security alerts?'**
+  String get alertClearQuestion;
+
+  /// No description provided for @alertClearBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Every saved security alert will be deleted.'**
+  String get alertClearBody;
 }
 
 class _SDelegate extends LocalizationsDelegate<S> {

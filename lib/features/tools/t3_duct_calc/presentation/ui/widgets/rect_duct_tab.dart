@@ -57,6 +57,7 @@ class _RectDuctTabState extends State<RectDuctTab> {
     void changed(String _) => setState(() {});
 
     return ListView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: const EdgeInsets.symmetric(vertical: 16),
       children: <Widget>[
         ResponsiveFields(

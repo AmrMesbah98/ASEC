@@ -7,10 +7,15 @@
 ///          quantity out. Formulas: domain/clean_agents.dart.
 /// Author: ASEC team
 /// Created: 25/10/2026
+/// Updated: 26/10/2026 - Eng. Ahmed Shuhayb: only L, W, H and the fire
+///          class (design density A 49.32, B 72.02, C 81.79 g/m³) are
+///          entered; the result is the volume and the aerosol mass.
 library;
 
 import 'package:flutter/material.dart';
 
+import 'package:asec/core/custom/1-custom_dropdown.dart';
+import 'package:asec/core/theme/app_colors.dart';
 import 'package:asec/features/tools/t3_duct_calc/presentation/ui/widgets/duct_fields.dart';
 import 'package:asec/features/tools/t5_plumbing_fire/domain/clean_agents.dart';
 import 'package:asec/features/tools/t5_plumbing_fire/presentation/ui/widgets/agent_fields.dart';
@@ -22,50 +27,65 @@ class AerosolTab extends StatefulWidget {
   State<AerosolTab> createState() => _AerosolTabState();
 }
 
+/// Listed design density by fire class (g/m³).
+enum AerosolClass {
+  a('Class A', 49.32),
+  b('Class B', 72.02),
+  c('Class C', 81.79);
+
+  const AerosolClass(this.label, this.density);
+  final String label;
+  final double density;
+}
+
 class _AerosolTabState extends AgentTabState<AerosolTab> {
+  AerosolClass _class = AerosolClass.a;
+
   @override
   Widget build(BuildContext context) {
     final double? v = netVolumeFromFields();
-    final double? d = value('density');
-    final AerosolResult? r = (v == null || d == null)
-        ? null
-        : Aerosol.calculate(
-            volume: v,
-            densityGm3: d,
-            allowancePct: value('allow') ?? 0,
-            generatorGrams: value('gen') ?? 0,
-          );
+    final AerosolResult? r =
+        v == null ? null : Aerosol.calculate(volume: v, densityGm3: _class.density);
 
     return ListView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: const EdgeInsets.symmetric(vertical: 16),
       children: <Widget>[
-        const AgentHeading('Hazard volume'),
+        const AgentHeading('Hazard Volume'),
         ResponsiveFields(children: enclosureFields()),
         const SizedBox(height: 8),
-        const AgentHeading('Listed aerosol generator inputs'),
+        const AgentHeading('Design Density'),
         ResponsiveFields(
           children: <Widget>[
-            number('density', Aerosol.densityGm3, 'Design density', 'g/m³'),
-            number('allow', Aerosol.allowancePct, 'Design allowance', '%'),
-            number('gen', Aerosol.generatorGrams, 'Generator aerosol mass', 'g/unit'),
+            SizedBox(
+              width: 220,
+              child: CustomDropdown<AerosolClass>(
+                fillColor: AppColors.card,
+                label: 'Fire Class',
+                value: _class,
+                items: <DropdownItem<AerosolClass>>[
+                  for (final AerosolClass c in AerosolClass.values)
+                    DropdownItem<AerosolClass>(value: c, label: '${c.label} — ${fmt(c.density, 2)} g/m³'),
+                ],
+                onChanged: (AerosolClass? c) {
+                  if (c != null) setState(() => _class = c);
+                },
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 16),
         if (r == null)
-          const Text('Enter the room size and the listed design density.')
+          const Text('Enter the room length, width and height.')
         else
           ResultTable(
             items: <ResultItem>[
-              ResultItem('Net protected volume', fmt(r.volume, 2), 'm³'),
-              ResultItem('Base aerosol requirement', fmt(r.baseMass, 0), 'g'),
-              ResultItem('Adjusted aerosol mass', fmt(r.adjustedMass, 0), 'g'),
-              ResultItem('Indicative generator quantity', '${r.generators}'),
-              ResultItem('Nominal total aerosol mass', fmt(r.totalMass, 0), 'g'),
+              ResultItem('Net Protected Volume', fmt(r.volume, 2), 'm³'),
+              ResultItem('Aerosol Mass Required', fmt(r.baseMass, 0), 'g'),
             ],
           ),
         const PreliminaryNote(
-          "109.2 g/m³ is a sample value for comparison only — use the approved manufacturer's "
-          'listed design density. Generator placement, ceiling height, obstructions and occupied-space '
+          'M = V × design density. Generator placement, ceiling height, obstructions and occupied-space '
           'limits need product-specific checks.',
         ),
       ],
