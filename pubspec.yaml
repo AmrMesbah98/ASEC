@@ -2,7 +2,7 @@ name: asec
 description: "ASEC — videos and timed quizzes for members, run by one admin."
 publish_to: 'none'
 
-version: 1.0.8+25
+version: 1.0.9+26
 
 environment:
   sdk: ^3.12.2

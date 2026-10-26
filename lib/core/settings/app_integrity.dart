@@ -69,12 +69,21 @@ abstract final class AppIntegrity {
     List<String> found = <String>[];
     for (int attempt = 0; attempt < 3; attempt++) {
       try {
-        final List<Object?>? raw = await _channel.invokeListMethod<Object?>('integrity');
+        // A TIMEOUT so a native side that never answers can NEVER leave the
+        // app stuck on the white gate below: if the check does not come back
+        // in two seconds, the app is shown (treated as safe) rather than
+        // waiting forever. Old / slow Windows machines were the ones at risk.
+        final List<Object?>? raw = await _channel
+            .invokeListMethod<Object?>('integrity')
+            .timeout(const Duration(seconds: 2));
         found = <String>[for (final Object? r in raw ?? <Object?>[]) '$r'];
         break;
       } on MissingPluginException {
         // The native side may register a moment after Dart starts.
         await Future<void>.delayed(const Duration(milliseconds: 300));
+      } on TimeoutException {
+        // No answer in time → do not block the app on a silent check.
+        break;
       } catch (_) {
         break;
       }
