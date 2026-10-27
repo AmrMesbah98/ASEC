@@ -2,7 +2,7 @@ name: asec
 description: "ASEC — videos and timed quizzes for members, run by one admin."
 publish_to: 'none'
 
-version: 1.0.12+29
+version: 1.0.14+31
 
 environment:
   sdk: ^3.12.2
@@ -45,7 +45,8 @@ dependencies:
   # ── Content ────────────────────────────────────────────────────────────────
   file_picker: ^8.1.2                # the admin picks a video file
   video_player: ^2.9.2               # members watch it
-  video_player_media_kit: ^1.0.5     # Windows / Linux video backend for video_player (prebuilt libs, CI-safe)
+  video_player_media_kit: ^1.0.5     # Windows / Linux video backend for video_player
+  media_kit_libs_video: ^1.0.5       # the prebuilt player libraries video_player_media_kit needs
   video_player_platform_interface: ^6.9.0  # init() stops players left over from a hot restart
   chewie: ^1.8.5                     # player UI: scrubbing, speed, volume, full screen
   url_launcher: ^6.3.1               # "open externally" fallback
