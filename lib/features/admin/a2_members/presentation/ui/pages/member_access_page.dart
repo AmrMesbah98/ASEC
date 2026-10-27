@@ -688,7 +688,13 @@ class _MemberAccessPageState extends State<MemberAccessPage> {
       final int o = c.isEmpty ? -1 : (v.categoryOrder > 0 ? v.categoryOrder : 1 << 20);
       if (!order.containsKey(c) || o < order[c]!) order[c] = o;
     }
+    // Saved courses with no videos any more stay listed so they can be
+    // unticked — but NOT the default-course names: every member carries all
+    // of them ('General Notes', 'GENERAL NOTES', 'Tips and Tricks', 'Reals'
+    // — old and new spellings), which listed courses that do not exist next
+    // to the real ones. A default course with videos is listed above anyway.
     for (final String c in _courses) {
+      if (MemberAccess.defaultCourses.contains(c)) continue;
       order.putIfAbsent(c, () => 1 << 21);
     }
     return order.keys.toList()

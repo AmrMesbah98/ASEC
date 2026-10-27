@@ -313,6 +313,18 @@ abstract final class DriveVideoSync {
       final CollectionReference<Map<String, dynamic>> col =
           AppFirebase.db.collection(FirebaseCollections.videos);
       final QuerySnapshot<Map<String, dynamic>> current = await col.get();
+
+      // THE FALLBACK ONLY SEEDS AN EMPTY APP. The built-in list has no
+      // folders, so using it on a failed sync (no internet, Drive API
+      // refused on that device) moved every lesson out of its course into
+      // "General" and re-added lessons that had left the folder — the same
+      // course showing twice. Once Drive has filled the app, a failed sync
+      // changes nothing.
+      if (!fromDrive &&
+          current.docs.any((DocumentSnapshot<Map<String, dynamic>> d) =>
+              d.id.startsWith('drive_'))) {
+        return problem;
+      }
       final Map<String, DocumentSnapshot<Map<String, dynamic>>> byId =
           <String, DocumentSnapshot<Map<String, dynamic>>>{
         for (final DocumentSnapshot<Map<String, dynamic>> d in current.docs) d.id: d,
