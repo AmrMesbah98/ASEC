@@ -7,8 +7,11 @@
 /// Author: ASEC team
 /// Created: 19/9/2026
 
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 
 import 'package:asec/features/onboarding/o2_authentication/data/device/device_identity.dart';
 import 'package:asec/core/constants/firebase_collections.dart';
@@ -23,6 +26,38 @@ import 'package:asec/features/onboarding/o2_authentication/domain/enums/user_rol
 class UsersRemoteDataSource {
   CollectionReference<Map<String, dynamic>> get _users =>
       AppFirebase.db.collection(FirebaseCollections.users);
+
+  // ── Desktop token race ───────────────────────────────────────────────────
+  //
+  // On Windows / Linux / macOS Firebase runs on the C++ SDK. Right after
+  // `signInWithEmailAndPassword` returns, Firestore has NOT received the new
+  // ID token yet, so the first reads/writes go out with `request.auth == null`
+  // and the rules answer 'permission-denied' — for every account, the super
+  // admin included. Phones hand the token over at once, so they never see it.
+  // Here a refusal on desktop forces a fresh token and tries again a few
+  // times (about 6 s in total) before it is treated as a real refusal.
+
+  static bool get _isDesktop =>
+      !kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS);
+
+  Future<T> _afterAuthReady<T>(User authUser, Future<T> Function() run) async {
+    const int maxTries = 6;
+    for (int attempt = 1; ; attempt++) {
+      try {
+        return await run();
+      } on FirebaseException catch (error) {
+        if (error.code != 'permission-denied' ||
+            !_isDesktop ||
+            attempt >= maxTries) {
+          rethrow;
+        }
+        try {
+          await authUser.getIdToken(true);
+        } catch (_) {}
+        await Future<void>.delayed(Duration(milliseconds: 400 * attempt));
+      }
+    }
+  }
 
   // ── Auth ─────────────────────────────────────────────────────────────────
 
@@ -100,7 +135,10 @@ class UsersRemoteDataSource {
       // THE EMAIL DECIDES, NOT THE FORM.
       role: UserRole.forEmail(email),
     );
-    await _users.doc(user.uid).set(UserModel.toMap(user, isCreate: true));
+    await _afterAuthReady(
+      authUser,
+      () => _users.doc(user.uid).set(UserModel.toMap(user, isCreate: true)),
+    );
     // Some accounts are refused on older builds — see BuildGate.
     await BuildGate.stamp(authUser);
     return user;
@@ -126,8 +164,12 @@ class UsersRemoteDataSource {
   Future<AppUser> fetchOrCreate(User authUser) async {
     // FIRST stamp this build: for some accounts the rules refuse even the
     // profile read until it is there (see BuildGate).
-    await BuildGate.stamp(authUser);
-    final AppUser? existing = await fetch(authUser.uid);
+    // Both inside the desktop retry: on Windows the first try is often sent
+    // before Firestore has the new sign-in token.
+    final AppUser? existing = await _afterAuthReady(authUser, () async {
+      await BuildGate.stamp(authUser);
+      return fetch(authUser.uid);
+    });
     if (existing != null) return existing;
 
     final String email = (authUser.email ?? '').toLowerCase();
@@ -137,7 +179,12 @@ class UsersRemoteDataSource {
       fullName: authUser.displayName ?? '',
       role: UserRole.forEmail(email),
     );
-    await _users.doc(repaired.uid).set(UserModel.toMap(repaired, isCreate: true));
+    await _afterAuthReady(
+      authUser,
+      () => _users
+          .doc(repaired.uid)
+          .set(UserModel.toMap(repaired, isCreate: true)),
+    );
     await BuildGate.stamp(authUser);
     return repaired;
   }
