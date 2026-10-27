@@ -3706,4 +3706,54 @@ class SEn extends S {
 
   @override
   String get alertClearBody => 'Every saved security alert will be deleted.';
+
+  @override
+  String get onlineTitle => 'Online now';
+
+  @override
+  String get onlineCaption =>
+      'Who has the app open right now. Tap a member to open all their controls.';
+
+  @override
+  String get onlineNone => 'Nobody has the app open right now.';
+
+  @override
+  String get onlineViewAll => 'View all';
+
+  @override
+  String get onlineRecent => 'Recently active (last 24 hours)';
+
+  @override
+  String get onlineNoneRecent => 'Nobody used the app in the last 24 hours.';
+
+  @override
+  String get onlineNow => 'Online';
+
+  @override
+  String get onlineJustNow => 'just now';
+
+  @override
+  String onlineAgoMinutes(int count) {
+    return '$count min ago';
+  }
+
+  @override
+  String onlineAgoHours(int count) {
+    return '$count h ago';
+  }
+
+  @override
+  String onlineOnPage(String page) {
+    return 'On: $page';
+  }
+
+  @override
+  String get onlineAdminAccount =>
+      'This is an admin account. Manage it from Admins.';
+
+  @override
+  String get onlineMemberGone => 'This account no longer exists.';
+
+  @override
+  String get onlineAdminTag => 'Admin';
 }

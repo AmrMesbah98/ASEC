@@ -19,9 +19,11 @@
 /// opacity and its paint order — the ones at the back are smaller, fainter
 /// and drawn first, so the front ones pass over them. No 3D engine.
 
+import 'dart:io' show Platform;
 import 'dart:math' as math;
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -29,6 +31,7 @@ import 'package:asec/core/custom/110-app_widgets.dart';
 import 'package:asec/core/custom/57-custom_dialog_manager.dart';
 import 'package:asec/core/custom/58-default_switch_button.dart';
 import 'package:asec/features/engagement/e1_engagement/presentation/ui/widgets/engagement_widgets.dart';
+import 'package:asec/features/engagement/e1_engagement/presentation/ui/widgets/partners_spotlight.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
 import 'package:asec/core/theme/app_colors.dart';
 import 'package:asec/core/theme/app_theme.dart';
@@ -49,6 +52,16 @@ class PartnerLogoItem {
 class PartnersSection extends StatelessWidget {
   const PartnersSection({super.key, this.fill = false});
 
+  /// The Mac and Windows apps (not the website, not phones / tablets).
+  static bool get _desktopApp {
+    if (kIsWeb) return false;
+    try {
+      return Platform.isMacOS || Platform.isWindows;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Fill the height it is given (desktop / tablet home, no page scroll).
   final bool fill;
 
@@ -63,6 +76,9 @@ class PartnersSection extends StatelessWidget {
               PartnerLogoItem(name: d.s('name'), logoUrl: d.raw('logo_url')),
         ];
         if (items.isEmpty) return const SizedBox.shrink();
+        // MAC AND WINDOWS: the spotlight (one partner at a time, real logo
+        // and name). Phones and tablets keep the ring.
+        if (_desktopApp) return PartnersSpotlight(items: items);
         if (fill) return PartnersOrbit(items: items);
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,

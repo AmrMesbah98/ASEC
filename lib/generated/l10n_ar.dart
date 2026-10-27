@@ -3644,4 +3644,53 @@ class SAr extends S {
 
   @override
   String get alertClearBody => 'سيتم حذف كل تنبيهات الحماية المحفوظة.';
+
+  @override
+  String get onlineTitle => 'المتصلون الآن';
+
+  @override
+  String get onlineCaption =>
+      'من يفتح التطبيق الآن. اضغط على أي عضو لفتح كل أدوات التحكم به.';
+
+  @override
+  String get onlineNone => 'لا أحد يفتح التطبيق الآن.';
+
+  @override
+  String get onlineViewAll => 'عرض الكل';
+
+  @override
+  String get onlineRecent => 'نشط مؤخرًا (آخر 24 ساعة)';
+
+  @override
+  String get onlineNoneRecent => 'لم يستخدم أحد التطبيق خلال آخر 24 ساعة.';
+
+  @override
+  String get onlineNow => 'متصل';
+
+  @override
+  String get onlineJustNow => 'الآن';
+
+  @override
+  String onlineAgoMinutes(int count) {
+    return 'منذ $count دقيقة';
+  }
+
+  @override
+  String onlineAgoHours(int count) {
+    return 'منذ $count ساعة';
+  }
+
+  @override
+  String onlineOnPage(String page) {
+    return 'في: $page';
+  }
+
+  @override
+  String get onlineAdminAccount => 'هذا حساب مشرف. يُدار من قسم المشرفين.';
+
+  @override
+  String get onlineMemberGone => 'هذا الحساب لم يعد موجودًا.';
+
+  @override
+  String get onlineAdminTag => 'مشرف';
 }

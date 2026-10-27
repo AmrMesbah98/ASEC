@@ -6709,6 +6709,90 @@ abstract class S {
   /// In en, this message translates to:
   /// **'Every saved security alert will be deleted.'**
   String get alertClearBody;
+
+  /// No description provided for @onlineTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Online now'**
+  String get onlineTitle;
+
+  /// No description provided for @onlineCaption.
+  ///
+  /// In en, this message translates to:
+  /// **'Who has the app open right now. Tap a member to open all their controls.'**
+  String get onlineCaption;
+
+  /// No description provided for @onlineNone.
+  ///
+  /// In en, this message translates to:
+  /// **'Nobody has the app open right now.'**
+  String get onlineNone;
+
+  /// No description provided for @onlineViewAll.
+  ///
+  /// In en, this message translates to:
+  /// **'View all'**
+  String get onlineViewAll;
+
+  /// No description provided for @onlineRecent.
+  ///
+  /// In en, this message translates to:
+  /// **'Recently active (last 24 hours)'**
+  String get onlineRecent;
+
+  /// No description provided for @onlineNoneRecent.
+  ///
+  /// In en, this message translates to:
+  /// **'Nobody used the app in the last 24 hours.'**
+  String get onlineNoneRecent;
+
+  /// No description provided for @onlineNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Online'**
+  String get onlineNow;
+
+  /// No description provided for @onlineJustNow.
+  ///
+  /// In en, this message translates to:
+  /// **'just now'**
+  String get onlineJustNow;
+
+  /// No description provided for @onlineAgoMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} min ago'**
+  String onlineAgoMinutes(int count);
+
+  /// No description provided for @onlineAgoHours.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} h ago'**
+  String onlineAgoHours(int count);
+
+  /// No description provided for @onlineOnPage.
+  ///
+  /// In en, this message translates to:
+  /// **'On: {page}'**
+  String onlineOnPage(String page);
+
+  /// No description provided for @onlineAdminAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'This is an admin account. Manage it from Admins.'**
+  String get onlineAdminAccount;
+
+  /// No description provided for @onlineMemberGone.
+  ///
+  /// In en, this message translates to:
+  /// **'This account no longer exists.'**
+  String get onlineMemberGone;
+
+  /// No description provided for @onlineAdminTag.
+  ///
+  /// In en, this message translates to:
+  /// **'Admin'**
+  String get onlineAdminTag;
 }
 
 class _SDelegate extends LocalizationsDelegate<S> {
