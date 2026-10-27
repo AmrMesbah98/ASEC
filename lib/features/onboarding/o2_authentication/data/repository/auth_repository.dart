@@ -14,13 +14,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:asec/core/network/app_failure.dart';
 import 'package:asec/core/network/app_firebase.dart';
+import 'package:asec/core/network/login_diagnostics.dart';
 import 'package:asec/core/network/guard.dart';
 import 'package:asec/features/onboarding/o2_authentication/data/data_source/remote_data_source/users_remote_data_source.dart';
 import 'package:asec/features/onboarding/o2_authentication/domain/base_repository/auth_base_repository.dart';
 import 'package:asec/features/onboarding/o2_authentication/domain/entities/app_user.dart';
 import 'package:asec/features/onboarding/o2_authentication/domain/enums/auth_failure_type.dart';
 
-void _log(String message) {}
+void _log(String message) => LoginDiagnostics.log(message);
 
 class AuthRepository implements AuthBaseRepository {
   AuthRepository({UsersRemoteDataSource? remote})
@@ -41,6 +42,8 @@ class AuthRepository implements AuthBaseRepository {
       return const Left(AuthFailureType.notConfigured);
     }
 
+    LoginDiagnostics.clear();
+    _log('sign-in start: ${email.trim()}');
     try {
       final UserCredential credential =
           await _remote.signIn(email, password).timeout(_timeout);
@@ -55,10 +58,13 @@ class AuthRepository implements AuthBaseRepository {
       try {
         profile = await _remote.fetchOrCreate(authUser).timeout(_timeout);
       } on TimeoutException {
+        _log('profile read TIMED OUT');
+        await LoginDiagnostics.capture(); // while still signed in
         await _remote.signOut();
         return const Left(AuthFailureType.firestoreUnavailable);
       } on FirebaseException catch (error) {
-        _log('profile read failed: ${error.code}');
+        _log('profile read failed: ${error.code} ${error.message}');
+        await LoginDiagnostics.capture(); // while still signed in
         await _remote.signOut();
         return Left(error.code == 'permission-denied'
             ? AuthFailureType.rulesDenied

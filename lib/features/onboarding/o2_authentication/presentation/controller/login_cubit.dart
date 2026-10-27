@@ -14,6 +14,7 @@ import 'package:get_storage/get_storage.dart';
 
 import 'package:asec/core/constants/app_keys.dart';
 import 'package:asec/core/network/app_firebase.dart';
+import 'package:asec/core/network/login_diagnostics.dart';
 import 'package:asec/features/onboarding/o2_authentication/data/repository/auth_repository.dart';
 import 'package:asec/features/onboarding/o2_authentication/domain/base_repository/auth_base_repository.dart';
 import 'package:asec/features/onboarding/o2_authentication/domain/entities/app_user.dart';
@@ -30,6 +31,10 @@ class LoginState {
   final bool obscure;
   final AppUser? user;
 
+  /// TEMPORARY: the full sign-in diagnostic, printed on the page when the
+  /// sign-in is refused. Empty otherwise. See LoginDiagnostics.
+  final String diagnostics;
+
   const LoginState({
     this.status = LoginStatus.idle,
     this.failure,
@@ -37,6 +42,7 @@ class LoginState {
     this.passwordError,
     this.obscure = true,
     this.user,
+    this.diagnostics = '',
   });
 
   bool get isSubmitting => status == LoginStatus.submitting;
@@ -48,6 +54,7 @@ class LoginState {
     AuthFieldError? passwordError,
     bool? obscure,
     AppUser? user,
+    String? diagnostics,
     bool clearErrors = false,
   }) {
     return LoginState(
@@ -57,6 +64,7 @@ class LoginState {
       passwordError: clearErrors ? null : (passwordError ?? this.passwordError),
       obscure: obscure ?? this.obscure,
       user: user ?? this.user,
+      diagnostics: clearErrors ? '' : (diagnostics ?? this.diagnostics),
     );
   }
 }
@@ -110,7 +118,11 @@ class LoginCubit extends Cubit<LoginState> {
     if (isClosed) return;
     result.fold(
       (AuthFailureType failure) => emit(
-        state.copyWith(status: LoginStatus.failure, failure: failure),
+        state.copyWith(
+          status: LoginStatus.failure,
+          failure: failure,
+          diagnostics: LoginDiagnostics.lastReport,
+        ),
       ),
       (AppUser user) {
         _storage.write(AppKeys.savedEmail, emailController.text.trim());

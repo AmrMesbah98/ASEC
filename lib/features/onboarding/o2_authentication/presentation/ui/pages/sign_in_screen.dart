@@ -8,6 +8,7 @@
 /// Created: 19/9/2026
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -17,6 +18,7 @@ import 'package:asec/core/custom/111-app_svg_icon.dart';
 import 'package:asec/core/custom/2-custom_textfield.dart';
 import 'package:asec/core/network/app_firebase.dart';
 import 'package:asec/core/theme/app_colors.dart';
+import 'package:asec/core/theme/app_radius.dart';
 import 'package:asec/core/theme/app_theme.dart';
 import 'package:asec/features/onboarding/o1_splash/presentation/ui/pages/splash_screen.dart';
 import 'package:asec/features/onboarding/o2_authentication/presentation/controller/login_cubit.dart';
@@ -93,6 +95,11 @@ class _SignInForm extends StatelessWidget {
             ],
             if (bannerMessage != null) ...<Widget>[
               InfoBanner.error(bannerMessage),
+              SizedBox(height: 16.h),
+            ],
+            // TEMPORARY — remove with LoginDiagnostics.
+            if (state.diagnostics.isNotEmpty) ...<Widget>[
+              _DiagnosticsPanel(report: state.diagnostics),
               SizedBox(height: 16.h),
             ],
             CustomTextField(
@@ -202,6 +209,70 @@ class _SignInForm extends StatelessWidget {
           ],
         );
       },
+    );
+  }
+}
+
+
+/// TEMPORARY: prints the whole sign-in diagnostic so it can be read or
+/// copied. Remove together with LoginDiagnostics once the cause is fixed.
+class _DiagnosticsPanel extends StatelessWidget {
+  const _DiagnosticsPanel({required this.report});
+
+  final String report;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(12.r),
+      decoration: BoxDecoration(
+        color: AppColors.chip,
+        borderRadius: AppRadius.containerR,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: Text(
+                  'Diagnostic report',
+                  style: StyleText.fontSize13Weight500
+                      .copyWith(color: AppColors.onChip),
+                ),
+              ),
+              TextButton.icon(
+                onPressed: () async {
+                  await Clipboard.setData(ClipboardData(text: report));
+                  if (context.mounted) {
+                    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+                      const SnackBar(content: Text('Report copied')),
+                    );
+                  }
+                },
+                icon: Icon(Icons.copy_rounded, size: 16.sp),
+                label: const Text('Copy'),
+              ),
+            ],
+          ),
+          SizedBox(height: 6.h),
+          ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: 320.h),
+            child: SingleChildScrollView(
+              child: SelectableText(
+                report,
+                style: StyleText.fontSize11Weight400.copyWith(
+                  color: AppColors.onChip,
+                  fontFamily: 'monospace',
+                  height: 1.4,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -16,6 +16,7 @@ import 'package:flutter/foundation.dart';
 import 'package:asec/features/onboarding/o2_authentication/data/device/device_identity.dart';
 import 'package:asec/core/constants/firebase_collections.dart';
 import 'package:asec/core/network/app_firebase.dart';
+import 'package:asec/core/network/login_diagnostics.dart';
 import 'package:asec/core/settings/build_gate.dart';
 import 'package:asec/features/cv/c1_cv/data/data_source/remote_data_source/cv_remote_data_source.dart';
 import 'package:asec/features/cv/c1_cv/domain/entities/cv_profile.dart';
@@ -44,8 +45,12 @@ class UsersRemoteDataSource {
     const int maxTries = 6;
     for (int attempt = 1; ; attempt++) {
       try {
-        return await run();
+        final T result = await run();
+        LoginDiagnostics.log('firestore attempt $attempt OK');
+        return result;
       } on FirebaseException catch (error) {
+        LoginDiagnostics.log(
+            'firestore attempt $attempt refused: ${error.code}');
         if (error.code != 'permission-denied' ||
             !_isDesktop ||
             attempt >= maxTries) {

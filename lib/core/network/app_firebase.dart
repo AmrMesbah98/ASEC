@@ -16,6 +16,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 
+import 'package:asec/core/network/login_diagnostics.dart';
 import 'package:asec/firebase_options.dart';
 
 /// Startup and access for everything Firebase.
@@ -49,9 +50,11 @@ abstract final class AppFirebase {
     if (_ready) return;
 
     try {
+      LoginDiagnostics.log('init: Firebase.initializeApp start');
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       );
+      LoginDiagnostics.log('init: Firebase.initializeApp done');
 
       // AUTH BEFORE FIRESTORE. On Windows (and Linux) Firebase runs on the
       // C++ SDK, where Firestore only picks up the signed-in user's token if
@@ -64,12 +67,15 @@ abstract final class AppFirebase {
       // the first auth-state event forces the native Auth to exist (and the
       // saved login to be loaded) before Firestore is ever touched.
       try {
-        await auth
+        final User? first = await auth
             .authStateChanges()
             .first
             .timeout(const Duration(seconds: 5));
-      } catch (_) {
+        LoginDiagnostics.log(
+            'init: auth ready first, saved user = ${first?.email ?? 'none'}');
+      } catch (e) {
         // Timed out or failed: carry on, the sign-in retries still help.
+        LoginDiagnostics.log('init: auth first event FAILED ($e)');
       }
 
       // Bounded offline cache — a classroom tablet left on for a term should
@@ -80,9 +86,11 @@ abstract final class AppFirebase {
       );
 
       _ready = true;
+      LoginDiagnostics.log('init: Firestore configured, ready');
     } catch (error) {
       notConfigured = true;
       startupError = error.toString();
+      LoginDiagnostics.log('init: FAILED $error');
     }
   }
 
