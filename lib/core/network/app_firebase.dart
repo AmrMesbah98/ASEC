@@ -58,7 +58,19 @@ abstract final class AppFirebase {
       // the Auth instance already exists when Firestore is created. Touching
       // `db` first leaves every request unauthenticated (`request.auth ==
       // null`), so the rules refuse even a member reading their own profile.
-      auth;
+      //
+      // NOTE: just writing `auth;` is NOT enough — `FirebaseAuth.instance`
+      // creates its native side lazily, on the first real call. Waiting for
+      // the first auth-state event forces the native Auth to exist (and the
+      // saved login to be loaded) before Firestore is ever touched.
+      try {
+        await auth
+            .authStateChanges()
+            .first
+            .timeout(const Duration(seconds: 5));
+      } catch (_) {
+        // Timed out or failed: carry on, the sign-in retries still help.
+      }
 
       // Bounded offline cache — a classroom tablet left on for a term should
       // not grow its cache without limit.
