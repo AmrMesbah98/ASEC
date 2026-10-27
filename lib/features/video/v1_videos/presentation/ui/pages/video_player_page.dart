@@ -141,6 +141,16 @@ class _VideoPlayerPageState extends State<_VideoPlayerView>
   /// The one-time local address the player plays (SecureVideoServer).
   Uri? _stream;
 
+  /// TWO VOICES FIX. [_open] awaits (initialize, seek) before the player is
+  /// stored in [_video]. Leaving the page during those awaits used to let
+  /// [_open] carry on: Chewie started it with autoPlay, the setState threw
+  /// on the closed page, and nobody ever disposed it — so the first lesson
+  /// kept playing (sound only) under the next one. Now the half-made player
+  /// is kept here, [dispose] stops it, and [_open] gives up after each await
+  /// once [_closed] is set.
+  VideoPlayerController? _pending;
+  bool _closed = false;
+
   @override
   void initState() {
     super.initState();
@@ -188,16 +198,14 @@ class _VideoPlayerPageState extends State<_VideoPlayerView>
               label: widget.video.title,
             );
       _stream = stream;
-      if (!mounted) {
+      if (_closed || !mounted) {
         SecureVideoServer.revoke(stream);
         return;
       }
       final VideoPlayerController video = VideoPlayerController.networkUrl(stream);
+      _pending = video; // dispose() stops it if the page closes meanwhile
       await video.initialize();
-      if (!mounted) {
-        await video.dispose();
-        return;
-      }
+      if (_closed || !mounted) return; // already stopped by dispose()
 
       // Resume, unless it was (nearly) finished last time.
       final Duration saved =
@@ -207,6 +215,7 @@ class _VideoPlayerPageState extends State<_VideoPlayerView>
           saved.inSeconds > 3 &&
           saved < total - const Duration(seconds: 5)) {
         await video.seekTo(saved);
+        if (_closed || !mounted) return; // already stopped by dispose()
         _resumedAt = saved;
       }
 
@@ -247,6 +256,7 @@ class _VideoPlayerPageState extends State<_VideoPlayerView>
         _video = video;
         _chewie = chewie;
       });
+      _pending = null; // owned by _video from here on
       _focus.requestFocus();
     } catch (error) {
       if (mounted) {
@@ -415,6 +425,16 @@ class _VideoPlayerPageState extends State<_VideoPlayerView>
 
   @override
   void dispose() {
+    _closed = true;
+    // A player still being opened: stop it so its sound cannot outlive
+    // the page (see [_pending]).
+    final VideoPlayerController? pending = _pending;
+    _pending = null;
+    if (pending != null && !identical(pending, _video)) {
+      pending.setVolume(0).catchError((Object _) {});
+      pending.pause().catchError((Object _) {});
+      pending.dispose().catchError((Object _) {});
+    }
     ScreenProtection.leaveVideo();
     SecureVideoServer.revoke(_stream);
     WidgetsBinding.instance.removeObserver(this);

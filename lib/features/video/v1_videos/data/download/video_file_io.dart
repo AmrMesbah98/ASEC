@@ -28,6 +28,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:asec/core/security/content_crypto.dart';
+import 'package:asec/core/security/ctr_worker.dart';
 import 'package:asec/core/security/secure_video_server_io.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:video_player/video_player.dart';
@@ -83,15 +84,16 @@ Future<void> downloadVideoFile({
     final int total = res.contentLength > 0 ? res.contentLength : expectedBytes;
     // ENCRYPTED ON THE WAY IN: the plain video never touches the disk.
     final Uint8List nonce = ContentCrypto.newNonce();
-    final CtrCipher cipher = CtrCipher(key, nonce);
     sink = part.openWrite();
     sink.add(ContentCrypto.header(nonce));
     int received = 0;
     int lastReport = 0;
     await for (final List<int> chunk in res) {
       if (cancelled()) throw const _Cancelled();
-      final Uint8List data = Uint8List.fromList(chunk);
-      cipher.apply(data, received);
+      // Encrypted on the background worker, so the app does not lag while
+      // a lesson downloads (see CtrWorker).
+      final Uint8List data = await CtrWorker.apply(
+          key, nonce, Uint8List.fromList(chunk), received);
       sink.add(data);
       received += data.length;
       // ~ every 256 KB, so the progress ring does not rebuild per packet.
@@ -127,14 +129,13 @@ Future<void> encryptLegacyVideo(String plainPath, String encryptedPath, Uint8Lis
   if (!plain.existsSync()) return;
   final File part = File('$encryptedPath.part');
   final Uint8List nonce = ContentCrypto.newNonce();
-  final CtrCipher cipher = CtrCipher(key, nonce);
   final IOSink sink = part.openWrite();
   try {
     sink.add(ContentCrypto.header(nonce));
     int pos = 0;
     await for (final List<int> chunk in plain.openRead()) {
-      final Uint8List data = Uint8List.fromList(chunk);
-      cipher.apply(data, pos);
+      final Uint8List data =
+          await CtrWorker.apply(key, nonce, Uint8List.fromList(chunk), pos);
       sink.add(data);
       pos += data.length;
     }

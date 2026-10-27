@@ -37,6 +37,7 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:asec/core/security/content_crypto.dart';
+import 'package:asec/core/security/ctr_worker.dart';
 import 'package:asec/core/security/security_monitor.dart';
 import 'package:asec/core/settings/error_reports.dart';
 
@@ -277,14 +278,15 @@ abstract final class SecureVideoServer {
         return;
       }
 
-      final CtrCipher cipher = CtrCipher(src.key!, nonce);
+      // Decrypted on the background worker — on the UI isolate this froze
+      // the app while the player buffered (see CtrWorker).
       await raf.setPosition(ContentCrypto.headerLength + start);
       int pos = start;
       const int chunk = 256 * 1024;
       while (pos <= end) {
-        final Uint8List data = await raf.read(min(chunk, end - pos + 1));
-        if (data.isEmpty) break;
-        cipher.apply(data, pos);
+        final Uint8List read = await raf.read(min(chunk, end - pos + 1));
+        if (read.isEmpty) break;
+        final Uint8List data = await CtrWorker.apply(src.key!, nonce, read, pos);
         res.add(data);
         pos += data.length;
         await res.flush();
