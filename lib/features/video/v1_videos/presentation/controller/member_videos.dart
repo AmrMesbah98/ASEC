@@ -61,6 +61,17 @@ abstract final class MemberVideos {
     StreamSubscription<AppUser?>? userSub;
     String? current;
 
+    // COLD-START RETRY. On the first launch the first query can fire a moment
+    // before Firebase has finished confirming the sign-in, and Firestore
+    // answers that one query with 'permission-denied' and STOPS the listener
+    // for good (it never retries itself) — so the Videos page stayed broken
+    // until the app was restarted. These retry a transient refusal a few
+    // times, with a growing delay, before giving up. A real block (expired /
+    // paused account) still surfaces after the retries.
+    int retries = 0;
+    const int maxRetries = 6;
+    Timer? retryTimer;
+
     void cancelQueries() {
       for (final StreamSubscription<dynamic> s in subs) {
         s.cancel();
@@ -109,6 +120,7 @@ abstract final class MemberVideos {
       for (int i = 0; i < queries.length; i++) {
         subs.add(queries[i].snapshots().listen(
           (QuerySnapshot<Map<String, dynamic>> snap) {
+            retries = 0; // a good answer: the session is ready.
             latest[i] = <String, VideoItem>{
               for (final QueryDocumentSnapshot<Map<String, dynamic>> d in snap.docs)
                 d.id: VideoModel.fromDoc(d),
@@ -116,7 +128,25 @@ abstract final class MemberVideos {
             emit();
           },
           onError: (Object e) {
-            if (!out.isClosed) out.addError(e);
+            if (out.isClosed) return;
+            final bool transient = e is FirebaseException &&
+                (e.code == 'permission-denied' ||
+                    e.code == 'unavailable' ||
+                    e.code == 'deadline-exceeded');
+            if (transient && retries < maxRetries) {
+              retries++;
+              cancelQueries();
+              current = null; // force a full rebuild on the next start().
+              retryTimer?.cancel();
+              retryTimer = Timer(
+                Duration(milliseconds: 300 * retries),
+                () {
+                  if (!out.isClosed) start(SessionController.to.current);
+                },
+              );
+              return;
+            }
+            out.addError(e);
           },
         ));
       }
@@ -130,6 +160,7 @@ abstract final class MemberVideos {
         });
       },
       onCancel: () {
+        retryTimer?.cancel();
         cancelQueries();
         userSub?.cancel();
       },

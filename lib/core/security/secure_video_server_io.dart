@@ -31,12 +31,14 @@
 /// out, and refuses requests that come from download tools.
 
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:asec/core/security/content_crypto.dart';
 import 'package:asec/core/security/security_monitor.dart';
+import 'package:asec/core/settings/error_reports.dart';
 
 class _Source {
   _Source.remote(this.url, this.sizeBytes, this.label)
@@ -192,6 +194,18 @@ abstract final class SecureVideoServer {
       res.statusCode = HttpStatus.forbidden;
       await res.close();
       return;
+    } on DriveUnavailableException catch (e) {
+      // Drive would not return the video (quota / private / removed). Report
+      // the lesson so the super admin sees WHICH lesson is broken and why,
+      // instead of a vague player "Source error".
+      ErrorReports.report(
+        'Lesson "${src.label}" could not play: $e',
+        StackTrace.empty,
+        source: 'video',
+      );
+      res.statusCode = HttpStatus.badGateway;
+      await res.close();
+      return;
     }
     res.statusCode = up.statusCode;
     for (final String h in <String>[
@@ -310,21 +324,71 @@ abstract final class PinnedFetch {
   static bool _isGoogle(X509Certificate? c) =>
       c != null && c.issuer.contains('Google Trust Services');
 
-  static Future<HttpClientResponse> get(
-    Uri uri, {
-    String? range,
-    bool head = false,
-  }) async {
+  static Future<HttpClientResponse> _send(Uri uri, String? range, bool head) async {
     final HttpClientRequest rq = head ? await _client.headUrl(uri) : await _client.getUrl(uri);
     if (range != null) rq.headers.set(HttpHeaders.rangeHeader, range);
     final HttpClientResponse r = await rq.close();
     if (!_isGoogle(r.certificate)) {
       final String issuer = r.certificate?.issuer ?? 'none';
       SecurityMonitor.intercepted(uri.host, issuer);
-      // Drain so the connection is freed.
       unawaited(r.drain<void>().catchError((Object _) {}));
       throw InterceptedException(issuer);
     }
     return r;
   }
+
+  static final RegExp _driveUuid = RegExp('name="uuid" value="([^"]+)"');
+  static final RegExp _driveConfirm = RegExp('name="confirm" value="([^"]+)"');
+
+  /// Fetches lesson bytes. Handles Google Drive's "confirm" page: a LARGE
+  /// Drive file does not download straight away — Drive first answers with an
+  /// HTML page (the "we can't scan this file for viruses" / quota warning),
+  /// and the real file needs a second request carrying a token from that
+  /// page. The old code handed the first link straight to the player, so the
+  /// player got HTML and failed with "Source error". Here the app resolves
+  /// that page itself and returns the real video stream — the player only
+  /// ever sees clean bytes.
+  static Future<HttpClientResponse> get(
+    Uri uri, {
+    String? range,
+    bool head = false,
+  }) async {
+    HttpClientResponse r = await _send(uri, range, head);
+    final String type = r.headers.contentType?.mimeType ?? '';
+    final bool isDrive = uri.host.contains('google');
+    if (!head && isDrive && type == 'text/html') {
+      // Read the warning page (small) and build the confirm link.
+      final String body =
+          await r.transform(const Utf8Decoder(allowMalformed: true)).join();
+      final String? uuid = _driveUuid.firstMatch(body)?.group(1);
+      final String? confirm = _driveConfirm.firstMatch(body)?.group(1);
+      if (uuid != null) {
+        final Uri confirmUri = uri.replace(queryParameters: <String, String>{
+          ...uri.queryParameters,
+          'confirm': confirm ?? 't',
+          'uuid': uuid,
+        });
+        r = await _send(confirmUri, range, head);
+        final String type2 = r.headers.contentType?.mimeType ?? '';
+        if (type2 == 'text/html') {
+          unawaited(r.drain<void>().catchError((Object _) {}));
+          throw const DriveUnavailableException();
+        }
+      } else {
+        // No token on the page: the file is private, over quota, or removed.
+        throw const DriveUnavailableException();
+      }
+    }
+    return r;
+  }
+}
+
+/// Google Drive answered with a web page, not the video — the file is over
+/// its daily download quota, has been made private, or was removed. Reported
+/// to the super admin so a broken lesson is visible.
+class DriveUnavailableException implements Exception {
+  const DriveUnavailableException();
+  @override
+  String toString() =>
+      'Google Drive did not return the video (quota exceeded, private, or removed).';
 }

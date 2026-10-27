@@ -9,6 +9,7 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import 'package:asec/core/network/cold_start_retry.dart';
 import 'package:asec/core/constants/firebase_collections.dart';
 import 'package:asec/core/network/app_firebase.dart';
 import 'package:asec/features/quiz/q1_quizzes/data/models/quiz_model.dart';
@@ -32,11 +33,11 @@ class QuizRemoteDataSource {
       .map((QuerySnapshot<Map<String, dynamic>> snap) =>
           _newestFirst(snap.docs.map(QuizModel.fromDoc)));
 
-  Stream<List<Quiz>> watchPublished() => _quizzes
+  Stream<List<Quiz>> watchPublished() => retryingSnapshots(() => _quizzes
       .where(FirebaseCollections.publishedField, isEqualTo: true)
       .snapshots()
       .map((QuerySnapshot<Map<String, dynamic>> snap) =>
-          _newestFirst(snap.docs.map(QuizModel.fromDoc)));
+          _newestFirst(snap.docs.map(QuizModel.fromDoc))));
 
   Stream<Quiz?> watchQuiz(String id) => _quizzes
       .doc(id)
@@ -89,7 +90,7 @@ class QuizRemoteDataSource {
         return list;
       });
 
-  Stream<List<QuizAttempt>> watchMyAttempts(String uid) => _attempts
+  Stream<List<QuizAttempt>> watchMyAttempts(String uid) => retryingSnapshots(() => _attempts
       .where(FirebaseCollections.userIdField, isEqualTo: uid)
       .snapshots()
       .map((QuerySnapshot<Map<String, dynamic>> snap) {
@@ -99,7 +100,7 @@ class QuizRemoteDataSource {
                   (b.submittedAt ?? DateTime(0))
                       .compareTo(a.submittedAt ?? DateTime(0)));
         return list;
-      });
+      }));
 
   Stream<List<QuizAttempt>> watchAllAttempts() => _attempts
       .snapshots()
