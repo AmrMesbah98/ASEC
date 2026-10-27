@@ -125,7 +125,26 @@ class AuthRepository implements AuthBaseRepository {
   @override
   Future<AppUser?> restoreSession() async {
     if (AppFirebase.notConfigured) return null;
-    final User? current = _remote.currentUser;
+    // DESKTOP PERSISTENCE. On Windows / Linux / macOS, Firebase restores the
+    // saved login ASYNCHRONOUSLY after start, so `currentUser` is null for a
+    // moment right after launch. Reading it immediately made the desktop app
+    // ask for a login every single time (and the first queries failed with
+    // permission-denied). So if there is no user yet, wait briefly for the
+    // saved session to load before giving up. On phones `currentUser` is
+    // ready at once, so this returns immediately.
+    User? current = _remote.currentUser;
+    if (current == null) {
+      try {
+        current = await AppFirebase.auth
+            .authStateChanges()
+            .firstWhere((User? u) => u != null)
+            .timeout(const Duration(seconds: 3));
+      } on TimeoutException {
+        current = _remote.currentUser; // genuinely signed out
+      } catch (_) {
+        current = _remote.currentUser;
+      }
+    }
     if (current == null) return null;
     try {
       final AppUser profile =
