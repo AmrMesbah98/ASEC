@@ -31,6 +31,7 @@ import 'package:asec/core/settings/app_features.dart';
 import 'package:asec/core/settings/app_connectivity.dart';
 import 'package:asec/core/settings/app_integrity.dart';
 import 'package:asec/core/settings/crash_tracker.dart';
+import 'package:asec/core/settings/desktop_video.dart';
 import 'package:asec/core/settings/error_reports.dart';
 import 'package:asec/core/settings/screen_protection.dart';
 import 'package:asec/core/settings/super_admin_bootstrap.dart';
@@ -47,6 +48,10 @@ Future<void> main() async {
   CrashTracker.startRun();
 
   CrashTracker.stage('video_init');
+  // Give video_player a Windows / Linux backend (fvp). Without this, playing
+  // a lesson on Windows throws "init() has not been implemented". Must run
+  // before any VideoPlayerController is created. No-op on phones and the web.
+  registerDesktopVideo();
   // A hot restart loses old VideoPlayerControllers; init() disposes them.
   try {
     await VideoPlayerPlatform.instance.init();
