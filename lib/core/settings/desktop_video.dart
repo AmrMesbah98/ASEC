@@ -5,11 +5,11 @@
 /// Purpose: `registerDesktopVideo` — gives the `video_player` package a
 ///          Windows / Linux backend. video_player has NO native player on
 ///          Windows or Linux (it throws "init() has not been implemented"),
-///          so members on Windows could not watch any lesson. `fvp` plugs a
-///          player (libmdk) into video_player for those two platforms only;
-///          Android, iOS, macOS and web keep their own native players.
-///          The web build uses the no-op stub, so `fvp` (native code) never
-///          reaches the website bundle.
+///          so members on Windows could not watch any lesson.
+///          `video_player_media_kit` plugs media_kit into video_player for
+///          those two platforms only; Android, iOS, macOS and web keep their
+///          own native players. The web build uses the no-op stub, so the
+///          native media_kit code never reaches the website bundle.
 /// Author: ASEC team
 /// Created: 27/10/2026
 

@@ -48,9 +48,9 @@ Future<void> main() async {
   CrashTracker.startRun();
 
   CrashTracker.stage('video_init');
-  // Give video_player a Windows / Linux backend (fvp). Without this, playing
-  // a lesson on Windows throws "init() has not been implemented". Must run
-  // before any VideoPlayerController is created. No-op on phones and the web.
+  // Give video_player a Windows / Linux backend (media_kit). Without this,
+  // playing a lesson on Windows throws "init() has not been implemented".
+  // Must run before any VideoPlayerController is created. No-op on phones/web.
   registerDesktopVideo();
   // A hot restart loses old VideoPlayerControllers; init() disposes them.
   try {

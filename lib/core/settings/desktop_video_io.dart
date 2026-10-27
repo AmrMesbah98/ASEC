@@ -2,21 +2,21 @@
 ///
 ///*************************** FILE INFO ****************************///
 /// File Name: desktop_video_io.dart
-/// Purpose: Native build of desktop_video. Registers `fvp` as the
-///          `video_player` backend on Windows and Linux only.
+/// Purpose: Native build of desktop_video. Registers `media_kit` (through
+///          `video_player_media_kit`) as the `video_player` backend on
+///          Windows and Linux only — the two platforms where `video_player`
+///          itself has no player and throws "init() has not been
+///          implemented". Android, iOS and macOS keep their own native
+///          players, untouched. media_kit's libraries ship PREBUILT in the
+///          package, so there is nothing to download or unzip at build time
+///          (unlike fvp, which failed to unzip on the CI runner).
 
-import 'dart:io';
-
-import 'package:fvp/fvp.dart' as fvp;
+import 'package:video_player_media_kit/video_player_media_kit.dart';
 
 void registerDesktopVideo() {
-  // Only the two platforms video_player cannot play on. Android, iOS and
-  // macOS keep their own native players (untouched).
-  if (Platform.isWindows || Platform.isLinux) {
-    fvp.registerWith(
-      options: <String, dynamic>{
-        'platforms': <String>['windows', 'linux'],
-      },
-    );
-  }
+  // windows + linux only; every other platform stays on its native player.
+  VideoPlayerMediaKit.ensureInitialized(
+    windows: true,
+    linux: true,
+  );
 }
