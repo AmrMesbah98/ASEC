@@ -112,7 +112,7 @@ class _PartnersSpotlightState extends State<PartnersSpotlight>
             ? math.min(c.maxHeight, 420)
             : 360;
         final double cardH = height * 0.94;
-        final double logo = (cardH * 0.42).clamp(56.0, 170.0);
+        final double logo = (cardH * 0.62).clamp(72.0, 260.0);
 
         return SizedBox(
           height: height,
@@ -364,12 +364,11 @@ class _FeatureCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String two(int n) => n.toString().padLeft(2, '0');
     return Container(
       width: double.infinity,
       height: height,
       constraints: const BoxConstraints(maxWidth: 680),
-      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
       decoration: BoxDecoration(
         color: AppColors.card,
         borderRadius: BorderRadius.circular(28),
@@ -387,7 +386,7 @@ class _FeatureCard extends StatelessWidget {
           Container(
             width: logo,
             height: logo,
-            padding: EdgeInsets.all(logo * 0.12),
+            padding: EdgeInsets.all(logo * 0.08),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(logo * 0.26),
@@ -399,26 +398,19 @@ class _FeatureCard extends StatelessWidget {
                 ),
               ],
             ),
-            child: _Logo(item: item, size: logo * 0.76),
+            child: _Logo(item: item, size: logo * 0.84),
           ),
-          SizedBox(height: height * 0.07),
+          SizedBox(height: height * 0.05),
           Text(
             item.name.isEmpty ? '—' : item.name,
             textAlign: TextAlign.center,
-            maxLines: 2,
+            maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: StyleText.fontSize22Weight700.copyWith(
               color: AppColors.text,
               fontSize: (height * 0.09).clamp(18.0, 30.0),
             ),
           ),
-          if (total > 1) ...<Widget>[
-            const SizedBox(height: 6),
-            Text(
-              '${two(index + 1)} / ${two(total)}',
-              style: StyleText.fontSize13Weight600.copyWith(color: AppColors.primary),
-            ),
-          ],
         ],
       ),
     );
