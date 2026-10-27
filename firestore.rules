@@ -320,6 +320,24 @@ service cloud.firestore {
       allow create, update, delete: if canDo('members', 'device');
     }
 
+    // ── presence (Settings → Online now) ────────────────────────────────────
+    //
+    // Each open app writes its own document once a minute (Presence in
+    // lib/core/settings/presence.dart). Fixed shape, the server's own time,
+    // and only about the caller. Admins with Members read the list.
+    match /presence/{uid} {
+      allow create, update: if isSelf(uid)
+        && request.resource.data.uid == uid
+        && request.resource.data.online is bool
+        && request.resource.data.last_seen == request.time
+        && request.resource.data.keys().hasOnly([
+             'uid', 'name', 'email', 'role', 'online', 'platform',
+             'device_name', 'app_version', 'page', 'last_seen'
+           ]);
+      allow read: if can('members');
+      allow delete: if isSelf(uid) || isSuper();
+    }
+
     // ── security_events (screen capture alerts) ─────────────────────────────
     //
     // The app adds one when a member takes a screenshot or records the

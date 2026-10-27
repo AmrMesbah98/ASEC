@@ -35,6 +35,7 @@ import 'package:asec/features/settings/se1_settings/presentation/ui/widgets/admi
 import 'package:asec/features/settings/se1_settings/presentation/ui/widgets/control_centre_card.dart';
 import 'package:asec/features/settings/se1_settings/presentation/ui/widgets/app_update_card.dart';
 import 'package:asec/features/settings/se1_settings/presentation/ui/widgets/capture_alerts_card.dart';
+import 'package:asec/features/settings/se1_settings/presentation/ui/widgets/online_users_card.dart';
 import 'package:asec/features/settings/se1_settings/presentation/ui/widgets/error_reports_card.dart';
 import 'package:asec/features/settings/se1_settings/presentation/ui/widgets/security_alerts_card.dart';
 import 'package:asec/features/onboarding/o2_authentication/domain/enums/admin_permission.dart';
@@ -333,6 +334,9 @@ class SettingsPage extends StatelessWidget {
           final List<Widget> right = <Widget>[
             // Screenshots / recordings members took — any admin with Members.
             if (user.can(AdminPermission.members)) ...<Widget>[
+              // Who has the app open right now — tap one for every control.
+              const OnlineUsersCard(),
+              SizedBox(height: 16.h),
               const CaptureAlertsCard(),
               SizedBox(height: 16.h),
             ],

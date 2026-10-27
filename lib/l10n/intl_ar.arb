@@ -1101,5 +1101,19 @@
   "alertDownloadBurst": "عدد كبير من التحميلات دفعة واحدة",
   "alertOther": "نشاط مشبوه",
   "alertClearQuestion": "مسح كل تنبيهات الحماية؟",
-  "alertClearBody": "سيتم حذف كل تنبيهات الحماية المحفوظة."
+  "alertClearBody": "سيتم حذف كل تنبيهات الحماية المحفوظة.",
+  "onlineTitle": "المتصلون الآن",
+  "onlineCaption": "من يفتح التطبيق الآن. اضغط على أي عضو لفتح كل أدوات التحكم به.",
+  "onlineNone": "لا أحد يفتح التطبيق الآن.",
+  "onlineViewAll": "عرض الكل",
+  "onlineRecent": "نشط مؤخرًا (آخر 24 ساعة)",
+  "onlineNoneRecent": "لم يستخدم أحد التطبيق خلال آخر 24 ساعة.",
+  "onlineNow": "متصل",
+  "onlineJustNow": "الآن",
+  "onlineAgoMinutes": "منذ {count} دقيقة",
+  "onlineAgoHours": "منذ {count} ساعة",
+  "onlineOnPage": "في: {page}",
+  "onlineAdminAccount": "هذا حساب مشرف. يُدار من قسم المشرفين.",
+  "onlineMemberGone": "هذا الحساب لم يعد موجودًا.",
+  "onlineAdminTag": "مشرف"
 }

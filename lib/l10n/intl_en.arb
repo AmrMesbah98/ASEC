@@ -1600,5 +1600,22 @@
   "alertDownloadBurst": "Too many downloads at once",
   "alertOther": "Suspicious activity",
   "alertClearQuestion": "Clear all security alerts?",
-  "alertClearBody": "Every saved security alert will be deleted."
+  "alertClearBody": "Every saved security alert will be deleted.",
+  "onlineTitle": "Online now",
+  "onlineCaption": "Who has the app open right now. Tap a member to open all their controls.",
+  "onlineNone": "Nobody has the app open right now.",
+  "onlineViewAll": "View all",
+  "onlineRecent": "Recently active (last 24 hours)",
+  "onlineNoneRecent": "Nobody used the app in the last 24 hours.",
+  "onlineNow": "Online",
+  "onlineJustNow": "just now",
+  "onlineAgoMinutes": "{count} min ago",
+  "@onlineAgoMinutes": {"placeholders": {"count": {"type": "int"}}},
+  "onlineAgoHours": "{count} h ago",
+  "@onlineAgoHours": {"placeholders": {"count": {"type": "int"}}},
+  "onlineOnPage": "On: {page}",
+  "@onlineOnPage": {"placeholders": {"page": {"type": "String"}}},
+  "onlineAdminAccount": "This is an admin account. Manage it from Admins.",
+  "onlineMemberGone": "This account no longer exists.",
+  "onlineAdminTag": "Admin"
 }

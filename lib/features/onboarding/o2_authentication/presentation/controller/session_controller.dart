@@ -18,6 +18,7 @@ import 'package:asec/core/settings/error_reports.dart';
 import 'package:asec/features/onboarding/o2_authentication/domain/entities/app_user.dart';
 import 'package:asec/features/onboarding/o2_authentication/domain/enums/auth_failure_type.dart';
 import 'package:asec/core/settings/app_features.dart';
+import 'package:asec/core/settings/presence.dart';
 
 /// The signed-in account, app-wide.
 ///
@@ -56,6 +57,8 @@ class SessionController extends GetxController {
   void start(AppUser signedIn) {
     user.value = signedIn;
     AppFeatures.to.listen();
+    // "Online now" for the admins (Settings).
+    Presence.start(signedIn);
     // If the LAST run crashed (e.g. vanished to the desktop on startup), it is
     // reported now — a report needs a signed-in user, and we have one.
     if (CrashTracker.hasPendingCrash) {
@@ -74,6 +77,7 @@ class SessionController extends GetxController {
           return;
         }
         user.value = live;
+        Presence.update(live);
       },
       // A transient read error must not sign anybody out.
       onError: (Object _) {},
@@ -81,6 +85,8 @@ class SessionController extends GetxController {
   }
 
   Future<void> signOut() async {
+    // Off the "Online now" list while still allowed to write it.
+    await Presence.stop();
     await _sub?.cancel();
     _sub = null;
     // `user` keeps its last value on purpose: clearing it would rebuild every
@@ -99,6 +105,7 @@ class SessionController extends GetxController {
   Future<Either<AuthFailureType, Unit>> deleteAccount(String password) async {
     final AppUser before = current;
     final void Function()? deactivated = onDeactivated;
+    await Presence.stop();
     await _sub?.cancel();
     _sub = null;
     onDeactivated = null;
@@ -115,6 +122,7 @@ class SessionController extends GetxController {
 
   @override
   void onClose() {
+    Presence.stop();
     _sub?.cancel();
     super.onClose();
   }
