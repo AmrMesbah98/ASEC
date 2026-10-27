@@ -111,15 +111,15 @@ class _PartnersSpotlightState extends State<PartnersSpotlight>
         final double height = c.hasBoundedHeight
             ? math.min(c.maxHeight, 420)
             : 360;
-        final double cardH = height * 0.9;
-        final double logo = (cardH * 0.36).clamp(56.0, 150.0);
+        final double cardH = height * 0.94;
+        final double logo = (cardH * 0.42).clamp(56.0, 170.0);
 
         return SizedBox(
           height: height,
           child: Row(
             children: <Widget>[
               Expanded(
-                flex: 5,
+                flex: 4,
                 child: _Side(
                   items: items,
                   at: at,
@@ -128,7 +128,7 @@ class _PartnersSpotlightState extends State<PartnersSpotlight>
                   compact: height < 260,
                 ),
               ),
-              const SizedBox(width: 40),
+              const SizedBox(width: 32),
               Expanded(
                 flex: 6,
                 child: MouseRegion(
@@ -220,7 +220,7 @@ class _Side extends StatelessWidget {
   Widget build(BuildContext context) {
     final S s = S.of(context);
     return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         Text(
@@ -231,21 +231,25 @@ class _Side extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        Text(
+        if (!compact) Text(
           FormatHelper.capitalize(s.engPartnersSub),
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
           style: (compact ? StyleText.fontSize18Weight700 : StyleText.fontSize22Weight700)
               .copyWith(color: AppColors.text),
         ),
-        SizedBox(height: compact ? 12 : 20),
-        SizedBox(
-          height: 64,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(vertical: 4),
+        SizedBox(height: compact ? 10 : 16),
+        // 3 per row, the rows under each other; scrolls if they do not fit.
+        Expanded(
+          child: GridView.builder(
+            padding: const EdgeInsets.only(top: 4, bottom: 8),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              mainAxisExtent: 64,
+            ),
             itemCount: items.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 12),
             itemBuilder: (BuildContext context, int i) => _Thumb(
               item: items[i],
               active: i == at,
@@ -293,7 +297,6 @@ class _ThumbState extends State<_Thumb> {
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 250),
             curve: Curves.easeOut,
-            width: 76,
             transform: Matrix4.translationValues(0, active || _hover ? -3 : 0, 0),
             decoration: BoxDecoration(
               color: active ? AppColors.card : AppColors.card.withOpacity(0.55),
@@ -363,8 +366,9 @@ class _FeatureCard extends StatelessWidget {
   Widget build(BuildContext context) {
     String two(int n) => n.toString().padLeft(2, '0');
     return Container(
+      width: double.infinity,
       height: height,
-      constraints: const BoxConstraints(maxWidth: 560),
+      constraints: const BoxConstraints(maxWidth: 680),
       padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
       decoration: BoxDecoration(
         color: AppColors.card,
@@ -403,7 +407,10 @@ class _FeatureCard extends StatelessWidget {
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: StyleText.fontSize22Weight700.copyWith(color: AppColors.text),
+            style: StyleText.fontSize22Weight700.copyWith(
+              color: AppColors.text,
+              fontSize: (height * 0.09).clamp(18.0, 30.0),
+            ),
           ),
           if (total > 1) ...<Widget>[
             const SizedBox(height: 6),
