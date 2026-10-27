@@ -23,6 +23,7 @@ import 'package:asec/core/theme/app_theme.dart';
 import 'package:asec/features/onboarding/o2_authentication/domain/entities/member_access.dart';
 import 'package:asec/generated/l10n.dart';
 import 'package:asec/core/custom/114-app_messenger.dart';
+import 'package:asec/core/network/shared_stream.dart';
 
 class ErrorReportsCard extends StatefulWidget {
   const ErrorReportsCard({super.key});
@@ -32,7 +33,7 @@ class ErrorReportsCard extends StatefulWidget {
 }
 
 class _ErrorReportsCardState extends State<ErrorReportsCard> {
-  late final Stream<List<ErrorReport>> _reports = ErrorReports.watch();
+  late final Stream<List<ErrorReport>> _reports = shared(() => ErrorReports.watch());
 
   /// Rows shown before "Show all".
   static const int _preview = 6;

@@ -13,6 +13,7 @@ import 'package:asec/features/web/data/site_repo.dart';
 import 'package:asec/features/web/site/pages/inner_pages.dart';
 import 'package:asec/features/web/site/site_shell.dart';
 import 'package:asec/features/web/site/widgets/cards.dart';
+import 'package:asec/core/network/shared_stream.dart';
 
 class ArticlesPage extends StatefulWidget {
   const ArticlesPage({super.key});
@@ -24,7 +25,7 @@ class ArticlesPage extends StatefulWidget {
 class _ArticlesPageState extends State<ArticlesPage> {
   static const int _perPage = 12;
 
-  late final Stream<List<Doc>> _stream = SiteRepo.published(Coll.articles, by: SortBy.newest);
+  late final Stream<List<Doc>> _stream = shared(() => SiteRepo.published(Coll.articles, by: SortBy.newest));
   String _cat = '';
   String _q = '';
   int _page = 0;

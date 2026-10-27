@@ -44,6 +44,7 @@ import 'package:asec/features/onboarding/o2_authentication/domain/enums/admin_pe
 import 'package:asec/generated/l10n.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
 import 'package:asec/core/custom/114-app_messenger.dart';
+import 'package:asec/core/network/shared_stream.dart';
 
 class AdminVideosPage extends StatefulWidget {
   const AdminVideosPage({super.key, required this.adminUid});
@@ -56,7 +57,7 @@ class AdminVideosPage extends StatefulWidget {
 
 class _AdminVideosPageState extends State<AdminVideosPage> {
   final VideoBaseRepository _repository = VideoRepository();
-  late final Stream<List<VideoItem>> _videos = _repository.watchAll();
+  late final Stream<List<VideoItem>> _videos = shared(() => _repository.watchAll());
 
   /// The category opened; null = the category list.
   String? _category;

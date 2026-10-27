@@ -34,6 +34,7 @@ import 'package:asec/features/quiz/q2_certificates/presentation/ui/pages/certifi
 import 'package:asec/core/animation/app_animations.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
 import 'package:asec/core/custom/114-app_messenger.dart';
+import 'package:asec/core/network/shared_stream.dart';
 
 class AdminQuizzesPage extends StatefulWidget {
   const AdminQuizzesPage({
@@ -53,7 +54,7 @@ class AdminQuizzesPage extends StatefulWidget {
 
 class _AdminQuizzesPageState extends State<AdminQuizzesPage> {
   final QuizBaseRepository _repository = QuizRepository();
-  late final Stream<List<Quiz>> _quizzes = _repository.watchAll();
+  late final Stream<List<Quiz>> _quizzes = shared(() => _repository.watchAll());
 
   AppUser get _me => SessionController.to.current;
 

@@ -49,6 +49,7 @@ import 'package:asec/features/quiz/q2_certificates/data/issued_certificates.dart
 import 'package:asec/features/quiz/q2_certificates/presentation/ui/pages/certificate_page.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
 import 'package:asec/core/custom/114-app_messenger.dart';
+import 'package:asec/core/network/shared_stream.dart';
 
 class MemberAccessPage extends StatefulWidget {
   const MemberAccessPage({super.key, required this.member});
@@ -61,11 +62,10 @@ class MemberAccessPage extends StatefulWidget {
 
 class _MemberAccessPageState extends State<MemberAccessPage> {
   final UsersBaseRepository _users = UsersRepository();
-  late final Stream<AppUser?> _live = _users.watchUser(widget.member.uid);
-  late final Stream<List<VideoItem>> _videos = VideoRepository().watchAll();
-  late final Stream<List<VideoItem>> _certVideos = VideoRepository().watchAll();
-  late final Stream<List<IssuedCertificate>> _issued =
-      IssuedCertificates.watchFor(widget.member.uid);
+  late final Stream<AppUser?> _live = shared(() => _users.watchUser(widget.member.uid));
+  late final Stream<List<VideoItem>> _videos = shared(() => VideoRepository().watchAll());
+  late final Stream<List<VideoItem>> _certVideos = shared(() => VideoRepository().watchAll());
+  late final Stream<List<IssuedCertificate>> _issued = shared(() => IssuedCertificates.watchFor(widget.member.uid));
   final Set<String> _issuing = <String>{};
 
   /// Gives (or takes back) [course]'s certificate right away — not on Save.
@@ -112,11 +112,9 @@ class _MemberAccessPageState extends State<MemberAccessPage> {
   bool _saving = false;
   bool _pausing = false;
   bool _removingDevice = false;
-  late final Stream<List<BlockedDevice>> _blockedDevices =
-      DeviceBlocks.watchForMember(widget.member.uid);
+  late final Stream<List<BlockedDevice>> _blockedDevices = shared(() => DeviceBlocks.watchForMember(widget.member.uid));
 
-  late final Stream<Map<String, VideoDevice>> _videoDevices =
-      VideoDeviceLock.watch(widget.member.uid);
+  late final Stream<Map<String, VideoDevice>> _videoDevices = shared(() => VideoDeviceLock.watch(widget.member.uid));
 
   String _deviceLabel(S s, VideoDevice d) =>
       d.name.isEmpty ? s.accessDeviceUnknown : d.name;

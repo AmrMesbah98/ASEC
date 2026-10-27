@@ -39,6 +39,7 @@ import 'package:asec/generated/l10n.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
 import 'package:asec/features/video/v1_videos/presentation/controller/member_videos.dart';
 import 'package:asec/core/custom/114-app_messenger.dart';
+import 'package:asec/core/network/shared_stream.dart';
 
 enum _ExamStatus { noExam, locked, ready, failed, passed }
 
@@ -65,7 +66,7 @@ class CertificateQuizzesPage extends StatefulWidget {
 class _CertificateQuizzesPageState extends State<CertificateQuizzesPage> {
   final QuizRepository _quizzes = QuizRepository();
 
-  late final Stream<_Feed> _feed = combineLatest<Object, _Feed>(
+  late final Stream<_Feed> _feed = shared(() => combineLatest<Object, _Feed>(
     <Stream<Object>>[
       MemberVideos.watch(),
       _quizzes.watchPublished(),
@@ -83,7 +84,7 @@ class _CertificateQuizzesPageState extends State<CertificateQuizzesPage> {
           c.course.trim().toLowerCase(): c,
       },
     ),
-  );
+  ));
 
   /// Watch progress lives on the device, not in Firestore, so nothing
   /// streams when a lesson is finished in the Videos tab — re-read it now

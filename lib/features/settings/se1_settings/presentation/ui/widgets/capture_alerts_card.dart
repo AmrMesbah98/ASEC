@@ -23,6 +23,7 @@ import 'package:asec/features/admin/a2_members/data/device_security.dart';
 import 'package:asec/features/onboarding/o2_authentication/domain/entities/member_access.dart';
 import 'package:asec/generated/l10n.dart';
 import 'package:asec/core/custom/114-app_messenger.dart';
+import 'package:asec/core/network/shared_stream.dart';
 
 class CaptureAlertsCard extends StatefulWidget {
   const CaptureAlertsCard({super.key});
@@ -32,7 +33,7 @@ class CaptureAlertsCard extends StatefulWidget {
 }
 
 class _CaptureAlertsCardState extends State<CaptureAlertsCard> {
-  late final Stream<List<CaptureEvent>> _events = CaptureEvents.watch();
+  late final Stream<List<CaptureEvent>> _events = shared(() => CaptureEvents.watch());
 
   /// Rows shown before "Show all".
   static const int _preview = 6;

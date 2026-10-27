@@ -35,6 +35,7 @@ import 'package:asec/features/onboarding/o2_authentication/presentation/controll
 import 'package:asec/features/onboarding/o2_authentication/domain/enums/admin_permission.dart';
 import 'package:asec/generated/l10n.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
+import 'package:asec/core/network/shared_stream.dart';
 
 class MembersPage extends StatefulWidget {
   const MembersPage({super.key});
@@ -45,7 +46,7 @@ class MembersPage extends StatefulWidget {
 
 class _MembersPageState extends State<MembersPage> {
   final UsersBaseRepository _repository = UsersRepository();
-  late final Stream<List<AppUser>> _members = _repository.watchMembers();
+  late final Stream<List<AppUser>> _members = shared(() => _repository.watchMembers());
 
   static const String _all = '__all__';
   static const String _activeOnly = 'active';

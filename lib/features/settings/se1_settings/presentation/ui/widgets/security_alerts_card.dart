@@ -23,6 +23,7 @@ import 'package:asec/core/theme/app_theme.dart';
 import 'package:asec/features/onboarding/o2_authentication/domain/entities/member_access.dart';
 import 'package:asec/generated/l10n.dart';
 import 'package:asec/core/custom/114-app_messenger.dart';
+import 'package:asec/core/network/shared_stream.dart';
 
 class SecurityAlertsCard extends StatefulWidget {
   const SecurityAlertsCard({super.key});
@@ -32,7 +33,7 @@ class SecurityAlertsCard extends StatefulWidget {
 }
 
 class _SecurityAlertsCardState extends State<SecurityAlertsCard> {
-  late final Stream<List<SecurityAlert>> _alerts = SecurityMonitor.watch();
+  late final Stream<List<SecurityAlert>> _alerts = shared(() => SecurityMonitor.watch());
 
   static const int _preview = 6;
   bool _showAll = false;

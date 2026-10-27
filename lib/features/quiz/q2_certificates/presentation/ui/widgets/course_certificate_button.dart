@@ -26,6 +26,7 @@ import 'package:asec/features/quiz/q2_certificates/presentation/ui/pages/certifi
 import 'package:asec/features/quiz/q2_certificates/presentation/ui/pages/certificate_quizzes_page.dart';
 import 'package:asec/features/user/u1_shell/presentation/ui/widgets/member_links.dart';
 import 'package:asec/generated/l10n.dart';
+import 'package:asec/core/network/shared_stream.dart';
 
 class CourseCertificateButton extends StatefulWidget {
   const CourseCertificateButton({super.key, required this.user, required this.course});
@@ -50,7 +51,7 @@ class _Earned {
 class _CourseCertificateButtonState extends State<CourseCertificateButton> {
   final QuizRepository _quizzes = QuizRepository();
 
-  late final Stream<_Earned> _state = combineLatest<Object, _Earned>(
+  late final Stream<_Earned> _state = shared(() => combineLatest<Object, _Earned>(
     <Stream<Object>>[
       IssuedCertificates.watchFor(widget.user.uid),
       _quizzes.watchPublished().handleError((Object _) {}),
@@ -74,7 +75,7 @@ class _CourseCertificateButtonState extends State<CourseCertificateButton> {
       }
       return _Earned(quiz: passed == null ? null : exam, attempt: passed, issued: issued);
     },
-  );
+  ));
 
   void _open(_Earned e) {
     if (e.quiz != null && e.attempt != null) {

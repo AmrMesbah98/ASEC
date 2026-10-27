@@ -12,6 +12,7 @@ import 'package:asec/features/web/core/theme.dart';
 import 'package:asec/features/web/core/widgets.dart';
 import 'package:asec/features/web/data/site_repo.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
+import 'package:asec/core/network/shared_stream.dart';
 
 class InboxKind {
   const InboxKind(this.coll, this.label, this.icon, this.titleKey, this.fields);
@@ -124,7 +125,7 @@ class _InboxList extends StatefulWidget {
 }
 
 class _InboxListState extends State<_InboxList> {
-  late final Stream<List<Doc>> _stream = SiteRepo.all(widget.kind.coll, by: SortBy.newest);
+  late final Stream<List<Doc>> _stream = shared(() => SiteRepo.all(widget.kind.coll, by: SortBy.newest));
   String _filter = '';
 
   @override

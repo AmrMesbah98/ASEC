@@ -31,6 +31,7 @@ import 'package:asec/features/video/v1_videos/presentation/ui/widgets/video_cate
 import 'package:asec/generated/l10n.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
 import 'package:asec/features/video/v1_videos/presentation/controller/member_videos.dart';
+import 'package:asec/core/network/shared_stream.dart';
 
 // ── Files ───────────────────────────────────────────────────────────────────
 
@@ -65,7 +66,7 @@ class LibraryView extends StatefulWidget {
 
 class _LibraryViewState extends State<LibraryView> {
   final EngagementRepository _repository = EngagementRepository();
-  late final Stream<List<LibraryFile>> _loose = _repository.watchLibrary();
+  late final Stream<List<LibraryFile>> _loose = shared(() => _repository.watchLibrary());
 
   @override
   Widget build(BuildContext context) {
@@ -179,8 +180,7 @@ class LeaderboardPage extends StatefulWidget {
 }
 
 class _LeaderboardPageState extends State<LeaderboardPage> {
-  late final Stream<(List<VideoItem>, List<MemberProgress>)> _data =
-      combineLatest<Object, (List<VideoItem>, List<MemberProgress>)>(
+  late final Stream<(List<VideoItem>, List<MemberProgress>)> _data = shared(() => combineLatest<Object, (List<VideoItem>, List<MemberProgress>)>(
     <Stream<Object>>[
       widget.admin
           ? VideoRepository().watchAll()
@@ -189,7 +189,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
     ],
     (List<Object> v) =>
         (v[0] as List<VideoItem>, v[1] as List<MemberProgress>),
-  );
+  ));
 
   @override
   Widget build(BuildContext context) {

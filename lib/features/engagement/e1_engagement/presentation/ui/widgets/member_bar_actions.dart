@@ -31,6 +31,7 @@ import 'package:asec/features/user/u1_shell/presentation/ui/widgets/member_links
 import 'package:asec/features/video/v1_videos/presentation/ui/widgets/video_watch_store.dart';
 import 'package:asec/generated/l10n.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
+import 'package:asec/core/network/shared_stream.dart';
 
 /// When this member last opened the notifications, on this device.
 abstract final class NoticeSeen {
@@ -160,7 +161,7 @@ class NotificationsPage extends StatefulWidget {
 
 class _NotificationsPageState extends State<NotificationsPage> {
   final EngagementRepository _repository = EngagementRepository();
-  late final Stream<List<AppNotice>> _notices = _repository.watchNotices();
+  late final Stream<List<AppNotice>> _notices = shared(() => _repository.watchNotices());
 
   /// What was "new" when the page opened stays highlighted while it is open.
   late final DateTime _seenBefore;
@@ -317,8 +318,7 @@ class SavedTipsPage extends StatefulWidget {
 
 class _SavedTipsPageState extends State<SavedTipsPage> {
   final EngagementRepository _repository = EngagementRepository();
-  late final Stream<List<AppTip>> _saved =
-      _repository.watchSavedTips(widget.user.uid);
+  late final Stream<List<AppTip>> _saved = shared(() => _repository.watchSavedTips(widget.user.uid));
 
   @override
   Widget build(BuildContext context) {

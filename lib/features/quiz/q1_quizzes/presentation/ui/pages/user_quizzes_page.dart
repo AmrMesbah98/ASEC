@@ -26,6 +26,7 @@ import 'package:asec/features/quiz/q1_quizzes/presentation/ui/widgets/quiz_card.
 import 'package:asec/generated/l10n.dart';
 import 'package:asec/core/animation/app_animations.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
+import 'package:asec/core/network/shared_stream.dart';
 
 /// The quizzes and this member's attempts, as one value.
 class _QuizFeed {
@@ -47,7 +48,7 @@ class UserQuizzesPage extends StatefulWidget {
 class _UserQuizzesPageState extends State<UserQuizzesPage> {
   final QuizBaseRepository _repository = QuizRepository();
 
-  late final Stream<_QuizFeed> _feed = combineLatest<Object, _QuizFeed>(
+  late final Stream<_QuizFeed> _feed = shared(() => combineLatest<Object, _QuizFeed>(
     <Stream<Object>>[
       _repository.watchPublished(),
       _repository.watchMyAttempts(widget.user.uid),
@@ -62,7 +63,7 @@ class _UserQuizzesPageState extends State<UserQuizzesPage> {
         },
       );
     },
-  );
+  ));
 
   @override
   Widget build(BuildContext context) {

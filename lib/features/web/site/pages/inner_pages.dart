@@ -14,6 +14,7 @@ import 'package:asec/features/web/site/pages/home_page.dart';
 import 'package:asec/features/web/site/site_shell.dart';
 import 'package:asec/features/web/site/widgets/cards.dart';
 import 'package:asec/features/web/site/site_nav.dart';
+import 'package:asec/core/network/shared_stream.dart';
 
 // ── من نحن ───────────────────────────────────────────────────────────────
 
@@ -167,7 +168,7 @@ class ProjectsPage extends StatefulWidget {
 
 class _ProjectsPageState extends State<ProjectsPage> {
   String _cat = '';
-  late final Stream<List<Doc>> _stream = SiteRepo.published(Coll.projects);
+  late final Stream<List<Doc>> _stream = shared(() => SiteRepo.published(Coll.projects));
 
   @override
   Widget build(BuildContext context) => WithSettings(

@@ -32,6 +32,7 @@ import 'package:asec/features/quiz/q1_quizzes/domain/entities/quiz_attempt.dart'
 import 'package:asec/features/quiz/q1_quizzes/presentation/ui/pages/attempt_detail_page.dart';
 import 'package:asec/generated/l10n.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
+import 'package:asec/core/network/shared_stream.dart';
 
 /// The quizzes and every attempt, as one value.
 class _Results {
@@ -59,7 +60,7 @@ class _AdminResultsPageState extends State<AdminResultsPage> {
   String _sortKey = 'date';
   bool _ascending = false;
 
-  late final Stream<_Results> _stream = combineLatest<Object, _Results>(
+  late final Stream<_Results> _stream = shared(() => combineLatest<Object, _Results>(
     <Stream<Object>>[
       _repository.watchAll(),
       _repository.watchAllAttempts(),
@@ -68,7 +69,7 @@ class _AdminResultsPageState extends State<AdminResultsPage> {
       values[0] as List<Quiz>,
       values[1] as List<QuizAttempt>,
     ),
-  );
+  ));
 
   @override
   void dispose() {

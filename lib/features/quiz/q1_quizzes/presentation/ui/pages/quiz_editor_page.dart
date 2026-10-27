@@ -32,6 +32,7 @@ import 'package:asec/features/onboarding/o2_authentication/domain/enums/admin_pe
 import 'package:asec/generated/l10n.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
 import 'package:asec/core/custom/114-app_messenger.dart';
+import 'package:asec/core/network/shared_stream.dart';
 
 class QuizEditorPage extends StatelessWidget {
   const QuizEditorPage({
@@ -406,7 +407,7 @@ class _CoursePicker extends StatefulWidget {
 }
 
 class _CoursePickerState extends State<_CoursePicker> {
-  late final Stream<List<VideoItem>> _videos = VideoRepository().watchAll();
+  late final Stream<List<VideoItem>> _videos = shared(() => VideoRepository().watchAll());
 
   @override
   Widget build(BuildContext context) {
@@ -467,7 +468,7 @@ class _SectionPicker extends StatefulWidget {
 }
 
 class _SectionPickerState extends State<_SectionPicker> {
-  late final Stream<List<VideoItem>> _videos = VideoRepository().watchAll();
+  late final Stream<List<VideoItem>> _videos = shared(() => VideoRepository().watchAll());
 
   /// Course and section in one dropdown value; '' = no section.
   static const String _sep = '\u0001';

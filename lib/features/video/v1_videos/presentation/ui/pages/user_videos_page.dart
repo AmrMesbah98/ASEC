@@ -50,6 +50,7 @@ import 'package:asec/features/video/v1_videos/data/catalog/video_catalog.dart';
 import 'package:asec/core/helper/main_helper/stream_combine.dart';
 import 'package:asec/features/quiz/q2_certificates/presentation/ui/widgets/course_certificate_button.dart';
 import 'package:asec/core/custom/114-app_messenger.dart';
+import 'package:asec/core/network/shared_stream.dart';
 
 /// The chips above a course's lessons. FILES comes first: the folders and
 /// files the admin put in this course.
@@ -76,10 +77,10 @@ class _UserVideosPageState extends State<_UserVideosView> {
   // What this member may play (firestore.rules checks it too), and the
   // link-free catalog of EVERY lesson — the courses they were not given
   // show too, locked.
-  late final Stream<_Feed> _videos = combineLatest<List<VideoItem>, _Feed>(
+  late final Stream<_Feed> _videos = shared(() => combineLatest<List<VideoItem>, _Feed>(
     <Stream<List<VideoItem>>>[MemberVideos.watch(), VideoCatalog.watch()],
     (List<List<VideoItem>> v) => _Feed(v[0], v[1]),
-  );
+  ));
   final TextEditingController _search = TextEditingController();
 
   _VideoFilter _filter = _VideoFilter.all;

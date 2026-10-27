@@ -34,6 +34,7 @@ import 'package:asec/core/theme/app_theme.dart';
 import 'package:asec/features/web/core/doc.dart';
 import 'package:asec/features/web/data/site_repo.dart';
 import 'package:asec/generated/l10n.dart';
+import 'package:asec/core/network/shared_stream.dart';
 
 bool _isAr(BuildContext context) =>
     Localizations.localeOf(context).languageCode == 'ar';
@@ -134,7 +135,7 @@ class MemberProjectsSection extends StatefulWidget {
 }
 
 class _MemberProjectsSectionState extends State<MemberProjectsSection> {
-  late final Stream<List<Doc>> _projects = SiteRepo.published(Coll.projects);
+  late final Stream<List<Doc>> _projects = shared(() => SiteRepo.published(Coll.projects));
   final ScrollController _scroll = ScrollController();
   Timer? _auto;
   bool _touching = false;

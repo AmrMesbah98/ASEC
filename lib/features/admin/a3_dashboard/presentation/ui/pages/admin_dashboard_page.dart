@@ -50,6 +50,7 @@ import 'package:asec/generated/l10n.dart';
 import 'package:asec/core/animation/app_animations.dart';
 import 'package:asec/core/settings/app_features.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
+import 'package:asec/core/network/shared_stream.dart';
 
 class AdminDashboardPage extends StatefulWidget {
   const AdminDashboardPage({super.key, required this.admin});
@@ -67,7 +68,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   final VideoBaseRepository _videos = VideoRepository();
   final QuizBaseRepository _quizzes = QuizRepository();
 
-  late final Stream<DashboardData> _stream = combineLatest<Object, DashboardData>(
+  late final Stream<DashboardData> _stream = shared(() => combineLatest<Object, DashboardData>(
     <Stream<Object>>[
       _users.watchMembers(),
       _videos.watchAll(),
@@ -80,7 +81,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       quizzes: values[2] as List<Quiz>,
       attempts: values[3] as List<QuizAttempt>,
     ),
-  );
+  ));
 
   @override
   Widget build(BuildContext context) {

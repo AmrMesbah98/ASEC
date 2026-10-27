@@ -36,6 +36,7 @@ import 'package:asec/features/onboarding/o2_authentication/presentation/ui/widge
 import 'package:asec/features/web/core/doc.dart';
 import 'package:asec/features/web/data/site_repo.dart';
 import 'package:asec/generated/l10n.dart';
+import 'package:asec/core/network/shared_stream.dart';
 
 class PartnerLogoItem {
   const PartnerLogoItem({required this.name, required this.logoUrl});
@@ -421,7 +422,7 @@ class PartnersAdminTab extends StatefulWidget {
 }
 
 class _PartnersAdminTabState extends State<PartnersAdminTab> {
-  late final Stream<List<Doc>> _all = SiteRepo.all(Coll.partners);
+  late final Stream<List<Doc>> _all = shared(() => SiteRepo.all(Coll.partners));
 
   @override
   Widget build(BuildContext context) {

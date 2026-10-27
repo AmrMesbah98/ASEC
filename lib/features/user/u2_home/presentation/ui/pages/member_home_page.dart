@@ -59,6 +59,7 @@ import 'package:asec/generated/l10n.dart';
 import 'package:asec/features/user/u2_home/presentation/ui/widgets/member_projects_section.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
 import 'package:asec/features/video/v1_videos/presentation/controller/member_videos.dart';
+import 'package:asec/core/network/shared_stream.dart';
 
 /// Section ids the home page jumps to (see UserShell).
 abstract final class MemberSectionIds {
@@ -80,7 +81,7 @@ class MemberHomePage extends StatefulWidget {
 
 class _MemberHomePageState extends State<MemberHomePage> {
   // Only what this member may read (firestore.rules checks it too).
-  late final Stream<List<VideoItem>> _videos = MemberVideos.watch();
+  late final Stream<List<VideoItem>> _videos = shared(() => MemberVideos.watch());
 
   /// Watch progress is written to the device while a lesson plays (from the
   /// Videos tab too), so the page listens and refreshes — at most once a

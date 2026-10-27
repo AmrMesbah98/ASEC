@@ -24,6 +24,7 @@ import 'package:asec/features/settings/se1_settings/data/admins_repository.dart'
 import 'package:asec/generated/l10n.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
 import 'package:asec/core/custom/114-app_messenger.dart';
+import 'package:asec/core/network/shared_stream.dart';
 
 class AdminsCard extends StatefulWidget {
   const AdminsCard({super.key});
@@ -34,7 +35,7 @@ class AdminsCard extends StatefulWidget {
 
 class _AdminsCardState extends State<AdminsCard> {
   final AdminsRepository _repo = AdminsRepository();
-  late final Stream<List<AppUser>> _admins = _repo.watchAdmins();
+  late final Stream<List<AppUser>> _admins = shared(() => _repo.watchAdmins());
 
   void _toast(String text) {
     if (!mounted) return;

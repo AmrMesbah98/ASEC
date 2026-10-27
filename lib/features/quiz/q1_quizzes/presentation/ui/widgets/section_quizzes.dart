@@ -35,6 +35,7 @@ import 'package:asec/features/onboarding/o2_authentication/domain/enums/admin_pe
 import 'package:asec/generated/l10n.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
 import 'package:asec/core/custom/114-app_messenger.dart';
+import 'package:asec/core/network/shared_stream.dart';
 
 class SectionQuizzes extends StatefulWidget {
   /// For a member: unlocked once the section's lessons are all watched.
@@ -76,7 +77,7 @@ class SectionQuizzes extends StatefulWidget {
 class _SectionQuizzesState extends State<SectionQuizzes> {
   final QuizRepository _repository = QuizRepository();
 
-  late final Stream<(List<Quiz>, Map<String, QuizAttempt>)> _feed = widget.isAdmin
+  late final Stream<(List<Quiz>, Map<String, QuizAttempt>)> _feed = shared(() => widget.isAdmin
       ? _repository.watchAll().map((List<Quiz> q) => (q, <String, QuizAttempt>{}))
       : combineLatest<Object, (List<Quiz>, Map<String, QuizAttempt>)>(
           <Stream<Object>>[
@@ -89,7 +90,7 @@ class _SectionQuizzesState extends State<SectionQuizzes> {
               for (final QuizAttempt a in v[1] as List<QuizAttempt>) a.quizId: a,
             },
           ),
-        );
+        ));
 
   bool _mine(Quiz q) => widget.sections
       .any((String section) => q.closesSection(widget.course, section));

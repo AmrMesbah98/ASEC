@@ -31,6 +31,7 @@ import 'package:asec/features/onboarding/o2_authentication/presentation/controll
 import 'package:asec/features/engagement/e1_engagement/presentation/ui/widgets/partners_orbit.dart';
 import 'package:asec/generated/l10n.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
+import 'package:asec/core/network/shared_stream.dart';
 
 class AdminEngagementPage extends StatefulWidget {
   const AdminEngagementPage({super.key});
@@ -41,8 +42,8 @@ class AdminEngagementPage extends StatefulWidget {
 
 class _AdminEngagementPageState extends State<AdminEngagementPage> {
   final EngagementRepository _repository = EngagementRepository();
-  late final Stream<List<AppNotice>> _notices = _repository.watchNotices();
-  late final Stream<List<AppTip>> _tips = _repository.watchTips();
+  late final Stream<List<AppNotice>> _notices = shared(() => _repository.watchNotices());
+  late final Stream<List<AppTip>> _tips = shared(() => _repository.watchTips());
 
   int _tab = 0;
 

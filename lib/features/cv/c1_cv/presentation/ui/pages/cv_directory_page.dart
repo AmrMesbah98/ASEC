@@ -25,6 +25,7 @@ import 'package:asec/features/cv/c1_cv/presentation/ui/pages/cv_detail_page.dart
 import 'package:asec/features/cv/c1_cv/presentation/ui/widgets/cv_card.dart';
 import 'package:asec/generated/l10n.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
+import 'package:asec/core/network/shared_stream.dart';
 
 class CvDirectoryPage extends StatefulWidget {
   const CvDirectoryPage({super.key, this.isAdmin = false});
@@ -38,7 +39,7 @@ class CvDirectoryPage extends StatefulWidget {
 class _CvDirectoryPageState extends State<CvDirectoryPage> {
   final CvBaseRepository _repository = CvRepository();
   final TextEditingController _search = TextEditingController();
-  late final Stream<List<CvProfile>> _cvs = _repository.watchAll();
+  late final Stream<List<CvProfile>> _cvs = shared(() => _repository.watchAll());
 
   static const String _allRoles = '__all__';
   String _roleFilter = _allRoles;
