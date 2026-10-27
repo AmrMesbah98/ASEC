@@ -51,7 +51,12 @@ Future<void> main() async {
   // Give video_player a Windows / Linux backend (media_kit). Without this,
   // playing a lesson on Windows throws "init() has not been implemented".
   // Must run before any VideoPlayerController is created. No-op on phones/web.
-  registerDesktopVideo();
+  // Wrapped so a video-backend failure can NEVER stop the app from opening.
+  try {
+    registerDesktopVideo();
+  } catch (error, stack) {
+    ErrorReports.report(error, stack, source: 'startup');
+  }
   // A hot restart loses old VideoPlayerControllers; init() disposes them.
   try {
     await VideoPlayerPlatform.instance.init();
