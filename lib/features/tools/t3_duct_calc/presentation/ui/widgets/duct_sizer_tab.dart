@@ -205,8 +205,8 @@ class _DuctSizerTabState extends State<DuctSizerTab> {
       ResultItem('Fluid velocity', fmt(r.velocity, ip ? 1 : 2), ip ? 'ft/min' : 'm/s'),
       ResultItem('Reynolds number', fmtGrouped(r.reynolds)),
       ResultItem('Friction factor', fmt(r.frictionFactor, 5)),
-      ResultItem('Velocity pressure', fmt(r.velocityPressure, ip ? 4 : 1), ip ? 'in.WC' : 'Pa'),
-      ResultItem('Head loss', fmt(r.headLoss, ip ? 3 : 2), ip ? 'in.WC/100 ft' : 'Pa/m'),
+      ResultItem('Velocity pressure', fmt(r.velocityPressure, ip ? 4 : 1), ip ? 'in.wg' : 'Pa'),
+      ResultItem('Head loss', fmt(r.headLoss, ip ? 3 : 2), ip ? 'in.wg/100 ft' : 'Pa/m'),
     ];
   }
 

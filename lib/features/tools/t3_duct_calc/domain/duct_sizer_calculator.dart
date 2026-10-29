@@ -9,15 +9,17 @@
 /// Created: 21/10/2026
 ///
 /// Pure Dart, works offline. Same method as McQuay DuctSizer 6.4:
-///   • works internally in IP units (cfm, in, fpm, in.WC/100 ft)
+///   • works internally in IP units (cfm, in, fpm, in.wg/100 ft)
 ///   • Re = ρ·V·D/μ   (ρ lb/ft³, V ft/h, D ft, μ lb/ft·h)
 ///   • f  = 64/Re below Re 2000, otherwise Colebrook
 ///       1/√f = −2·log10(ε/(3.7·D) + 2.51/(Re·√f)),  ε = 0.0007 ft
-///   • Pv = ρ·(V/1097)²  in.WC
-///   • head loss = f · (100/D) · Pv   in.WC per 100 ft
+///   • Pv = ρ·(V/1097)²  in.wg
+///   • head loss = f · (100/D) · Pv   in.wg per 100 ft
 ///   • a SOLVED diameter is rounded (0.1 in, or 1 mm in SI) and the results
 ///     are re-evaluated with the rounded size, like the original
 ///   • rectangle: Huebscher De = 1.30·(a·b)^0.625 / (a+b)^0.25
+///   • both sides typed (29/10/2026): area, velocity, Pv, Re, f and head
+///     loss are all re-evaluated for that rectangle at the same flow
 library;
 
 import 'dart:math' as math;
@@ -38,7 +40,7 @@ class SizerLabels {
       case SizerField.flow:
         return ip ? 'cfm' : 'L/s';
       case SizerField.headLoss:
-        return ip ? 'in.WC/100 ft' : 'Pa/m';
+        return ip ? 'in.wg/100 ft' : 'Pa/m';
       case SizerField.velocity:
         return ip ? 'fpm' : 'm/s';
       case SizerField.diameter:
@@ -63,11 +65,11 @@ class SizerLabels {
 /// IP ⇄ SI factors (SI value = IP value × factor).
 class _Si {
   static const double flow = 0.471947443; // cfm → L/s
-  static const double headLoss = 249.0889 / 30.48; // in.WC/100ft → Pa/m
+  static const double headLoss = 249.0889 / 30.48; // in.wg/100ft → Pa/m
   static const double velocity = 0.00508; // fpm → m/s
   static const double length = 25.4; // in → mm
   static const double area = 0.09290304; // ft² → m²
-  static const double pressure = 249.0889; // in.WC → Pa
+  static const double pressure = 249.0889; // in.wg → Pa
   static const double density = 16.018463; // lb/ft³ → kg/m³
   static const double viscosity = 0.000413378942; // lb/(ft·h) → Pa·s
   static const double specificHeat = 4.1868; // Btu/(lb·°F) → kJ/(kg·K)
@@ -165,10 +167,10 @@ class SizerResult {
   final double reynolds;
   final double frictionFactor;
 
-  /// in.WC or Pa
+  /// in.wg or Pa
   final double velocityPressure;
 
-  /// in.WC/100 ft or Pa/m
+  /// in.wg/100 ft or Pa/m
   final double headLoss;
 
   /// Rectangle sides and their equivalent diameter, in or mm.
@@ -190,7 +192,7 @@ class DuctSizerCalculator {
   /// Absolute roughness, ft (galvanised steel).
   static const double roughnessFt = 0.0007;
 
-  /// Velocity-pressure constant: Pv(in.WC) = ρ·(V/1097)².
+  /// Velocity-pressure constant: Pv(in.wg) = ρ·(V/1097)².
   static const double vpConstant = 1097;
 
   // ── core relations (IP) ──────────────────────────────────────────────────
@@ -223,7 +225,7 @@ class DuctSizerCalculator {
   static double velocityPressure(double velocityFpm, AirCondition air) =>
       air.densityLbFt3 * math.pow(velocityFpm / vpConstant, 2).toDouble();
 
-  /// in.WC per 100 ft for a velocity and diameter.
+  /// in.wg per 100 ft for a velocity and diameter.
   static double headLossFor(double velocityFpm, double diameterIn, AirCondition air) {
     if (velocityFpm <= 0 || diameterIn <= 0) return 0;
     final double f = frictionFactor(reynolds(velocityFpm, diameterIn, air), diameterIn);
@@ -324,12 +326,12 @@ class DuctSizerCalculator {
           : (dExact * 10).roundToDouble() / 10;
       if (rounded > 0) dIp = rounded;
     }
-    final double area = areaFt2(dIp);
-    final double vRes = qIp / area;
-    final double re = reynolds(vRes, dIp, air);
-    final double f = frictionFactor(re, dIp);
-    final double pv = velocityPressure(vRes, air);
-    final double hRes = f * (100 / (dIp / 12.0)) * pv;
+    double area = areaFt2(dIp);
+    double vRes = qIp / area;
+    double re = reynolds(vRes, dIp, air);
+    double f = frictionFactor(re, dIp);
+    double pv = velocityPressure(vRes, air);
+    double hRes = f * (100 / (dIp / 12.0)) * pv;
 
     // Equivalent rectangle.
     double? a = (sideA != null && sideA > 0) ? (si ? sideA / _Si.length : sideA) : null;
@@ -337,6 +339,20 @@ class DuctSizerCalculator {
     double? rectDe;
     if (a != null && b != null) {
       rectDe = huebscher(a, b);
+      // 29/10/2026 — BOTH SIDES TYPED: the whole table follows THIS duct,
+      // not the round one above. Same flow rate:
+      //   • flow area = a·b, velocity = Q / (a·b), Pv from that velocity
+      //   • Reynolds, friction and head loss on its equivalent diameter
+      //     (Huebscher De carries the same flow at the same friction).
+      if (rectDe > 0) {
+        area = a * b / 144;
+        vRes = qIp / area;
+        pv = velocityPressure(vRes, air);
+        final double vRound = qIp / areaFt2(rectDe);
+        re = reynolds(vRound, rectDe, air);
+        f = frictionFactor(re, rectDe);
+        hRes = f * (100 / (rectDe / 12.0)) * velocityPressure(vRound, air);
+      }
     } else if (a != null || b != null) {
       final double known = (a ?? b)!;
       final double other = _solve((double x) => huebscher(known, x), dIp, 1e-3, 1e6, increasing: true);

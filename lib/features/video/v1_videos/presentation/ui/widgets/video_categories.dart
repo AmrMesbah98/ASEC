@@ -46,10 +46,18 @@ class VideoCategory {
   int get watched =>
       videos.where((VideoItem v) => VideoWatchStore.isWatched(v.id)).length;
 
-  /// The Reels course ("Reals" on Drive) — always shown first.
+  /// The Reels course ("Reals" on Drive).
   static bool isReels(String name) {
     final String n = name.trim().toLowerCase();
     return n == 'reals' || n == 'reels';
+  }
+
+  /// The Tips course ("Tips and Tricks", or the older "Reals" / "Reels")
+  /// — always shown FIRST, before every other course, for admins and
+  /// members alike.
+  static bool isTips(String name) {
+    final String n = name.trim().toLowerCase();
+    return isReels(n) || n.contains('tips');
   }
 
   /// Groups [videos] by category — categories in folder order (then name),
@@ -76,10 +84,10 @@ class VideoCategory {
       for (final MapEntry<String, List<VideoItem>> e in byName.entries)
         VideoCategory(name: e.key, order: order[e.key]!, videos: e.value),
     ]..sort((VideoCategory a, VideoCategory b) {
-        // REELS FIRST, always, before every other course.
+        // TIPS FIRST, always, before every other course.
         if (!bySubcategory) {
-          final bool ra = isReels(a.name);
-          final bool rb = isReels(b.name);
+          final bool ra = isTips(a.name);
+          final bool rb = isTips(b.name);
           if (ra != rb) return ra ? -1 : 1;
         }
         // Sections by the number in their folder name — "Introduction-01",

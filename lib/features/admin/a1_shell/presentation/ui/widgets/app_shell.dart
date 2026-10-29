@@ -594,7 +594,9 @@ class _CenterButton extends StatelessWidget {
                   ),
                 ],
               ),
-              child: Icon(icon, size: 26.sp, color: AppColors.textButton),
+              child: Center(
+                child: AppIcon(icon, size: 26.sp, color: AppColors.textButton),
+              ),
             ),
           ),
         ),

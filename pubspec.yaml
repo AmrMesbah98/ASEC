@@ -2,7 +2,7 @@ name: asec
 description: "ASEC — videos and timed quizzes for members, run by one admin."
 publish_to: 'none'
 
-version: 1.0.26+44
+version: 1.0.27+46
 
 environment:
   sdk: ^3.12.2
@@ -95,6 +95,7 @@ flutter:
     - assets/icons_assets/services_assets/
     - assets/icons_assets/settings_assets/
     - assets/icons_assets/web_assets/
+    - assets/icons_assets/tools_assets/
     - assets/lottie_assets/home_lottie_assets/
     - assets/lottie_assets/main_lottie_assets/
     - assets/web/images/

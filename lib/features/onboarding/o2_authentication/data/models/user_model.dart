@@ -63,7 +63,10 @@ abstract final class UserModel {
       // THE DEFAULT COURSES (GENERAL NOTES, Reals = Tips & Tricks) are open
       // to every member, on top of the courses the admin gave them, until
       // the admin switches one off for that member (`closed_courses`).
-      allCourses: data.boolean(coursesAll, false),
+      // ALL COURSES BY DEFAULT: a member the admin has not set courses for
+      // sees every course. Once the admin saves Edit access, their choice
+      // (courses_all true / false + the ticked list) is used instead.
+      allCourses: data.boolean(coursesAll, true),
       courses: <String>{
         ...data.stringList(courses),
         for (final String c in MemberAccess.defaultCourses)

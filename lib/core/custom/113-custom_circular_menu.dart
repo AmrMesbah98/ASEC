@@ -12,6 +12,11 @@
 /// Updated: 22/10/2026 - Optional `sweep` (radians) on `show`, so the phone
 ///          bar's centre button can fan its tools in a narrower arc that
 ///          stays above the bar.
+/// Updated: 29/10/2026 - Rail / drawer: the arc is replaced by ONE STRAIGHT
+///          COLUMN beside the ✕ (circles on one line, names beside them).
+/// Updated: 29/10/2026 - `vertical: true` is now a CARD of tiles (3 per
+///          row, the tool's SVG drawing with its short name under it)
+///          above the centre button, replacing the stacked rows.
 /// Updated: 22/10/2026 - `vertical: true` — a speed dial: the items stack
 ///          straight up from the anchor, each a round icon with its name in
 ///          a pill beside it (the phone bar's centre Calculators button).
@@ -119,11 +124,9 @@ class _CircularMenuOverlay extends StatelessWidget {
     this.vertical = false,
   });
 
-  /// Speed-dial column above the anchor instead of an arc.
+  /// Phone bar's centre button: a card with a grid of tiles above it
+  /// (drawing + short name) instead of an arc.
   final bool vertical;
-
-  /// Centre-to-centre distance between rows of the vertical list.
-  static const double _rowGap = CustomCircularMenu.itemSize + 14;
 
   /// Total arc in radians; null = 60° between neighbours, half a circle max.
   final double? sweep;
@@ -132,33 +135,6 @@ class _CircularMenuOverlay extends StatelessWidget {
   final List<CircularMenuItem> items;
   final int? selected;
   final Animation<double> animation;
-
-  /// Item centres, before animation, kept inside the safe screen area.
-  List<Offset> _targets(Offset c, Size screen, EdgeInsets pad) {
-    final Offset toMiddle = Offset(screen.width / 2, screen.height / 2) - c;
-    final double base = toMiddle.distance < 1
-        ? -math.pi / 2
-        : math.atan2(toMiddle.dy, toMiddle.dx);
-    final int n = items.length;
-    // 60° between neighbours, never more than a half circle in total.
-    final double sweep = n <= 1
-        ? 0
-        : (this.sweep ?? math.min(math.pi, (n - 1) * math.pi / 3));
-    const double margin = CustomCircularMenu.itemSize / 2 + 8;
-    return <Offset>[
-      for (int i = 0; i < n; i++)
-        () {
-          final double a = n <= 1 ? base : base - sweep / 2 + sweep * i / (n - 1);
-          final Offset p = c +
-              Offset(math.cos(a), math.sin(a)) * CustomCircularMenu.radius;
-          return Offset(
-            p.dx.clamp(margin + pad.left, screen.width - margin - pad.right),
-            // Room under each bubble for its label.
-            p.dy.clamp(margin + pad.top, screen.height - margin - 30 - pad.bottom),
-          );
-        }(),
-    ];
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -173,13 +149,10 @@ class _CircularMenuOverlay extends StatelessWidget {
       anchor.center.dx.clamp(half + 8, screen.width - half - 8),
       anchor.center.dy.clamp(half + 8 + pad.top, screen.height - half - 8),
     );
-    final List<Offset> targets =
-        vertical ? const <Offset>[] : _targets(center, screen, pad);
 
     return AnimatedBuilder(
       animation: animation,
       builder: (BuildContext context, Widget? _) {
-        final double t = Curves.easeOutBack.transform(animation.value.clamp(0.0, 1.0));
         final double fade = animation.value.clamp(0.0, 1.0);
 
         // showGeneralDialog adds no Material: without this, every Text
@@ -189,26 +162,10 @@ class _CircularMenuOverlay extends StatelessWidget {
           child: Stack(
           children: <Widget>[
             // Vertical: rows rise one after another, icon + name beside it.
-            if (vertical) _speedDial(context, screen, center, centerSize),
-            // Items, flying out from the centre.
-            if (!vertical)
-            for (int i = 0; i < items.length; i++)
-              _place(
-                Offset.lerp(center, targets[i], t)!,
-                Opacity(
-                  opacity: fade,
-                  child: _ItemBubble(
-                    item: items[i],
-                    selected: i == selected,
-                    onTap: () => Navigator.of(context).pop(i),
-                  ),
-                ),
-                width: 104,
-                // No height: the bubble + its label size themselves, so a
-                // bigger font or a two-word label can never overflow.
-                height: null,
-                alignTop: true,
-              ),
+            if (vertical) _grid(context, screen, center, centerSize),
+            // Rail / drawer: the tools in ONE STRAIGHT COLUMN beside the
+            // button — every circle on one line, every name beside it.
+            if (!vertical) _column(context, screen, pad, center, half),
             // The centre button: ✕ that turns in as the menu opens.
             _place(
               center,
@@ -226,55 +183,139 @@ class _CircularMenuOverlay extends StatelessWidget {
     );
   }
 
-  /// The vertical list: one block, CENTRED on the screen, standing just above
-  /// the centre button. Every row is as wide as the widest, so the circles
-  /// line up in one column and the names start on one line. Rows rise out of
-  /// the button one after another, nearest first.
-  Widget _speedDial(
+  /// 29/10/2026 — THE RAIL'S CALCULATORS: one straight column beside the
+  /// ✕, centred on it (kept on screen). The circles stand on one vertical
+  /// line, each name in a pill beside its circle; rows slide out of the ✕
+  /// one after another. Opens towards the middle of the screen, so it works
+  /// from a rail on either side (LTR / RTL).
+  Widget _column(
+    BuildContext context,
+    Size screen,
+    EdgeInsets pad,
+    Offset center,
+    double half,
+  ) {
+    const double row = CustomCircularMenu.itemSize;
+    const double gap = 12;
+    final int n = items.length;
+    final double total = n * row + (n - 1) * gap;
+    final bool toRight = center.dx < screen.width / 2;
+    final double minTop = pad.top + 8;
+    final double maxTop = math.max(minTop, screen.height - pad.bottom - 8 - total);
+    final double top = (center.dy - total / 2).clamp(minTop, maxTop);
+    const double side = 18;
+
+    final Widget column = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment:
+          toRight ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+      children: <Widget>[
+        for (int i = 0; i < n; i++)
+          Builder(builder: (BuildContext _) {
+            final double start = (i * 0.07).clamp(0.0, 0.6);
+            final double raw =
+                ((animation.value - start) / (1 - start)).clamp(0.0, 1.0);
+            final double t = Curves.easeOutBack.transform(raw);
+            return Padding(
+              padding: EdgeInsets.only(top: i == 0 ? 0 : gap),
+              child: Opacity(
+                opacity: raw,
+                child: Transform.translate(
+                  offset: Offset((1 - t) * (toRight ? -40 : 40), 0),
+                  child: _ItemRow(
+                    item: items[i],
+                    selected: i == selected,
+                    bubbleFirst: toRight,
+                    onTap: () => Navigator.of(context).pop(i),
+                  ),
+                ),
+              ),
+            );
+          }),
+      ],
+    );
+
+    return toRight
+        ? Positioned(left: center.dx + half + side, top: top, child: column)
+        : Positioned(
+            right: screen.width - (center.dx - half - side),
+            top: top,
+            child: column,
+          );
+  }
+
+  /// 29/10/2026 — THE PHONE'S CALCULATORS: one card standing just above the
+  /// centre button, the tools in a grid of 3 — each its drawing (SVG) in a
+  /// tinted square with its SHORT name under it. The card grows out of the
+  /// button; the tiles pop in one after another. The open one is filled.
+  Widget _grid(
     BuildContext context,
     Size screen,
     Offset center,
     double centerSize,
   ) {
     const double gap = 14;
-    final double labelMax =
-        screen.width - 32 - CustomCircularMenu.itemSize - 10;
+    const int cols = 3;
+    const double pad = 14;
+    const double spacing = 10;
+    final double width = math.min(screen.width - 32, 380);
+    final double tile = (width - pad * 2 - spacing * (cols - 1)) / cols;
     final int n = items.length;
+    final double open = Curves.easeOutCubic.transform(animation.value.clamp(0.0, 1.0));
+
     return Positioned(
-      left: 16,
-      right: 16,
+      left: 0,
+      right: 0,
       bottom: screen.height - (center.dy - centerSize / 2 - gap),
       child: Center(
-        child: IntrinsicWidth(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              // Item 0 at the bottom, nearest the button.
-              for (int i = n - 1; i >= 0; i--)
-                Builder(builder: (BuildContext _) {
-                  final double start = (i * 0.08).clamp(0.0, 0.6);
-                  final double raw =
-                      ((animation.value - start) / (1 - start)).clamp(0.0, 1.0);
-                  final double t = Curves.easeOutBack.transform(raw);
-                  final double drop = _rowGap * (i + 1);
-                  return Padding(
-                    padding: EdgeInsets.only(top: i == n - 1 ? 0 : gap),
-                    child: Transform.translate(
-                      offset: Offset(0, (1 - t) * drop),
-                      child: Opacity(
-                        opacity: raw,
-                        child: _ItemRow(
-                          item: items[i],
-                          selected: i == selected,
-                          labelMaxWidth: labelMax,
-                          onTap: () => Navigator.of(context).pop(i),
-                        ),
-                      ),
+        child: Opacity(
+          opacity: open,
+          child: Transform.scale(
+            scale: 0.85 + 0.15 * open,
+            alignment: Alignment.bottomCenter,
+            child: Transform.translate(
+              offset: Offset(0, (1 - open) * 24),
+              child: Container(
+                width: width,
+                padding: const EdgeInsets.all(pad),
+                decoration: BoxDecoration(
+                  color: AppColors.card,
+                  borderRadius: BorderRadius.circular(22),
+                  boxShadow: <BoxShadow>[
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.18),
+                      blurRadius: 28,
+                      offset: const Offset(0, 10),
                     ),
-                  );
-                }),
-            ],
+                  ],
+                ),
+                child: Wrap(
+                  spacing: spacing,
+                  runSpacing: spacing,
+                  children: <Widget>[
+                    for (int i = 0; i < n; i++)
+                      Builder(builder: (BuildContext _) {
+                        final double start = (0.15 + i * 0.07).clamp(0.0, 0.7);
+                        final double raw =
+                            ((animation.value - start) / (1 - start)).clamp(0.0, 1.0);
+                        final double t = Curves.easeOutBack.transform(raw);
+                        return Opacity(
+                          opacity: raw,
+                          child: Transform.scale(
+                            scale: 0.6 + 0.4 * t,
+                            child: _ItemTile(
+                              item: items[i],
+                              size: tile,
+                              selected: i == selected,
+                              onTap: () => Navigator.of(context).pop(i),
+                            ),
+                          ),
+                        );
+                      }),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
       ),
@@ -324,121 +365,160 @@ class _CenterButton extends StatelessWidget {
   }
 }
 
-class _ItemBubble extends StatelessWidget {
-  const _ItemBubble({
-    required this.item,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final CircularMenuItem item;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        SizedBox(
-          width: CustomCircularMenu.itemSize,
-          height: CustomCircularMenu.itemSize,
-          child: Material(
-            color: selected ? AppColors.primary : AppColors.card,
-            shape: const CircleBorder(),
-            elevation: 4,
-            child: InkWell(
-              customBorder: const CircleBorder(),
-              onTap: onTap,
-              child: Center(
-                child: AppIcon(
-                  item.icon,
-                  size: 24,
-                  color: selected ? AppColors.textButton : AppColors.primary,
-                ),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 4),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-          decoration: BoxDecoration(
-            color: AppColors.card,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Text(
-            FormatHelper.capitalize(item.label),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: StyleText.fontSize11Weight600.copyWith(color: AppColors.text),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-
-/// A speed-dial row: the round icon, then its name in a pill.
+/// A column row: the round icon (with the tool's drawing) and its short
+/// name in a pill beside it. [bubbleFirst] = circle on the left.
 class _ItemRow extends StatelessWidget {
   const _ItemRow({
     required this.item,
     required this.selected,
-    required this.labelMaxWidth,
+    required this.bubbleFirst,
     required this.onTap,
   });
 
   final CircularMenuItem item;
   final bool selected;
-  final double labelMaxWidth;
+  final bool bubbleFirst;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          SizedBox(
-            width: CustomCircularMenu.itemSize,
-            height: CustomCircularMenu.itemSize,
-            child: Material(
-              color: selected ? AppColors.primary : AppColors.card,
-              shape: const CircleBorder(),
-              elevation: 4,
-              child: Center(
-                child: AppIcon(
-                  item.icon,
-                  size: 24,
-                  color: selected ? AppColors.textButton : AppColors.primary,
-                ),
-              ),
-            ),
+    final Widget bubble = SizedBox(
+      width: CustomCircularMenu.itemSize,
+      height: CustomCircularMenu.itemSize,
+      child: Material(
+        color: selected ? AppColors.primary : AppColors.card,
+        shape: const CircleBorder(),
+        elevation: 4,
+        child: Center(
+          child: AppIcon(
+            item.icon,
+            size: 26,
+            color: selected
+                ? AppTheme.readableOn(AppColors.primary)
+                : AppTheme.accentOn(AppColors.card),
           ),
-          const SizedBox(width: 10),
-          ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: labelMaxWidth),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-              decoration: BoxDecoration(
-                color: AppColors.card,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                FormatHelper.capitalize(item.label),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: StyleText.fontSize14Weight600.copyWith(
-                  color: selected ? AppColors.primary : AppColors.text,
-                ),
-              ),
-            ),
+        ),
+      ),
+    );
+    final Widget label = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
           ),
         ],
+      ),
+      child: Text(
+        FormatHelper.capitalize(item.label),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: StyleText.fontSize14Weight600.copyWith(
+          color: selected ? AppTheme.accentOn(AppColors.card) : AppColors.text,
+        ),
+      ),
+    );
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          // Laid out by side, not by language: the circles must stay on the
+          // line nearest the ✕.
+          textDirection: TextDirection.ltr,
+          children: bubbleFirst
+              ? <Widget>[bubble, const SizedBox(width: 10), label]
+              : <Widget>[label, const SizedBox(width: 10), bubble],
+        ),
+      ),
+    );
+  }
+}
+
+/// A grid tile: the tool's drawing in a tinted rounded square, its short
+/// name under it (one line).
+class _ItemTile extends StatefulWidget {
+  const _ItemTile({
+    required this.item,
+    required this.size,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final CircularMenuItem item;
+  final double size;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  State<_ItemTile> createState() => _ItemTileState();
+}
+
+class _ItemTileState extends State<_ItemTile> {
+  bool _down = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool sel = widget.selected;
+    final double box = widget.size * 0.62;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTapDown: (_) => setState(() => _down = true),
+      onTapCancel: () => setState(() => _down = false),
+      onTapUp: (_) => setState(() => _down = false),
+      onTap: widget.onTap,
+      child: AnimatedScale(
+        scale: _down ? 0.92 : 1,
+        duration: const Duration(milliseconds: 120),
+        child: SizedBox(
+          width: widget.size,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: box,
+                height: box,
+                decoration: BoxDecoration(
+                  color: sel ? AppColors.primary : AppColors.primary.withOpacity(0.10),
+                  borderRadius: BorderRadius.circular(box * 0.3),
+                  boxShadow: sel
+                      ? <BoxShadow>[
+                          BoxShadow(
+                            color: AppColors.primary.withOpacity(0.35),
+                            blurRadius: 12,
+                            offset: const Offset(0, 5),
+                          ),
+                        ]
+                      : const <BoxShadow>[],
+                ),
+                child: Center(
+                  child: AppIcon(
+                    widget.item.icon,
+                    size: box * 0.6,
+                    color: sel ? AppTheme.readableOn(AppColors.primary) : AppTheme.accentOn(AppColors.card),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                FormatHelper.capitalize(widget.item.label),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: StyleText.fontSize13Weight600.copyWith(
+                  color: sel ? AppTheme.accentOn(AppColors.card) : AppColors.text,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

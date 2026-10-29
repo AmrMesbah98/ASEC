@@ -431,7 +431,7 @@ class _HomeBody extends StatelessWidget {
                 child: MemberProjectsSection(),
               ),
               // "Your courses" was here — removed; the courses are in Videos.
-              // OUR PARTNERS: their logos turning in a 3D ring around ASEC.
+              // OUR PARTNERS: one row of logos scrolling by itself (PartnersMarquee).
               SizedBox(height: 28.h),
               const FadeSlideIn(
                 delay: Duration(milliseconds: 200),

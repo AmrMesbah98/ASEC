@@ -53,8 +53,14 @@ const Set<String> _unitWords = <String>{
   'mm', 'cm', 'm', 'km', 'm²', 'm³', 'mm²', 'cm²', 'cm³', 'cm⁴',
   'l', 'ml', 'lb', 'lbs', 'oz', 'ft', 'ft²', 'ft³', 'in²', 'in³', 'in⁴',
   'kw', 'kj', 'kpa', 'mpa', 'pa', 'mbar', 'psi', 'gpm', 'cfm', 'fpm',
-  's', 'h', 'rpm',
+  's', 'h', 'rpm', 'in.wg',
 };
+
+/// Words that are units ONLY right after a number ("2.1 in", "5 min",
+/// "3 bar") — elsewhere they are ordinary English and get capitalised.
+const Set<String> _unitsAfterNumber = <String>{'in', 'min', 'bar'};
+
+final RegExp _numberWord = RegExp(r'^[-+]?\d[\d.,]*$');
 
 /// True when [word] is a unit symbol (kg, mm, m/s, kg/m³, kJ/kg·K, 10kg…):
 /// written in lower case and either a known symbol, a number with a unit,
@@ -95,18 +101,22 @@ abstract class FormatHelper {
       return "";
     }
 
-    List<String> words = input.split(" ");
-    words = words.map((word) {
-      if (word.isNotEmpty) {
-        // An email or a link stays exactly as it is.
-        if (word.contains('@') || word.contains('://')) return word;
-        // A unit symbol stays exactly as it is: kg, mm, m/s, kg/m³.
-        if (_isUnit(word)) return word;
-        return word[0].toUpperCase() + word.substring(1);
-      } else {
-        return "";
+    final List<String> words = input.split(" ");
+    for (int i = 0; i < words.length; i++) {
+      final String word = words[i];
+      if (word.isEmpty) continue;
+      // An email or a link stays exactly as it is.
+      if (word.contains('@') || word.contains('://')) continue;
+      // A unit symbol stays exactly as it is: kg, mm, m/s, kg/m³, in.wg.
+      if (_isUnit(word)) continue;
+      // "2.1 in", "5 min": a unit because a number comes right before it.
+      if (i > 0 &&
+          _numberWord.hasMatch(words[i - 1]) &&
+          _unitsAfterNumber.contains(word)) {
+        continue;
       }
-    }).toList();
+      words[i] = word[0].toUpperCase() + word.substring(1);
+    }
     return words.join(" ");
   }
 

@@ -27,6 +27,7 @@ class AppSvgIcons {
   static const String _roles = 'assets/icons_assets/roles_assets/';
   static const String _settings = 'assets/icons_assets/settings_assets/';
   static const String _web = 'assets/icons_assets/web_assets/';
+  static const String _tools = 'assets/icons_assets/tools_assets/';
 
   static final Map<IconData, String> _map = <IconData, String>{
     // Checks & status
@@ -189,10 +190,34 @@ class AppSvgIcons {
     Icons.replay: '${_web}player_replay.svg',
     Icons.check: '${_web}player_check.svg',
     Icons.keyboard_arrow_up_rounded: '${_web}chevron_up.svg',
+    // The calculators — drawings of what each one sizes (CalcIcons).
+    CalcIcons.calculators: '${_tools}calc_group.svg',
+    CalcIcons.units: '${_tools}calc_units.svg',
+    CalcIcons.duct: '${_tools}calc_duct.svg',
+    CalcIcons.pipe: '${_tools}calc_pipe.svg',
+    CalcIcons.hvac: '${_tools}calc_hvac.svg',
+    CalcIcons.plumbing: '${_tools}calc_plumbing.svg',
+    CalcIcons.fire: '${_tools}calc_fire.svg',
   };
 
   /// The SVG mapped to [icon], or null to keep the Material glyph.
   static String? assetFor(IconData? icon) => icon == null ? null : _map[icon];
+}
+
+/// THE CALCULATORS' ICONS. Each is its own SVG drawing (a duct, a pipe
+/// elbow, a fan, a tap, an FM-200 cylinder …) in
+/// `assets/icons_assets/tools_assets/` — not a Material glyph. They are
+/// IconData only so they fit `ShellSection.icon`; ALWAYS draw them with
+/// `AppIcon`, which swaps in the SVG (a plain `Icon` would draw nothing).
+abstract final class CalcIcons {
+  static const String _font = 'AsecCalcIcons';
+  static const IconData calculators = IconData(0xf0001, fontFamily: _font);
+  static const IconData units = IconData(0xf0002, fontFamily: _font);
+  static const IconData duct = IconData(0xf0003, fontFamily: _font);
+  static const IconData pipe = IconData(0xf0004, fontFamily: _font);
+  static const IconData hvac = IconData(0xf0005, fontFamily: _font);
+  static const IconData plumbing = IconData(0xf0006, fontFamily: _font);
+  static const IconData fire = IconData(0xf0007, fontFamily: _font);
 }
 
 /// Same constructor as `Icon`, so `Icon(...)` -> `AppIcon(...)` is a rename.

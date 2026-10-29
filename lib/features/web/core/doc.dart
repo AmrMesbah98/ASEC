@@ -44,21 +44,36 @@ class Doc {
     return kBuiltInEnglish[kBuiltInEnglishByArabicTitle[title] ?? ''];
   }
 
+  /// The bundled English of this starter document: by its id, else by its
+  /// title (a copy saved under another id).
+  Object? _seed(String key) =>
+      SeedEnglish.value(id, key) ?? SeedEnglish.byTitle(raw('title'), key);
+
   String s(String key, [String fallback = '']) {
     if (!AppLang.isAr) {
       final String en = raw('${key}_en');
       if (en.trim().isNotEmpty) return en;
       // Starter content the admin has not translated yet.
-      final Object? seed = SeedEnglish.value(id, key);
+      final Object? seed = _seed(key);
       if (seed is String) return seed;
       final Object? built = _builtInEnglish?[key];
       if (built is String) return built;
     }
     String out = raw(key);
     // Imported titles hold both languages ("برج المختار El-Moktar Tower");
-    // the Arabic site shows only the Arabic part.
-    if (AppLang.isAr && key == 'title') out = _arabicOnly(out);
+    // the Arabic site shows only the Arabic part, the English site only the
+    // English part.
+    if (key == 'title') out = AppLang.isAr ? _arabicOnly(out) : _englishOnly(out);
     return out.isEmpty ? fallback : out;
+  }
+
+  /// "برج المختار El-Moktar Tower" → "El-Moktar Tower". Unchanged when there
+  /// is no English part.
+  static String _englishOnly(String text) {
+    if (!_arabic.hasMatch(text)) return text;
+    final RegExpMatch? m = _latinTail.firstMatch(text);
+    final String en = m?.group(0)?.trim() ?? '';
+    return en.length >= 3 ? en : text;
   }
 
   static final RegExp _latinTail = RegExp(r"\s+[A-Za-z][A-Za-z0-9 .,&'()\-]*$");
@@ -75,7 +90,7 @@ class Doc {
   String en(String key) {
     String out = raw('${key}_en').trim();
     if (out.isEmpty) {
-      final Object? seed = SeedEnglish.value(id, key);
+      final Object? seed = _seed(key);
       if (seed is String) out = seed.trim();
     }
     if (out.isEmpty) {
@@ -96,7 +111,7 @@ class Doc {
     }
     final String en = raw('${key}_en');
     if (en.trim().isNotEmpty) return en;
-    final Object? seed = SeedEnglish.value(id, key);
+    final Object? seed = _seed(key);
     return seed is String ? seed : def.en;
   }
 
@@ -109,7 +124,7 @@ class Doc {
   /// Is there an English version of [key]? (Used to pick the text direction
   /// of long content such as an article body.)
   bool hasEn(String key) {
-    if (SeedEnglish.value(id, key) != null) return true;
+    if (_seed(key) != null) return true;
     final Object? v = data['${key}_en'];
     if (v is List) return v.isNotEmpty;
     return v != null && v.toString().trim().isNotEmpty;
@@ -136,7 +151,7 @@ class Doc {
     if (!AppLang.isAr) {
       final List<String> en = _list('${key}_en');
       if (en.isNotEmpty) return en;
-      final Object? seed = SeedEnglish.value(id, key);
+      final Object? seed = _seed(key);
       if (seed is List<String>) return seed;
       final Object? built = _builtInEnglish?[key];
       if (built is List<String>) return built;

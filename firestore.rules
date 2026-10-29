@@ -168,7 +168,8 @@ service cloud.firestore {
     // keep this list the same as MemberAccess.defaultCourses in the app.
     function hasCourse(course) {
       return isStaff()
-        || ((me().get('courses_all', false) == true
+        // No courses_all yet = every course (the app's default too).
+        || ((me().get('courses_all', true) == true
               || course in me().get('courses', [])
               // General Notes and Tips and Tricks are open to every member
               // until the admin switches one off for them.

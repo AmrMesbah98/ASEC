@@ -20,6 +20,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import 'package:asec/core/custom/111-app_svg_icon.dart';
 import 'package:asec/features/admin/a1_shell/presentation/ui/widgets/app_shell.dart';
 import 'package:asec/features/onboarding/o2_authentication/domain/entities/app_user.dart';
 import 'package:asec/features/onboarding/o2_authentication/presentation/controller/session_controller.dart';
@@ -55,7 +56,7 @@ class UserShell extends StatelessWidget {
         if (f.calcOn(AppFeature.calcConverter))
           ShellSection(
             id: MemberSectionIds.converter,
-            icon: Icons.swap_horiz_rounded,
+            icon: CalcIcons.units,
             label: s.unitConverter,
             shortLabel: s.unitConverterShort,
             page: const UnitConverterPage(),
@@ -63,7 +64,7 @@ class UserShell extends StatelessWidget {
         if (f.calcOn(AppFeature.calcDuct))
           ShellSection(
             id: 'ductCalc',
-            icon: Icons.air_rounded,
+            icon: CalcIcons.duct,
             label: s.ductCalc,
             shortLabel: s.ductCalcShort,
             page: const DuctCalcPage(),
@@ -71,7 +72,7 @@ class UserShell extends StatelessWidget {
         if (f.calcOn(AppFeature.calcPipe))
           ShellSection(
             id: 'pipeCalc',
-            icon: Icons.plumbing_rounded,
+            icon: CalcIcons.pipe,
             label: s.pipeCalc,
             shortLabel: s.pipeCalcShort,
             page: const PipeCalcPage(),
@@ -82,7 +83,7 @@ class UserShell extends StatelessWidget {
         // calculators for this member — it comes with the subscriptions.
         ShellSection(
           id: 'engineeringCalc',
-          icon: Icons.engineering_rounded,
+          icon: CalcIcons.hvac,
           label: s.engineeringCalc,
           shortLabel: 'HVAC',
           page: f.calcOn(AppFeature.calcEngineering) && user.mayUseCalcs
@@ -92,7 +93,7 @@ class UserShell extends StatelessWidget {
         if (f.calcOn(AppFeature.calcPlumbing))
           ShellSection(
             id: 'plumbingFireCalc',
-            icon: Icons.water_drop_rounded,
+            icon: CalcIcons.plumbing,
             label: s.plumbingFireCalc,
             shortLabel: s.plumbingFireCalcShort,
             page: const PlumbingFirePage(),
@@ -100,7 +101,7 @@ class UserShell extends StatelessWidget {
         if (f.calcOn(AppFeature.calcFire))
           ShellSection(
             id: 'fireCalc',
-            icon: Icons.local_fire_department_rounded,
+            icon: CalcIcons.fire,
             label: s.fireCalc,
             shortLabel: s.fireCalcShort,
             page: const FireCalcPage(),
@@ -145,7 +146,7 @@ class UserShell extends StatelessWidget {
             if (calcs.isNotEmpty)
               ShellSection.group(
                 id: 'calculators',
-                icon: Icons.calculate_rounded,
+                icon: CalcIcons.calculators,
                 label: s.engineeringCalcShort,
                 children: calcs,
                 // Phone (Android AND iOS): the raised centre button of the

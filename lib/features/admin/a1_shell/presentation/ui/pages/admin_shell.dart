@@ -11,6 +11,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import 'package:asec/core/custom/111-app_svg_icon.dart';
 import 'package:asec/features/admin/a1_shell/presentation/ui/widgets/app_shell.dart';
 import 'package:asec/features/admin/a2_members/presentation/ui/pages/members_page.dart';
 import 'package:asec/features/admin/a3_dashboard/presentation/ui/pages/admin_dashboard_page.dart';
@@ -122,33 +123,33 @@ class AdminShell extends StatelessWidget {
             id: 'calculators',
             // Phone: the raised round button in the middle of the bar.
             phoneCenter: true,
-            icon: Icons.calculate_rounded,
+            icon: CalcIcons.calculators,
             label: s.engineeringCalcShort,
             children: <ShellSection>[
               ShellSection(
                 id: 'converter',
-                icon: Icons.swap_horiz_rounded,
+                icon: CalcIcons.units,
                 label: s.unitConverter,
                 shortLabel: s.unitConverterShort,
                 page: const UnitConverterPage(),
               ),
               ShellSection(
                 id: 'ductCalc',
-                icon: Icons.air_rounded,
+                icon: CalcIcons.duct,
                 label: s.ductCalc,
                 shortLabel: s.ductCalcShort,
                 page: const DuctCalcPage(),
               ),
               ShellSection(
                 id: 'pipeCalc',
-                icon: Icons.plumbing_rounded,
+                icon: CalcIcons.pipe,
                 label: s.pipeCalc,
                 shortLabel: s.pipeCalcShort,
                 page: const PipeCalcPage(),
               ),
               ShellSection(
                 id: 'engineeringCalc',
-                icon: Icons.engineering_rounded,
+                icon: CalcIcons.hvac,
                 label: s.engineeringCalc,
                 // 26/10/2026: the menu reads Units, Ducts, Pipes, HVAC, Plumbing, Fire.
                 shortLabel: 'HVAC',
@@ -156,14 +157,14 @@ class AdminShell extends StatelessWidget {
               ),
               ShellSection(
                 id: 'plumbingFireCalc',
-                icon: Icons.water_drop_rounded,
+                icon: CalcIcons.plumbing,
                 label: s.plumbingFireCalc,
                 shortLabel: s.plumbingFireCalcShort,
                 page: const PlumbingFirePage(),
               ),
               ShellSection(
                 id: 'fireCalc',
-                icon: Icons.local_fire_department_rounded,
+                icon: CalcIcons.fire,
                 label: s.fireCalc,
                 shortLabel: s.fireCalcShort,
                 page: const FireCalcPage(),

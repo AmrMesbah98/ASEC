@@ -17,7 +17,8 @@ import 'package:asec/features/web/site/site_shell.dart';
 import 'package:asec/features/web/site/widgets/cards.dart';
 import 'package:asec/features/web/site/site_nav.dart';
 import 'package:asec/features/engagement/e1_engagement/presentation/ui/widgets/partners_orbit.dart'
-    show PartnerLogoItem, PartnersOrbit;
+    show PartnerLogoItem;
+import 'package:asec/features/engagement/e1_engagement/presentation/ui/widgets/partners_marquee.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -171,7 +172,7 @@ class PartnersSection extends StatelessWidget {
             SectionTitle(settings.txt('partners_title', const L('شركاء النجاح', 'Our Partners')),
                 intro: settings.s('partners_intro')),
             const SizedBox(height: 36),
-            // THE SAME AS THE APP: the logos turning in a 3D ring around ASEC.
+            // THE SAME AS THE APP: one row of logos scrolling by itself.
             StreamBuilder<List<Doc>>(
               stream: SiteRepo.published(Coll.partners),
               builder: (BuildContext c, AsyncSnapshot<List<Doc>> snap) {
@@ -182,17 +183,11 @@ class PartnersSection extends StatelessWidget {
                       PartnerLogoItem(name: d.s('name'), logoUrl: d.raw('logo_url')),
                 ];
                 if (items.isEmpty) return const SizedBox.shrink();
-                return ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 900),
-                  child: PartnersOrbit(
-                    items: items,
-                    accent: WebColors.red,
-                    centerColor: Colors.white,
-                    center: Padding(
-                      padding: const EdgeInsets.all(14),
-                      child: Image.asset('assets/web/images/logo.png', fit: BoxFit.contain),
-                    ),
-                  ),
+                return PartnersMarquee(
+                  items: items,
+                  accent: WebColors.red,
+                  cardColor: Colors.white,
+                  textColor: const Color(0xFF1F2430),
                 );
               },
             ),

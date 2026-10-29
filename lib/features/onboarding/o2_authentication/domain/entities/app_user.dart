@@ -92,7 +92,7 @@ class AppUser {
     this.createdAt,
     this.permissions = const <AdminPermission>[],
     this.permissionKeys = const <String>{},
-    this.allCourses = false,
+    this.allCourses = true,
     this.courses = MemberAccess.defaultCourses,
     this.platforms = const <String>[],
     this.courseAccess = const <String, CourseAccess>{},
