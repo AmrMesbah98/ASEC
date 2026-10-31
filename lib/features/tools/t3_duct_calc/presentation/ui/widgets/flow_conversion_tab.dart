@@ -8,6 +8,7 @@
 /// Created: 21/10/2026
 library;
 
+import 'package:asec/core/helper/main_helper/format_helper.dart';
 import 'package:flutter/material.dart';
 
 import 'package:asec/core/custom/1-custom_dropdown.dart';
@@ -69,7 +70,7 @@ class _FlowConversionTabState extends State<FlowConversionTab> {
         ),
         const SizedBox(height: 16),
         if (out == null)
-          const Text('Enter a volume flow.')
+          Text(FormatHelper.capitalize('Enter a volume flow.'))
         else
           ResultTable(
             items: <ResultItem>[

@@ -13,6 +13,7 @@
 ///          internal; only the volume, S and the agent mass are shown.
 library;
 
+import 'package:asec/core/helper/main_helper/format_helper.dart';
 import 'package:flutter/material.dart';
 
 import 'package:asec/core/custom/1-custom_dropdown.dart';
@@ -82,7 +83,7 @@ class _NovecTabState extends AgentTabState<NovecTab> {
         ),
         const SizedBox(height: 16),
         if (r == null)
-          const Text('Enter the room length, width, height and the temperature.')
+          Text(FormatHelper.capitalize('Enter the room length, width, height and the temperature.'))
         else
           ResultTable(
             items: <ResultItem>[

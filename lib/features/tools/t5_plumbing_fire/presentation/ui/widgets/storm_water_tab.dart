@@ -9,6 +9,7 @@
 /// Created: 22/10/2026
 library;
 
+import 'package:asec/core/helper/main_helper/format_helper.dart';
 import 'package:flutter/material.dart';
 
 import 'package:asec/core/custom/1-custom_dropdown.dart';
@@ -135,9 +136,9 @@ class _StormWaterTabState extends State<StormWaterTab> {
         ),
         const SizedBox(height: 16),
         if (r == null || area == null)
-          const Text('Enter the projected roof area.')
+          Text(FormatHelper.capitalize('Enter the projected roof area.'))
         else ...<Widget>[
-          const Text('Pipes'),
+          Text(FormatHelper.capitalize('Pipes')),
           const SizedBox(height: 8),
           ResultTable(
             items: <ResultItem>[
@@ -146,7 +147,7 @@ class _StormWaterTabState extends State<StormWaterTab> {
             ],
           ),
           const SizedBox(height: 24),
-          const Text('Gutters'),
+          Text(FormatHelper.capitalize('Gutters')),
           const SizedBox(height: 8),
           ResultTable(
             items: <ResultItem>[
@@ -156,7 +157,7 @@ class _StormWaterTabState extends State<StormWaterTab> {
             ],
           ),
           const SizedBox(height: 24),
-          const Text('Actual Gutter'),
+          Text(FormatHelper.capitalize('Actual Gutter')),
           const SizedBox(height: 8),
           ResponsiveFields(
             children: <Widget>[
@@ -198,8 +199,7 @@ class _StormWaterTabState extends State<StormWaterTab> {
           const SizedBox(height: 12),
           ResultTable(items: _actualItems(area)),
           const SizedBox(height: 16),
-          const Text(
-            'As per the National Standard Plumbing Code (NSPC), tables 13.6.1 and 13.6.2.',
+          Text(FormatHelper.capitalize('As per the National Standard Plumbing Code (NSPC), tables 13.6.1 and 13.6.2.'),
           ),
         ],
       ],

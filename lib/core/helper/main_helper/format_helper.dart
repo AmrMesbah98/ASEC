@@ -117,7 +117,12 @@ abstract class FormatHelper {
       }
       words[i] = word[0].toUpperCase() + word.substring(1);
     }
-    return words.join(" ");
+    // Names that keep a small word on purpose (01/11/2026): the course is
+    // "Tips and Tricks", not "Tips And Tricks".
+    return words.join(" ").replaceAllMapped(
+          RegExp(r'\bTips And Tricks\b', caseSensitive: false),
+          (_) => 'Tips and Tricks',
+        );
   }
 
   static String applyAbbreviation(String input) {

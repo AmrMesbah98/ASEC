@@ -16,6 +16,7 @@ library;
 
 import 'dart:math' as math;
 
+import 'package:asec/core/helper/main_helper/format_helper.dart';
 import 'package:flutter/material.dart';
 
 import 'package:asec/core/custom/1-custom_dropdown.dart';
@@ -186,7 +187,7 @@ class _FlexibleDuctTabState extends State<FlexibleDuctTab> {
         ),
         const SizedBox(height: 16),
         if (rows.isEmpty)
-          const Text('Enter the air flow.')
+          Text(FormatHelper.capitalize('Enter the air flow.'))
         else
           AppDataTable<_FlexRow>(
             shrinkWrap: true,

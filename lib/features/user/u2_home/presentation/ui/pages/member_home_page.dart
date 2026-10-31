@@ -1046,9 +1046,10 @@ class _TileCardState extends State<_TileCard> {
           FormatHelper.capitalize(t.label),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
+          // 31/10/2026: smaller (was 18 / 15).
           style: (widget.big
-                  ? StyleText.fontSize18Weight600
-                  : StyleText.fontSize15Weight600)
+                  ? StyleText.fontSize15Weight600
+                  : StyleText.fontSize14Weight600)
               .copyWith(color: AppColors.text),
         ),
         if (t.hint != null) ...<Widget>[
@@ -1057,7 +1058,7 @@ class _TileCardState extends State<_TileCard> {
             FormatHelper.capitalize(t.hint!),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: StyleText.fontSize12Weight400
+            style: StyleText.fontSize11Weight400
                 .copyWith(color: AppColors.secondaryText),
           ),
         ],
@@ -1069,17 +1070,8 @@ class _TileCardState extends State<_TileCard> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              Row(
-                children: <Widget>[
-                  badge,
-                  const Spacer(),
-                  AppIcon(
-                    Icons.arrow_forward_rounded,
-                    size: 18.sp,
-                    color: _hover ? accent : AppColors.secondaryText.withOpacity(0.6),
-                  ),
-                ],
-              ),
+              // 31/10/2026: no arrow — the whole card is the button.
+              badge,
               SizedBox(height: 12.h),
               text,
             ],
@@ -1089,11 +1081,6 @@ class _TileCardState extends State<_TileCard> {
               badge,
               SizedBox(width: 12.w),
               Expanded(child: text),
-              AppIcon(
-                Icons.chevron_right_rounded,
-                size: 20.sp,
-                color: AppColors.secondaryText.withOpacity(0.7),
-              ),
             ],
           );
 

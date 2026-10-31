@@ -16,6 +16,7 @@
 ///          emptying it hands it back to auto.
 library;
 
+import 'package:asec/core/helper/main_helper/format_helper.dart';
 import 'package:flutter/material.dart';
 
 import 'package:asec/core/custom/1-custom_dropdown.dart';
@@ -305,7 +306,7 @@ class _DuctSizerTabState extends State<DuctSizerTab> {
             // 26/10/2026: the fluid properties table (density, viscosity,
             // specific heat, energy factor) is no longer shown.
             const SizedBox(height: 16),
-            const Text('Tick any two values; the other two are solved.'),
+            Text(FormatHelper.capitalize('Tick any two values; the other two are solved.')),
             const SizedBox(height: 8),
             for (final SizerField f in SizerField.values) _fieldRow(f, narrow),
             ResponsiveFields(
@@ -324,9 +325,9 @@ class _DuctSizerTabState extends State<DuctSizerTab> {
               ],
             ),
             const SizedBox(height: 4),
-            const Text('Enter one side to size the other, or both to get their equivalent diameter.'),
+            Text(FormatHelper.capitalize('Enter one side to size the other, or both to get their equivalent diameter.')),
             const SizedBox(height: 16),
-            if (_error != null) Text(_error!),
+            if (_error != null) Text(FormatHelper.capitalize(_error!)),
             if (r != null) ResultTable(items: _resultItems(r)),
           ],
         );

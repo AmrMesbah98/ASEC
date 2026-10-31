@@ -111,7 +111,7 @@ abstract final class UnitCatalog {
   /// id → (tab name override, kept symbols in order, default from, default to).
   static const List<(String, String?, String?, List<String>, String, String)> _shown =
       <(String, String?, String?, List<String>, String, String)>[
-    ('length', null, null, <String>['m', 'cm', 'in', 'ft'], 'm', 'ft'),
+    ('length', null, null, <String>['m', 'cm', 'mm', 'in', 'ft'], 'm', 'ft'),
     ('area', null, null, <String>['m²', 'mm²', 'in²', 'ft²'], 'm²', 'ft²'),
     ('volume', null, null, <String>['m³', 'L', 'ft³', 'gal (US)', 'gal (UK)'], 'm³', 'L'),
     ('mass', null, null, <String>['kg', 'g', 'lb'], 'kg', 'lb'),

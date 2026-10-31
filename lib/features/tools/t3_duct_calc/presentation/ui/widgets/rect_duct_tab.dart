@@ -9,6 +9,7 @@
 /// Created: 21/10/2026
 library;
 
+import 'package:asec/core/helper/main_helper/format_helper.dart';
 import 'package:flutter/material.dart';
 
 import 'package:asec/features/tools/t3_duct_calc/domain/duct_calculator.dart';
@@ -70,7 +71,7 @@ class _RectDuctTabState extends State<RectDuctTab> {
         ),
         const SizedBox(height: 16),
         if (r == null)
-          const Text('Enter the air flow, both sides and the length.')
+          Text(FormatHelper.capitalize('Enter the air flow, both sides and the length.'))
         else
           ResultTable(
             items: <ResultItem>[

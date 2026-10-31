@@ -76,3 +76,14 @@ key.properties
 
 # Files delivered into the folder by the Claude desktop app
 /Claude outputs/
+
+# one-off admin scripts
+tool/node_modules/
+tool/package*.json
+tool/videos_default_backup.json
+*service-account*.json
+
+# npm install for tool/ scripts, if run from the project root
+/node_modules/
+/package.json
+/package-lock.json

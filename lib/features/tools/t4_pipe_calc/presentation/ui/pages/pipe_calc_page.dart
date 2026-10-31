@@ -19,6 +19,7 @@
 /// duct calculator's shared helpers, so both tools look and behave alike.
 library;
 
+import 'package:asec/core/helper/main_helper/format_helper.dart';
 import 'package:flutter/material.dart';
 
 import 'package:asec/core/custom/1-custom_dropdown.dart';
@@ -207,13 +208,13 @@ class _PipeCalcPageState extends State<PipeCalcPage> {
           ),
           const SizedBox(height: 16),
           if (error != null)
-            Text(error)
+            Text(FormatHelper.capitalize(error))
           else if (result != null) ...<Widget>[
-            const Text('Pipe'),
+            Text(FormatHelper.capitalize('Pipe')),
             const SizedBox(height: 8),
             ResultTable(items: _pipeItems(result)),
             const SizedBox(height: 24),
-            const Text('Flow'),
+            Text(FormatHelper.capitalize('Flow')),
             const SizedBox(height: 8),
             ResultTable(items: _flowItems(result, fluid)),
           ],

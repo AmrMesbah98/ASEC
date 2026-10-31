@@ -13,6 +13,7 @@
 ///          and cylinder size are fixed (Eng. Ahmed Shuhayb).
 library;
 
+import 'package:asec/core/helper/main_helper/format_helper.dart';
 import 'package:flutter/material.dart';
 
 import 'package:asec/features/tools/t3_duct_calc/presentation/ui/widgets/duct_fields.dart';
@@ -42,7 +43,7 @@ class _Co2TabState extends AgentTabState<Co2Tab> {
         ResponsiveFields(children: enclosureFields()),
         const SizedBox(height: 16),
         if (r == null)
-          const Text('Enter the room length, width and height.')
+          Text(FormatHelper.capitalize('Enter the room length, width and height.'))
         else
           ResultTable(
             items: <ResultItem>[

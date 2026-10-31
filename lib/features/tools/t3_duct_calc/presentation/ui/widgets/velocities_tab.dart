@@ -8,6 +8,7 @@
 /// Created: 21/10/2026
 library;
 
+import 'package:asec/core/helper/main_helper/format_helper.dart';
 import 'package:flutter/material.dart';
 
 import 'package:asec/core/custom/100-custom_data_table.dart';
@@ -22,14 +23,14 @@ class VelocitiesTab extends StatelessWidget {
     return ListView(
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: const EdgeInsets.symmetric(vertical: 16),
-      children: const <Widget>[
-        Text('Recommended Velocities (m/s)'),
-        SizedBox(height: 8),
-        _VelocityTable(rows: kRecommendedVelocities),
-        SizedBox(height: 24),
-        Text('Maximum Velocities (m/s)'),
-        SizedBox(height: 8),
-        _VelocityTable(rows: kMaximumVelocities),
+      children: <Widget>[
+        Text(FormatHelper.capitalize('Recommended Velocities (m/s)')),
+        const SizedBox(height: 8),
+        const _VelocityTable(rows: kRecommendedVelocities),
+        const SizedBox(height: 24),
+        Text(FormatHelper.capitalize('Maximum Velocities (m/s)')),
+        const SizedBox(height: 8),
+        const _VelocityTable(rows: kMaximumVelocities),
       ],
     );
   }

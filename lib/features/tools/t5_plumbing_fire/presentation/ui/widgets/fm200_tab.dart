@@ -13,6 +13,7 @@
 ///          fire tabs (Eng. Ahmed Shuhayb).
 library;
 
+import 'package:asec/core/helper/main_helper/format_helper.dart';
 import 'package:flutter/material.dart';
 
 import 'package:asec/core/custom/10-custom_tabs.dart';
@@ -74,7 +75,7 @@ class _Fm200TabState extends State<Fm200Tab> {
         ),
         const SizedBox(height: 16),
         if (r == null)
-          const Text('Enter the room length, width, height and ambient temperature.')
+          Text(FormatHelper.capitalize('Enter the room length, width, height and ambient temperature.'))
         else ...<Widget>[
           ResultTable(
             items: <ResultItem>[
@@ -90,7 +91,7 @@ class _Fm200TabState extends State<Fm200Tab> {
               'too much for one cylinder. Please try another value.',
             )
           else ...<Widget>[
-            const Text('As per KIDDE FM-200 catalogue'),
+            Text(FormatHelper.capitalize('As per KIDDE FM-200 catalogue')),
             const SizedBox(height: 8),
             CustomTabs(
               tabs: <String>[for (final Fm200Nozzles n in Fm200Nozzles.values) n.label],
@@ -99,7 +100,7 @@ class _Fm200TabState extends State<Fm200Tab> {
             ),
             const SizedBox(height: 12),
             if (layout == null)
-              Text('${_nozzles.label}: not available for the ${cyl.sizeLb} lb cylinder.')
+              Text(FormatHelper.capitalize('${_nozzles.label}: not available for the ${cyl.sizeLb} lb cylinder.'))
             else ...<Widget>[
               ResultTable(
                 items: <ResultItem>[

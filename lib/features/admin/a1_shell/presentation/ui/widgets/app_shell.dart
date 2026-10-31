@@ -374,7 +374,9 @@ class _AppShellState extends State<AppShell> {
               // 26/10/2026 (Eng. Ahmed Shuhayb): the calculators fan out in
               // a half circle over the button, like a protractor, instead
               // of stacking up the screen.
-              onTap: (BuildContext c) => _tap(_centerIndex, c),
+              // 31/10/2026: the phone row (horizontal), like the bar tabs —
+              // without this the narrow phone got the rail's vertical column.
+              onTap: (BuildContext c) => _tap(_centerIndex, c, vertical: true),
             ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     ),

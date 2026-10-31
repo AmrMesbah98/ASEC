@@ -1,6 +1,7 @@
 /// المقالات — list with category filter, search and pages of 12; one article.
 library;
 
+import 'package:asec/core/helper/main_helper/format_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_widget_from_html_core/flutter_widget_from_html_core.dart';
 
@@ -191,7 +192,7 @@ class ArticleDetailPage extends StatelessWidget {
                             const AppIcon(Icons.translate_rounded, size: 18, color: WebColors.blue),
                             const SizedBox(width: 10),
                             Expanded(
-                              child: Text('This article is available in Arabic only.',
+                              child: Text(FormatHelper.capitalize('This article is available in Arabic only.'),
                                   style: TextStyle(color: WebColors.muted, fontWeight: FontWeight.w600)),
                             ),
                           ],

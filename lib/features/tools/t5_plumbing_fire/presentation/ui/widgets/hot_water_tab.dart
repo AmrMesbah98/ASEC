@@ -9,6 +9,7 @@
 /// Created: 22/10/2026
 library;
 
+import 'package:asec/core/helper/main_helper/format_helper.dart';
 import 'package:flutter/material.dart';
 
 import 'package:asec/core/custom/1-custom_dropdown.dart';
@@ -170,7 +171,7 @@ class _HotWaterTabState extends State<HotWaterTab> {
           const SizedBox(height: 16),
         ],
         if (error != null)
-          Text(error)
+          Text(FormatHelper.capitalize(error))
         else if (r != null)
           ResultTable(
             items: <ResultItem>[
