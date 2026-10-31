@@ -18,6 +18,10 @@
 ///          replaced by a HALF CIRCLE around the ✕, opening towards the
 ///          middle of the screen; each name sits just outside its bubble.
 ///          Narrow screens keep the straight column.
+/// Updated: 31/10/2026 - `vertical: true` (the phone bar's centre button)
+///          is now ONE HORIZONTAL ROW of tiles in a card just above the nav
+///          bar, instead of the 3-per-row grid; scrolls sideways only when
+///          the phone is too narrow for all of them.
 /// Updated: 29/10/2026 - `vertical: true` is now a CARD of tiles (3 per
 ///          row, the tool's SVG drawing with its short name under it)
 ///          above the centre button, replacing the stacked rows.
@@ -323,10 +327,14 @@ class _CircularMenuOverlay extends StatelessWidget {
           );
   }
 
-  /// 29/10/2026 — THE PHONE'S CALCULATORS: one card standing just above the
-  /// centre button, the tools in a grid of 3 — each its drawing (SVG) in a
-  /// tinted square with its SHORT name under it. The card grows out of the
-  /// button; the tiles pop in one after another. The open one is filled.
+  /// 31/10/2026 — THE PHONE'S CALCULATORS: ONE HORIZONTAL ROW in a card
+  /// standing just above the nav bar (and the centre button), replacing the
+  /// 3-per-row grid. Each tool is its drawing (SVG) in a tinted square with
+  /// its short name under it. All tools share the width; on a very narrow
+  /// phone, where a tile would get too small, the row scrolls sideways
+  /// instead. The card rises out of the bar and the tiles pop in one after
+  /// another, in reading order (right to left in Arabic). The open one is
+  /// filled.
   Widget _grid(
     BuildContext context,
     Size screen,
@@ -334,13 +342,55 @@ class _CircularMenuOverlay extends StatelessWidget {
     double centerSize,
   ) {
     const double gap = 14;
-    const int cols = 3;
-    const double pad = 14;
-    const double spacing = 10;
-    final double width = math.min(screen.width - 32, 380);
-    final double tile = (width - pad * 2 - spacing * (cols - 1)) / cols;
+    const double pad = 8;
+    const double spacing = 4;
+    const double minTile = 46;
     final int n = items.length;
-    final double open = Curves.easeOutCubic.transform(animation.value.clamp(0.0, 1.0));
+    final double width = math.min(screen.width - 16, 520);
+    final double inner = width - pad * 2;
+    final double fitTile = n == 0 ? inner : (inner - spacing * (n - 1)) / n;
+    final bool scrolls = fitTile < minTile;
+    final double tile = scrolls ? minTile + 6 : math.min(fitTile, 84);
+    final double open =
+        Curves.easeOutCubic.transform(animation.value.clamp(0.0, 1.0));
+
+    final List<Widget> tiles = <Widget>[
+      for (int i = 0; i < n; i++)
+        Builder(builder: (BuildContext _) {
+          final double start = (0.15 + i * 0.06).clamp(0.0, 0.7);
+          final double raw =
+              ((animation.value - start) / (1 - start)).clamp(0.0, 1.0);
+          final double t = Curves.easeOutBack.transform(raw);
+          return Padding(
+            padding: EdgeInsetsDirectional.only(start: i == 0 ? 0 : spacing),
+            child: Opacity(
+              opacity: raw,
+              child: Transform.translate(
+                offset: Offset(0, (1 - t) * 18),
+                child: _ItemTile(
+                  item: items[i],
+                  size: tile,
+                  selected: i == selected,
+                  onTap: () => Navigator.of(context).pop(i),
+                ),
+              ),
+            ),
+          );
+        }),
+    ];
+
+    final Widget row = scrolls
+        ? SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            child: Row(mainAxisSize: MainAxisSize.min, children: tiles),
+          )
+        : Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: tiles,
+          );
 
     return Positioned(
       left: 0,
@@ -350,13 +400,14 @@ class _CircularMenuOverlay extends StatelessWidget {
         child: Opacity(
           opacity: open,
           child: Transform.scale(
-            scale: 0.85 + 0.15 * open,
+            scale: 0.9 + 0.1 * open,
             alignment: Alignment.bottomCenter,
             child: Transform.translate(
               offset: Offset(0, (1 - open) * 24),
               child: Container(
                 width: width,
-                padding: const EdgeInsets.all(pad),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: pad, vertical: 12),
                 decoration: BoxDecoration(
                   color: AppColors.card,
                   borderRadius: BorderRadius.circular(22),
@@ -368,31 +419,7 @@ class _CircularMenuOverlay extends StatelessWidget {
                     ),
                   ],
                 ),
-                child: Wrap(
-                  spacing: spacing,
-                  runSpacing: spacing,
-                  children: <Widget>[
-                    for (int i = 0; i < n; i++)
-                      Builder(builder: (BuildContext _) {
-                        final double start = (0.15 + i * 0.07).clamp(0.0, 0.7);
-                        final double raw =
-                            ((animation.value - start) / (1 - start)).clamp(0.0, 1.0);
-                        final double t = Curves.easeOutBack.transform(raw);
-                        return Opacity(
-                          opacity: raw,
-                          child: Transform.scale(
-                            scale: 0.6 + 0.4 * t,
-                            child: _ItemTile(
-                              item: items[i],
-                              size: tile,
-                              selected: i == selected,
-                              onTap: () => Navigator.of(context).pop(i),
-                            ),
-                          ),
-                        );
-                      }),
-                  ],
-                ),
+                child: row,
               ),
             ),
           ),
@@ -576,7 +603,7 @@ class _ItemTileState extends State<_ItemTile> {
   @override
   Widget build(BuildContext context) {
     final bool sel = widget.selected;
-    final double box = widget.size * 0.62;
+    final double box = widget.size * 0.7;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTapDown: (_) => setState(() => _down = true),
@@ -617,13 +644,16 @@ class _ItemTileState extends State<_ItemTile> {
                 ),
               ),
               const SizedBox(height: 6),
-              Text(
-                FormatHelper.capitalize(widget.item.label),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: StyleText.fontSize13Weight600.copyWith(
-                  color: sel ? AppTheme.accentOn(AppColors.card) : AppColors.text,
+              // Long names (Firefighting) shrink to fit the tile, never "…".
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  FormatHelper.capitalize(widget.item.label),
+                  maxLines: 1,
+                  textAlign: TextAlign.center,
+                  style: StyleText.fontSize12Weight600.copyWith(
+                    color: sel ? AppTheme.accentOn(AppColors.card) : AppColors.text,
+                  ),
                 ),
               ),
             ],
