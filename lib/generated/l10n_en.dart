@@ -2615,7 +2615,7 @@ class SEn extends S {
   String get fireCalc => 'Fire fighting';
 
   @override
-  String get fireCalcShort => 'Fire';
+  String get fireCalcShort => 'Firefighting';
 
   @override
   String get calcInputs => 'Inputs';

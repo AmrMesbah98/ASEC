@@ -16,7 +16,9 @@
 ///  • Cards rise and fade in one after another when the row first shows.
 ///  • A light sheen sweeps across each card now and then.
 ///  • The edges fade out, so logos slide in and out softly.
-///  • Hover (mouse) — the row pauses and the card lifts, grows and glows.
+///  • Hover (mouse) — the row pauses and the card lifts and grows (no
+///    glow, border change or name tooltip since 29/10/2026). Without names
+///    each partner is a CIRCLE.
 ///    Touch / drag — the member can scroll it by hand; it carries on by
 ///    itself a moment after they let go.
 ///  • "Reduce motion" (system setting) — the row stands still, no bobbing.
@@ -38,7 +40,7 @@ class PartnersMarquee extends StatefulWidget {
     this.accent,
     this.cardColor,
     this.textColor,
-    this.showNames = true,
+    this.showNames = false,
   });
 
   final List<PartnerLogoItem> items;
@@ -52,7 +54,8 @@ class PartnersMarquee extends StatefulWidget {
   final Color? cardColor;
   final Color? textColor;
 
-  /// The partner's name under its logo.
+  /// The partner's name under its logo. Off by default (29/10/2026):
+  /// the logos stand alone.
   final bool showNames;
 
   @override
@@ -138,12 +141,16 @@ class _PartnersMarqueeState extends State<PartnersMarquee>
         double card = width < 500 ? 108 : (width < 1000 ? 132 : 156);
         // Given a height (desktop home, no page scroll): fit inside it.
         if (c.hasBoundedHeight) {
-          final double fit = (c.maxHeight - 34) / (widget.showNames ? 1.05 : 0.8);
+          final double fit = (c.maxHeight - 34) / (widget.showNames ? 1.05 : 1.0);
           card = math.max(72.0, math.min(card, fit));
         }
-        final double gap = card * 0.16;
+        // Whole pixels only: a fractional extent (e.g. 180.96) times the
+        // huge item count drifts by float error and trips the
+        // fixed-extent list's "not an even multiple of itemExtent" assert.
+        card = card.floorToDouble();
+        final double gap = (card * 0.16).roundToDouble();
         _extent = card + gap;
-        final double cardH = card * (widget.showNames ? 1.05 : 0.8);
+        final double cardH = card * (widget.showNames ? 1.05 : 1.0);
         // Room for the bob and the hover lift + glow.
         final double height = cardH + 34;
 
@@ -293,16 +300,17 @@ class _PartnerCardState extends State<_PartnerCard>
   @override
   Widget build(BuildContext context) {
     final double w = widget.width;
-    final double logo = w * (widget.showName ? 0.5 : 0.56);
+    // Round badge: the logo's white disc nearly fills the circle, and the
+    // image box (~0.7 w) is the biggest square that still fits inside it.
+    final double logo = w * (widget.showName ? 0.5 : 0.92);
     final Color accent = widget.accent;
 
     final Widget body = MouseRegion(
       cursor: SystemMouseCursors.basic,
       onEnter: (_) => setState(() => _hover = true),
       onExit: (_) => setState(() => _hover = false),
-      child: Tooltip(
-        message: widget.item.name,
-        child: AnimatedScale(
+      // No tooltip (29/10/2026): hovering shows no name.
+      child: AnimatedScale(
           scale: _hover ? 1.08 : 1,
           duration: const Duration(milliseconds: 260),
           curve: Curves.easeOutBack,
@@ -314,18 +322,19 @@ class _PartnerCardState extends State<_PartnerCard>
             transform: Matrix4.translationValues(0, _hover ? -6 : 0, 0),
             decoration: BoxDecoration(
               color: widget.cardColor,
-              borderRadius: BorderRadius.circular(w * 0.16),
-              border: Border.all(
-                color: _hover ? accent.withOpacity(0.55) : accent.withOpacity(0.10),
-                width: 1.2,
-              ),
+              // No name under the logo: a round badge. With a name: the
+              // rounded card it needs for the text.
+              shape: widget.showName ? BoxShape.rectangle : BoxShape.circle,
+              borderRadius:
+                  widget.showName ? BorderRadius.circular(w * 0.16) : null,
+              // Hover changes neither border nor shadow (29/10/2026):
+              // the card keeps its resting look and only lifts.
+              border: Border.all(color: accent.withOpacity(0.10), width: 1.2),
               boxShadow: <BoxShadow>[
                 BoxShadow(
-                  color: _hover
-                      ? accent.withOpacity(0.28)
-                      : Colors.black.withOpacity(0.07),
-                  blurRadius: _hover ? 22 : 12,
-                  offset: Offset(0, _hover ? 10 : 5),
+                  color: Colors.black.withOpacity(0.07),
+                  blurRadius: 12,
+                  offset: const Offset(0, 5),
                 ),
               ],
             ),
@@ -339,10 +348,13 @@ class _PartnerCardState extends State<_PartnerCard>
                       Container(
                         width: logo,
                         height: logo,
-                        padding: EdgeInsets.all(logo * 0.1),
+                        padding: EdgeInsets.all(logo * (widget.showName ? 0.1 : 0.13)),
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(logo * 0.24),
+                          shape: widget.showName ? BoxShape.rectangle : BoxShape.circle,
+                          borderRadius: widget.showName
+                              ? BorderRadius.circular(logo * 0.24)
+                              : null,
                         ),
                         child: Image.network(
                           widget.item.logoUrl,
@@ -415,7 +427,6 @@ class _PartnerCardState extends State<_PartnerCard>
             ),
           ),
         ),
-      ),
     );
 
     // The gentle wave (bob) + the entrance.

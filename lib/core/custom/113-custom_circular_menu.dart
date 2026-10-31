@@ -14,6 +14,10 @@
 ///          stays above the bar.
 /// Updated: 29/10/2026 - Rail / drawer: the arc is replaced by ONE STRAIGHT
 ///          COLUMN beside the ✕ (circles on one line, names beside them).
+/// Updated: 29/10/2026 - Rail / drawer on tablet & desktop: the column is
+///          replaced by a HALF CIRCLE around the ✕, opening towards the
+///          middle of the screen; each name sits just outside its bubble.
+///          Narrow screens keep the straight column.
 /// Updated: 29/10/2026 - `vertical: true` is now a CARD of tiles (3 per
 ///          row, the tool's SVG drawing with its short name under it)
 ///          above the centre button, replacing the stacked rows.
@@ -145,9 +149,14 @@ class _CircularMenuOverlay extends StatelessWidget {
     final double centerSize =
         vertical ? anchor.shortestSide : CustomCircularMenu.centerSize;
     final double half = centerSize / 2;
+    // Tablet / desktop rail: a half circle. Leave room above and below it.
+    final bool arc = !vertical && screen.width >= _arcMinWidth;
+    final double reachY = arc ? _arcReach : half;
+    final double minY = reachY + 8 + pad.top;
+    final double maxY = math.max(minY, screen.height - pad.bottom - reachY - 8);
     final Offset center = vertical ? anchor.center : Offset(
       anchor.center.dx.clamp(half + 8, screen.width - half - 8),
-      anchor.center.dy.clamp(half + 8 + pad.top, screen.height - half - 8),
+      anchor.center.dy.clamp(minY, maxY),
     );
 
     return AnimatedBuilder(
@@ -163,9 +172,10 @@ class _CircularMenuOverlay extends StatelessWidget {
           children: <Widget>[
             // Vertical: rows rise one after another, icon + name beside it.
             if (vertical) _grid(context, screen, center, centerSize),
-            // Rail / drawer: the tools in ONE STRAIGHT COLUMN beside the
-            // button — every circle on one line, every name beside it.
-            if (!vertical) _column(context, screen, pad, center, half),
+            // Rail / drawer on tablet & desktop: a half circle round the ✕.
+            if (arc) ..._halfCircle(context, screen, center),
+            // Narrow screens: the tools in ONE STRAIGHT COLUMN.
+            if (!vertical && !arc) _column(context, screen, pad, center, half),
             // The centre button: ✕ that turns in as the menu opens.
             _place(
               center,
@@ -181,6 +191,75 @@ class _CircularMenuOverlay extends StatelessWidget {
         );
       },
     );
+  }
+
+  /// Below this width the rail menu stays a straight column.
+  static const double _arcMinWidth = 600;
+
+  /// Distance from the ✕ to the far edge of a name pill on the arc.
+  static const double _arcReach =
+      CustomCircularMenu.radius + CustomCircularMenu.itemSize / 2 + _labelGap + 34;
+
+  /// Space between a bubble and its name pill.
+  static const double _labelGap = 6;
+
+  /// 29/10/2026 — THE RAIL'S CALCULATORS (tablet / desktop): the bubbles
+  /// on a HALF CIRCLE around the ✕, opening towards the middle of the
+  /// screen (right from an LTR rail, left from an RTL one). Each name sits
+  /// just outside its bubble, along the same ray, so names never overlap
+  /// the neighbouring bubbles. Bubbles fly out of the ✕ one after another.
+  List<Widget> _halfCircle(BuildContext context, Size screen, Offset center) {
+    const double r = CustomCircularMenu.radius;
+    const double item = CustomCircularMenu.itemSize;
+    final int n = items.length;
+    final double side = center.dx < screen.width / 2 ? 1 : -1;
+    final List<Widget> out = <Widget>[];
+
+    for (int i = 0; i < n; i++) {
+      // Top (-90°) to bottom (+90°), mirrored for a rail on the right.
+      final double a = n == 1 ? 0 : -math.pi / 2 + math.pi * i / (n - 1);
+      final double dx = math.cos(a) * side;
+      final double dy = math.sin(a);
+
+      final double start = (i * 0.07).clamp(0.0, 0.6);
+      final double raw = ((animation.value - start) / (1 - start)).clamp(0.0, 1.0);
+      final double t = Curves.easeOutBack.transform(raw);
+
+      final Offset bubble = center + Offset(dx, dy) * (r * t);
+      final Offset labelAt = center + Offset(dx, dy) * ((r + item / 2 + _labelGap) * t);
+      void pick() => Navigator.of(context).pop(i);
+
+      out.add(Positioned(
+        left: bubble.dx - item / 2,
+        top: bubble.dy - item / 2,
+        width: item,
+        height: item,
+        child: Opacity(
+          opacity: raw,
+          child: _Bubble(item: items[i], selected: i == selected, onTap: pick),
+        ),
+      ));
+      // The pill's nearest edge touches the ray just past the bubble.
+      out.add(Positioned(
+        left: labelAt.dx,
+        top: labelAt.dy,
+        child: Opacity(
+          opacity: raw,
+          child: FractionalTranslation(
+            translation: Offset((dx - 1) / 2, (dy - 1) / 2),
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: pick,
+                child: _Label(item: items[i], selected: i == selected),
+              ),
+            ),
+          ),
+        ),
+      ));
+    }
+    return out;
   }
 
   /// 29/10/2026 — THE RAIL'S CALCULATORS: one straight column beside the
@@ -385,10 +464,45 @@ class _ItemRow extends StatelessWidget {
     final Widget bubble = SizedBox(
       width: CustomCircularMenu.itemSize,
       height: CustomCircularMenu.itemSize,
-      child: Material(
-        color: selected ? AppColors.primary : AppColors.card,
-        shape: const CircleBorder(),
-        elevation: 4,
+      child: _Bubble(item: item, selected: selected),
+    );
+    final Widget label = _Label(item: item, selected: selected);
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          // Laid out by side, not by language: the circles must stay on the
+          // line nearest the ✕.
+          textDirection: TextDirection.ltr,
+          children: bubbleFirst
+              ? <Widget>[bubble, const SizedBox(width: 10), label]
+              : <Widget>[label, const SizedBox(width: 10), bubble],
+        ),
+      ),
+    );
+  }
+}
+
+/// The round icon of one tool; filled when it is the open one.
+class _Bubble extends StatelessWidget {
+  const _Bubble({required this.item, required this.selected, this.onTap});
+
+  final CircularMenuItem item;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: selected ? AppColors.primary : AppColors.card,
+      shape: const CircleBorder(),
+      elevation: 4,
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onTap,
         child: Center(
           child: AppIcon(
             item.icon,
@@ -400,7 +514,19 @@ class _ItemRow extends StatelessWidget {
         ),
       ),
     );
-    final Widget label = Container(
+  }
+}
+
+/// The tool's name in a small pill.
+class _Label extends StatelessWidget {
+  const _Label({required this.item, required this.selected});
+
+  final CircularMenuItem item;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       decoration: BoxDecoration(
         color: AppColors.card,
@@ -419,22 +545,6 @@ class _ItemRow extends StatelessWidget {
         overflow: TextOverflow.ellipsis,
         style: StyleText.fontSize14Weight600.copyWith(
           color: selected ? AppTheme.accentOn(AppColors.card) : AppColors.text,
-        ),
-      ),
-    );
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          // Laid out by side, not by language: the circles must stay on the
-          // line nearest the ✕.
-          textDirection: TextDirection.ltr,
-          children: bubbleFirst
-              ? <Widget>[bubble, const SizedBox(width: 10), label]
-              : <Widget>[label, const SizedBox(width: 10), bubble],
         ),
       ),
     );

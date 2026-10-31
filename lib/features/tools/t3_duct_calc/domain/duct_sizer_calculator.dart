@@ -40,7 +40,7 @@ class SizerLabels {
       case SizerField.flow:
         return ip ? 'cfm' : 'L/s';
       case SizerField.headLoss:
-        return ip ? 'in.wg/100 ft' : 'Pa/m';
+        return ip ? 'inwg/100ft' : 'Pa/m';
       case SizerField.velocity:
         return ip ? 'fpm' : 'm/s';
       case SizerField.diameter:
@@ -85,6 +85,22 @@ class _Si {
       case SizerField.diameter:
         return length;
     }
+  }
+}
+
+/// Converts a field value typed in one unit system to the other.
+class SizerConvert {
+  const SizerConvert._();
+
+  static double field(SizerField f, double v, SizerUnits from, SizerUnits to) {
+    if (from == to) return v;
+    return to == SizerUnits.si ? v * _Si.factor(f) : v / _Si.factor(f);
+  }
+
+  /// Duct side lengths (in ⇄ mm).
+  static double length(double v, SizerUnits from, SizerUnits to) {
+    if (from == to) return v;
+    return to == SizerUnits.si ? v * _Si.length : v / _Si.length;
   }
 }
 

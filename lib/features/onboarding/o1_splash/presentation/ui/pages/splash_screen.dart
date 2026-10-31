@@ -165,17 +165,22 @@ class _SplashScreenState extends State<SplashScreen>
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
                 // The PNG has wide margins round the mark, so the box is
-                // bigger than the mark it shows.
-                SizedBox(
-                  width: 230.r,
-                  height: 230.r,
-                  child: Image.asset(
-                    AppAssets.brandLogo,
-                    fit: BoxFit.contain,
-                    filterQuality: FilterQuality.high,
-                    // Dark mode: the logo all white, like everywhere else.
-                    color: AppTheme.isDark ? Colors.white : null,
-                    colorBlendMode: BlendMode.srcIn,
+                // bigger than the mark it shows. 29/10/2026: heightFactor
+                // takes up only 70% of that height, eating the empty margin
+                // so the name sits closer under the mark (same mark size).
+                Align(
+                  heightFactor: 0.7,
+                  child: SizedBox(
+                    width: 230.r,
+                    height: 230.r,
+                    child: Image.asset(
+                      AppAssets.brandLogo,
+                      fit: BoxFit.contain,
+                      filterQuality: FilterQuality.high,
+                      // Dark mode: the logo all white, like everywhere else.
+                      color: AppTheme.isDark ? Colors.white : null,
+                      colorBlendMode: BlendMode.srcIn,
+                    ),
                   ),
                 ),
                 Text(

@@ -42,7 +42,7 @@ abstract final class CalcUnits {
       icon: Icons.air_rounded,
       units: <UnitDef>[
         UnitDef('Pa/m', 'Pascal per meter', 'باسكال/متر', 1),
-        UnitDef('in.wg/100 ft', 'Inch of water per 100 ft', 'بوصة ماء/100 قدم', 249.08891 / 30.48),
+        UnitDef('inwg/100ft', 'Inch water gauge per 100 ft', 'بوصة عمود ماء/100 قدم', 249.08891 / 30.48),
         UnitDef('mmH₂O/m', 'mm of water per meter', 'ملم ماء/متر', 9.80665),
       ],
     ),
@@ -190,7 +190,7 @@ abstract final class Q {
   static const Qty waterFlow = Qty('flow', 'L/s', 'GPM (US)');
   static const Qty fireFlow = Qty('flow', 'L/min', 'GPM (US)');
   static const Qty gasFlow = Qty('flow', 'L/min', 'CFM');
-  static const Qty airPressure = Qty('pressure', 'Pa', 'inH₂O');
+  static const Qty airPressure = Qty('pressure', 'Pa', 'inwg');
   static const Qty waterDp = Qty('pressure', 'kPa', 'ftH₂O');
   static const Qty head = Qty('pressure', 'mH₂O', 'ftH₂O');
   static const Qty kPaPsi = Qty('pressure', 'kPa', 'psi');
@@ -207,7 +207,7 @@ abstract final class Q {
   static const Qty minutes = Qty('time', 'min', 'min');
   static const Qty hours = Qty('time', 'h', 'h');
   static const Qty days = Qty('time', 'd', 'd');
-  static const Qty ductFriction = Qty('ductFriction', 'Pa/m', 'in.wg/100 ft');
+  static const Qty ductFriction = Qty('ductFriction', 'Pa/m', 'inwg/100ft');
   static const Qty pipeFriction = Qty('pipeFriction', 'kPa/100 m', 'ft/100 ft');
   static const Qty firePipeFriction = Qty('pipeFriction', 'bar/100 m', 'psi/100 ft');
   static const Qty heatFlux = Qty('heatFlux', 'W/m²', 'BTU/h·ft²');

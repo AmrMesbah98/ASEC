@@ -236,11 +236,12 @@ class _HomeBody extends StatelessWidget {
     }
 
     // LIBRARY: the admin's files, the leaderboard and the certificate.
+    // Titles only (29/10/2026): no hint line under them, so the cards are
+    // shorter.
     final List<_Tile> main = <_Tile>[
       _Tile(
         icon: Icons.folder_copy_rounded,
         label: s.engLibraryFiles,
-        hint: s.engLibraryFilesHint,
         onTap: () => PushedSectionPage.open(context, const LibraryFilesPage()),
       ),
       // "The Best" = the CVs, same as the admin app's "The Best" tab.
@@ -249,7 +250,6 @@ class _HomeBody extends StatelessWidget {
         _Tile(
           icon: Icons.emoji_events_rounded,
           label: s.cvs,
-          hint: s.engLibraryBestHint,
           onTap: () {
             if (!AppShell.open(context, MemberSectionIds.cvs)) {
               PushedSectionPage.open(context, const CvDirectoryPage());
@@ -260,7 +260,6 @@ class _HomeBody extends StatelessWidget {
         _Tile(
           icon: Icons.workspace_premium_rounded,
           label: s.engLibraryCertificate,
-          hint: s.homeCertificateHint,
           onTap: () => PushedSectionPage.open(
             context,
             CertificateQuizzesPage(user: user),
@@ -1029,13 +1028,14 @@ class _TileCardState extends State<_TileCard> {
     final Color accent = AppColors.primary;
 
     final Widget badge = Container(
-      width: (widget.big ? 46 : 40).r,
-      height: (widget.big ? 46 : 40).r,
+      // Library cards (big): larger badge and icon (29/10/2026).
+      width: (widget.big ? 56 : 40).r,
+      height: (widget.big ? 56 : 40).r,
       decoration: BoxDecoration(
         color: accent.withOpacity(_hover ? 0.18 : 0.1),
         borderRadius: BorderRadius.circular(14.r),
       ),
-      child: AppIcon(t.icon, size: (widget.big ? 24 : 21).sp, color: accent),
+      child: AppIcon(t.icon, size: (widget.big ? 30 : 21).sp, color: accent),
     );
 
     final Widget text = Column(
@@ -1046,7 +1046,10 @@ class _TileCardState extends State<_TileCard> {
           FormatHelper.capitalize(t.label),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: StyleText.fontSize15Weight600.copyWith(color: AppColors.text),
+          style: (widget.big
+                  ? StyleText.fontSize18Weight600
+                  : StyleText.fontSize15Weight600)
+              .copyWith(color: AppColors.text),
         ),
         if (t.hint != null) ...<Widget>[
           SizedBox(height: 2.h),
@@ -1077,7 +1080,7 @@ class _TileCardState extends State<_TileCard> {
                   ),
                 ],
               ),
-              SizedBox(height: 14.h),
+              SizedBox(height: 12.h),
               text,
             ],
           )

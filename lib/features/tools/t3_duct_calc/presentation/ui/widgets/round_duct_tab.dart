@@ -129,7 +129,7 @@ class _FlexibleDuctTabState extends State<FlexibleDuctTab> {
           ? col('Vel (fpm)', (_FlexRow r) => fmt(r.velocity, 0))
           : col('Vel (m/s)', (_FlexRow r) => fmt(r.velocity, 2)),
       _ip
-          ? col('dP (in.wg/100 ft)', (_FlexRow r) => fmt(r.pressureDrop, 3))
+          ? col('dP (inwg/100ft)', (_FlexRow r) => fmt(r.pressureDrop, 3))
           : col('dP (Pa/m)', (_FlexRow r) => fmt(r.pressureDrop, 1)),
     ];
   }

@@ -336,7 +336,7 @@ const EngCalc ductSize = EngCalc(
   formula: 'D = √(4Q ÷ πV)\n'
       'Δp/L = f/D · ρV²/2   (Altshul–Tsal, galvanized ε = 0.09 mm)\n'
       'De = 1.30·(a·b)^0.625 ÷ (a + b)^0.25',
-  noteEn: 'Usual design: 0.8–1.0 Pa/m (≈ 0.1 in.wg/100 ft); main ducts 5–8 m/s, branches '
+  noteEn: 'Usual design: 0.8–1.0 Pa/m (≈ 0.1 inwg/100ft); main ducts 5–8 m/s, branches '
       '3–5 m/s in offices. Keep the aspect ratio under 4:1. Round the size up to a '
       'standard duct size.',
   noteAr: 'المعتاد: 0.8–1.0 باسكال/متر (≈ 0.1 بوصة ماء/100 قدم)؛ الخطوط الرئيسية 5–8 م/ث '

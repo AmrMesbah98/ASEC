@@ -152,8 +152,8 @@ class _PipeCalcPageState extends State<PipeCalcPage> {
                   label: 'Units',
                   value: _units,
                   items: const <DropdownItem<PipeUnits>>[
-                    DropdownItem<PipeUnits>(value: PipeUnits.ip, label: 'Imperial (gpm, in, ft)'),
-                    DropdownItem<PipeUnits>(value: PipeUnits.si, label: 'Metric (L/s, mm, Pa)'),
+                    DropdownItem<PipeUnits>(value: PipeUnits.ip, label: 'Imperial'),
+                    DropdownItem<PipeUnits>(value: PipeUnits.si, label: 'Metric'),
                   ],
                   onChanged: (PipeUnits? u) {
                     if (u != null) _pickUnits(u);

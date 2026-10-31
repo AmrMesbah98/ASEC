@@ -183,10 +183,17 @@ class CountersBand extends StatelessWidget {
 // ── Projects ─────────────────────────────────────────────────────────────
 
 /// A counter's label in the current language (`label` / `label_en`).
+/// 29/10/2026: in English with no `label_en` saved, a known Arabic label
+/// (تجاري · صناعي · طبي · سكني) is translated instead of showing Arabic.
 String counterLabel(Map<String, dynamic> c) {
-  final String ar = '${c['label'] ?? ''}';
+  final String ar = '${c['label'] ?? ''}'.trim();
+  if (AppLang.isAr) return ar;
   final String en = '${c['label_en'] ?? ''}'.trim();
-  return AppLang.isAr || en.isEmpty ? ar : en;
+  if (en.isNotEmpty) return en;
+  for (final L name in _projectCategories.values) {
+    if (name.ar == ar) return name.en;
+  }
+  return ar;
 }
 
 const Map<String, L> _projectCategories = <String, L>{

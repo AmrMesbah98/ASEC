@@ -53,7 +53,7 @@ const Set<String> _unitWords = <String>{
   'mm', 'cm', 'm', 'km', 'm²', 'm³', 'mm²', 'cm²', 'cm³', 'cm⁴',
   'l', 'ml', 'lb', 'lbs', 'oz', 'ft', 'ft²', 'ft³', 'in²', 'in³', 'in⁴',
   'kw', 'kj', 'kpa', 'mpa', 'pa', 'mbar', 'psi', 'gpm', 'cfm', 'fpm',
-  's', 'h', 'rpm', 'in.wg',
+  's', 'h', 'rpm', 'in.wg', 'inwg',
 };
 
 /// Words that are units ONLY right after a number ("2.1 in", "5 min",

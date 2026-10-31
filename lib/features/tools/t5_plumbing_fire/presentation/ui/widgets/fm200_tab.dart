@@ -7,6 +7,8 @@
 ///          size and the pipe limits for 1, 2 or 4 nozzles out.
 /// Author: ASEC team
 /// Created: 22/10/2026
+/// Updated: 31/10/2026 - Pipe limits in one table (row per limit, column
+///          per section) on every screen, phones included.
 /// Updated: 26/10/2026 - Length × width instead of area, like the other
 ///          fire tabs (Eng. Ahmed Shuhayb).
 library;
@@ -57,29 +59,6 @@ class _Fm200TabState extends State<Fm200Tab> {
     final Fm200Cylinder? cyl = r?.cylinder;
     final Fm200Layout? layout = cyl?.layout(_nozzles);
     void changed(String _) => setState(() {});
-
-    final List<AppTableColumn<Fm200Section>> columns = <AppTableColumn<Fm200Section>>[
-      AppTableColumn<Fm200Section>(
-        label: 'Section',
-        cell: (BuildContext c, Fm200Section s) => AppTableCellText('Section ${s.name}', emphasis: true),
-      ),
-      AppTableColumn<Fm200Section>(
-        label: 'Pipe size',
-        cell: (BuildContext c, Fm200Section s) => AppTableCellText(_in(s.pipeSize)),
-      ),
-      AppTableColumn<Fm200Section>(
-        label: 'Max. length (ft)',
-        cell: (BuildContext c, Fm200Section s) => AppTableCellText(fmt(s.maxLengthFt, 0)),
-      ),
-      AppTableColumn<Fm200Section>(
-        label: 'Max. elbows',
-        cell: (BuildContext c, Fm200Section s) => AppTableCellText('${s.maxElbows}'),
-      ),
-      AppTableColumn<Fm200Section>(
-        label: 'Max. height (ft)',
-        cell: (BuildContext c, Fm200Section s) => AppTableCellText(fmt(s.maxHeightFt, 0)),
-      ),
-    ];
 
     return ListView(
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
@@ -159,12 +138,26 @@ class _Fm200TabState extends State<Fm200Tab> {
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: 16),
-              AppDataTable<Fm200Section>(
+              // 31/10/2026 (Eng. Ahmed Shuhayb): the pipe limits in ONE
+              // TABLE on every screen, phones too (no cards) — a row per
+              // limit, a column per section.
+              AppDataTable<_Limit>(
                 shrinkWrap: true,
-                rows: layout.sections,
-                columns: columns,
-                cardBuilder: (BuildContext c, Fm200Section s) =>
-                    ductCard<Fm200Section>(c, s, columns),
+                cardsOnTablet: false,
+                rows: _Limit.all,
+                columns: <AppTableColumn<_Limit>>[
+                  AppTableColumn<_Limit>(
+                    label: 'Item',
+                    flex: 3,
+                    cell: (BuildContext c, _Limit l) => AppTableCellText(l.label, emphasis: true),
+                  ),
+                  for (final Fm200Section s in layout.sections)
+                    AppTableColumn<_Limit>(
+                      label: 'Section ${s.name}',
+                      flex: 2,
+                      cell: (BuildContext c, _Limit l) => AppTableCellText(l.value(s)),
+                    ),
+                ],
               ),
             ],
           ],
@@ -172,4 +165,19 @@ class _Fm200TabState extends State<Fm200Tab> {
       ],
     );
   }
+}
+
+/// One row of the FM-200 pipe-limits table.
+class _Limit {
+  const _Limit(this.label, this.value);
+
+  final String label;
+  final String Function(Fm200Section s) value;
+
+  static final List<_Limit> all = <_Limit>[
+    _Limit('Pipe size', (Fm200Section s) => _Fm200TabState._in(s.pipeSize)),
+    _Limit('Max. length (ft)', (Fm200Section s) => fmt(s.maxLengthFt, 0)),
+    _Limit('Max. elbows', (Fm200Section s) => '${s.maxElbows}'),
+    _Limit('Max. height (ft)', (Fm200Section s) => fmt(s.maxHeightFt, 0)),
+  ];
 }

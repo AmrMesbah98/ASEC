@@ -245,9 +245,13 @@ class CeoSection extends StatelessWidget {
             Text(settings.s('ceo_name'),
                 style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w800, color: WebColors.redBright)),
             const SizedBox(height: 18),
-            Text(settings.s('ceo_bio'),
-                textAlign: TextAlign.justify,
-                style: TextStyle(fontSize: 15, height: 2, color: WebColors.ink)),
+            // ONE line only (29/10/2026): the bio's paragraphs joined into a
+            // single line, cut with "…" where it runs out of room.
+            Text(settings.s('ceo_bio').trim().replaceAll(RegExp(r'\s+'), ' '),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 15, height: 1.5, color: WebColors.ink)),
             const SizedBox(height: 22),
             SocialIcons(settings: settings),
           ],

@@ -9,6 +9,8 @@
 /// Author: ASEC team
 /// Created: 21/10/2026
 /// Updated: 22/10/2026 - Clear uses the core `customButton`.
+/// Updated: 29/10/2026 - Switching units converts the typed values instead
+///          of clearing them.
 /// Updated: 23/10/2026 - Duct side B fills itself from the result table
 ///          (the sized rectangle) until the user types their own value;
 ///          emptying it hands it back to auto.
@@ -89,6 +91,34 @@ class _DuctSizerTabState extends State<DuctSizerTab> {
       }
     });
     _recompute();
+  }
+
+  /// Switching units converts what is already typed instead of clearing it,
+  /// then solves again in the new system.
+  void _setUnits(SizerUnits u) {
+    final SizerUnits from = _units;
+    _units = u;
+    for (final SizerField f in _ticked) {
+      final double? v = parseNumber(_fields[f]!.text);
+      if (v != null) {
+        _fields[f]!.text = fmt(SizerConvert.field(f, v, from, u), _decimals(f));
+      }
+    }
+    final int lenDecimals = u == SizerUnits.ip ? 1 : 0;
+    final double? a = parseNumber(_sideA.text);
+    if (a != null) _sideA.text = fmt(SizerConvert.length(a, from, u), lenDecimals);
+    if (!_sideBAuto) {
+      final double? b = parseNumber(_sideB.text);
+      if (b != null) _sideB.text = fmt(SizerConvert.length(b, from, u), lenDecimals);
+    }
+    // Nothing typed yet: just relabel, don't show "enter a value" errors.
+    final bool anyInput =
+        _ticked.any((SizerField f) => _fields[f]!.text.trim().isNotEmpty);
+    if (anyInput) {
+      _recompute();
+    } else {
+      setState(() {});
+    }
   }
 
   void _clear() {
@@ -201,12 +231,10 @@ class _DuctSizerTabState extends State<DuctSizerTab> {
         ),
         ResultItem('Equivalent diameter', fmt(r.rectEquivalentDiameter, ip ? 1 : 0), len),
       ],
-      ResultItem('Flow area', fmt(r.flowArea, 4), ip ? 'ft²' : 'm²'),
+      // 31/10/2026 (Eng. Ahmed Shuhayb): velocity and head loss only —
+      // flow area, Reynolds, friction factor and velocity pressure removed.
       ResultItem('Fluid velocity', fmt(r.velocity, ip ? 1 : 2), ip ? 'ft/min' : 'm/s'),
-      ResultItem('Reynolds number', fmtGrouped(r.reynolds)),
-      ResultItem('Friction factor', fmt(r.frictionFactor, 5)),
-      ResultItem('Velocity pressure', fmt(r.velocityPressure, ip ? 4 : 1), ip ? 'in.wg' : 'Pa'),
-      ResultItem('Head loss', fmt(r.headLoss, ip ? 3 : 2), ip ? 'in.wg/100 ft' : 'Pa/m'),
+      ResultItem('Head loss', fmt(r.headLoss, ip ? 3 : 2), ip ? 'inwg/100ft' : 'Pa/m'),
     ];
   }
 
@@ -239,8 +267,7 @@ class _DuctSizerTabState extends State<DuctSizerTab> {
                     ],
                     onChanged: (SizerUnits? u) {
                       if (u == null || u == _units) return;
-                      setState(() => _units = u);
-                      _clear();
+                      _setUnits(u);
                     },
                   ),
                 ),

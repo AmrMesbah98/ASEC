@@ -4745,7 +4745,7 @@ abstract class S {
   /// No description provided for @fireCalcShort.
   ///
   /// In en, this message translates to:
-  /// **'Fire'**
+  /// **'Firefighting'**
   String get fireCalcShort;
 
   /// No description provided for @calcInputs.

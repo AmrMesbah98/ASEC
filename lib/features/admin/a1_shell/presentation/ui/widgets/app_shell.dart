@@ -13,6 +13,10 @@
 ///          makes a section the phone bar's raised centre button (its
 ///          tools open as a vertical speed dial above it); `phoneMore` sends one to More.
 ///          The rail is unchanged.
+/// Updated: 29/10/2026 - Rail: a group tab (Calculations) no longer opens the
+///          circular menu — tapping it expands its tools as indented
+///          sub-tabs right under it; tapping again folds them away. The
+///          phone bar keeps its own menu.
 /// Updated: 23/10/2026 - On a phone every group tab (bar or "More") opens
 ///          the vertical list, so the member's Calculators match the admin's.
 /// Updated: 22/10/2026 - Selected rail / bar / More items use
@@ -188,6 +192,28 @@ class _AppShellState extends State<AppShell> {
 
   void _select(int index) => setState(() => _index = index);
 
+  /// Rail: the group tabs whose sub-tabs are unfolded.
+  final Set<int> _expanded = <int>{};
+
+  /// Rail tap: a group folds / unfolds its sub-tabs, anything else opens.
+  void _railTap(int i) {
+    if (widget.sections[i].isGroup) {
+      setState(() {
+        if (!_expanded.remove(i)) _expanded.add(i);
+      });
+    } else {
+      _select(i);
+    }
+  }
+
+  /// Rail: open tool [child] of group [group].
+  void _railPick(int group, int child) {
+    setState(() {
+      _picks[_groupKey(widget.sections[group])] = child;
+      _index = group;
+    });
+  }
+
   /// The tool picked inside each group tab, keyed by the group's id/label.
   final Map<String, int> _picks = <String, int>{};
 
@@ -328,7 +354,10 @@ class _AppShellState extends State<AppShell> {
                   sections: widget.sections,
                   index: index,
                   showLabels: showLabels,
-                  onSelected: _tap,
+                  expanded: _expanded,
+                  pickOf: _pickOf,
+                  onSelected: _railTap,
+                  onPick: _railPick,
                 ),
                 Expanded(child: body),
               ],
@@ -683,13 +712,23 @@ class _Rail extends StatelessWidget {
     required this.sections,
     required this.index,
     required this.showLabels,
+    required this.expanded,
+    required this.pickOf,
     required this.onSelected,
+    required this.onPick,
   });
 
   final List<ShellSection> sections;
   final int index;
   final bool showLabels;
-  final void Function(int index, BuildContext itemContext) onSelected;
+
+  /// Group tabs whose sub-tabs are shown.
+  final Set<int> expanded;
+
+  /// The open tool of a group tab.
+  final int Function(ShellSection group) pickOf;
+  final ValueChanged<int> onSelected;
+  final void Function(int group, int child) onPick;
 
   @override
   Widget build(BuildContext context) {
@@ -712,12 +751,51 @@ class _Rail extends StatelessWidget {
             child: ListView.builder(
               padding: EdgeInsets.symmetric(horizontal: 8.w),
               itemCount: sections.length,
-              itemBuilder: (BuildContext context, int i) => _RailItem(
-                section: sections[i],
-                selected: i == index,
-                showLabel: showLabels,
-                onTap: (BuildContext c) => onSelected(i, c),
-              ),
+              itemBuilder: (BuildContext context, int i) {
+                final ShellSection s = sections[i];
+                final bool open = s.isGroup && expanded.contains(i);
+                final Widget item = _RailItem(
+                  section: s,
+                  // A group lights up only while folded (its open tool
+                  // shows the highlight when unfolded).
+                  selected: i == index && !open,
+                  showLabel: showLabels,
+                  onTap: (_) => onSelected(i),
+                );
+                if (!s.isGroup) return item;
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    item,
+                    AnimatedSize(
+                      duration: AppMotion.fast,
+                      curve: AppMotion.curve,
+                      alignment: Alignment.topCenter,
+                      child: open
+                          ? Padding(
+                              padding: EdgeInsetsDirectional.only(
+                                start: showLabels ? 20.w : 0,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: <Widget>[
+                                  for (int c = 0; c < s.children.length; c++)
+                                    _RailItem(
+                                      section: s.children[c],
+                                      selected: i == index && pickOf(s) == c,
+                                      showLabel: showLabels,
+                                      dense: true,
+                                      onTap: (_) => onPick(i, c),
+                                    ),
+                                ],
+                              ),
+                            )
+                          : const SizedBox(width: double.infinity),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
         ],
@@ -732,11 +810,16 @@ class _RailItem extends StatelessWidget {
     required this.selected,
     required this.showLabel,
     required this.onTap,
+    this.dense = false,
   });
 
   final ShellSection section;
   final bool selected;
   final bool showLabel;
+
+  /// Sub-tab: a little smaller and tighter, with the short name
+  /// (Units, Ducts, Pipes, HVAC, Plumbing, Firefighting).
+  final bool dense;
 
   /// Gets this item's own context, so a group can anchor its menu here.
   final ValueChanged<BuildContext> onTap;
@@ -752,8 +835,11 @@ class _RailItem extends StatelessWidget {
     final Widget content = AnimatedContainer(
       duration: AppMotion.fast,
       curve: AppMotion.curve,
-      margin: EdgeInsets.symmetric(vertical: 3.h),
-      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+      margin: EdgeInsets.symmetric(vertical: dense ? 2.h : 3.h),
+      padding: EdgeInsets.symmetric(
+        horizontal: 12.w,
+        vertical: dense ? 9.h : 12.h,
+      ),
       decoration: BoxDecoration(
         color: selected
             ? AppColors.primary.withOpacity(0.22)
@@ -764,12 +850,12 @@ class _RailItem extends StatelessWidget {
         mainAxisAlignment:
             showLabel ? MainAxisAlignment.start : MainAxisAlignment.center,
         children: <Widget>[
-          AppIcon(section.icon, size: 20.sp, color: color),
+          AppIcon(section.icon, size: dense ? 18.sp : 20.sp, color: color),
           if (showLabel) ...<Widget>[
             SizedBox(width: 12.w),
             Expanded(
               child: Text(
-                FormatHelper.capitalize(section.label),
+                FormatHelper.capitalize(dense ? section.barLabel : section.label),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: (selected
