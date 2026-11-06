@@ -375,7 +375,8 @@ class _Header<T> extends StatelessWidget {
       // is the look this app standardised on: a solid `blackShadow` bar with
       // white labels, so the header is unmistakably a header in both themes
       // and on both zebra shades.
-      color: AppColors.blackShadow,
+      // 03/11/2026: the primary colour, like the Flexible Duct table.
+      color: AppColors.primary,
       child: Row(
         children: <Widget>[
           if (rowNumberWidth != null)
@@ -384,7 +385,7 @@ class _Header<T> extends StatelessWidget {
               child: Text(
                 FormatHelper.capitalize(rowNumberLabel),
                 style: StyleText.fontSize14Weight500
-                    .copyWith(color: AppColors.white),
+                    .copyWith(color: AppColors.textButton),
               ),
             ),
           for (final AppTableColumn<T> column in columns)
@@ -429,7 +430,7 @@ class _HeaderLabel<T> extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: StyleText.fontSize14Weight500.copyWith(
-              color: AppColors.white,
+              color: AppColors.textButton,
               fontWeight: isSorted ? FontWeight.w700 : FontWeight.w500,
             ),
           ),
@@ -448,7 +449,7 @@ class _HeaderLabel<T> extends StatelessWidget {
               assetPath: AppAssets.chevronDown,
               width: 12.sp,
               height: 12.sp,
-              color: AppColors.white,
+              color: AppColors.textButton,
             ),
           ),
         ],
@@ -494,9 +495,9 @@ class _RowState<T> extends State<_Row<T>> {
 
   @override
   Widget build(BuildContext context) {
-    final Color zebra = widget.index.isEven
-        ? AppColors.evenRowColor
-        : AppColors.oddRowColor;
+    // 03/11/2026: no zebra — every row the card colour, a thin line
+    // between rows (the Flexible Duct table's look).
+    final Color zebra = AppColors.card;
 
     final Color background = widget.selected
         ? AppColors.primary.withOpacity(0.18)
@@ -507,7 +508,12 @@ class _RowState<T> extends State<_Row<T>> {
     final Widget row = Container(
       height: widget.height,
       padding: EdgeInsets.symmetric(horizontal: widget.horizontalPadding),
-      color: background,
+      decoration: BoxDecoration(
+        color: background,
+        border: widget.index == 0
+            ? null
+            : Border(top: BorderSide(color: AppColors.secondaryText.withOpacity(0.12))),
+      ),
       child: Row(
         children: <Widget>[
           if (widget.rowNumberWidth != null)

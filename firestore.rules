@@ -592,6 +592,30 @@ service cloud.firestore {
       allow update: if signedIn() && (onlyOwnSave() || onlyOwnSeen());
     }
 
+    // Questions & answers (03/11/2026). A member asks (their own uid, a
+    // short text, not answered); everyone reads the ANSWERED ones and their
+    // own; only an admin with Engagement → Questions answers or edits; the
+    // asker may delete theirs while it is still waiting.
+    match /questions/{id} {
+      allow read: if canDo('engagement', 'questions')
+        || (memberOk()
+            && (resource.data.answered == true || resource.data.uid == request.auth.uid));
+      allow create: if memberOk()
+        && request.resource.data.keys().hasOnly(['uid', 'user_name', 'text', 'answered', 'created_at'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.answered == false
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 2
+        && request.resource.data.text.size() <= 1000
+        && request.resource.data.user_name is string
+        && request.resource.data.user_name.size() <= 120;
+      allow update: if canDo('engagement', 'questions')
+        && onlyChanged(['answered', 'answer', 'answered_by', 'answered_at']);
+      allow delete: if canDo('engagement', 'questions')
+        || (signedIn() && resource.data.uid == request.auth.uid
+            && resource.data.answered == false);
+    }
+
     // The member Library and each course's folders / files.
     match /library/{id} {
       allow read: if memberOk();

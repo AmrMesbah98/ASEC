@@ -11,6 +11,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 
 import 'package:asec/core/constants/app_assets.dart';
@@ -18,6 +19,7 @@ import 'package:asec/core/settings/app_features.dart';
 import 'package:asec/core/custom/101-custom_surface.dart';
 import 'package:asec/core/custom/110-app_widgets.dart';
 import 'package:asec/core/custom/111-app_svg_icon.dart';
+import 'package:asec/core/custom/114-app_messenger.dart';
 import 'package:asec/core/custom/112-powered_by_footer.dart';
 import 'package:asec/core/custom/57-custom_dialog_manager.dart';
 import 'package:asec/core/custom/61-custom_color_picker.dart';
@@ -117,12 +119,25 @@ class SettingsPage extends StatelessWidget {
       body: LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) {
           final List<Widget> left = <Widget>[
-              // ── Who is signed in ─────────────────────────────────────────
-              AppCard(
+              // ── Who is signed in (03/11/2026: same radius as the groups
+              //    below, a soft accent wash; no border, no shadow) ─────
+              Container(
+                padding: EdgeInsets.all(14.r),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16.r),
+                  gradient: LinearGradient(
+                    begin: AlignmentDirectional.topStart,
+                    end: AlignmentDirectional.bottomEnd,
+                    colors: <Color>[
+                      Color.lerp(AppColors.card, AppColors.primary, 0.10)!,
+                      AppColors.card,
+                    ],
+                  ),
+                ),
                 child: Row(
                   children: <Widget>[
                     AppAvatar(name: user.displayName, size: 52),
-                    SizedBox(width: 14.w),
+                    SizedBox(width: 12.w),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -130,40 +145,54 @@ class SettingsPage extends StatelessWidget {
                         children: <Widget>[
                           Text(
                             FormatHelper.capitalize(user.displayName),
-                            style: StyleText.fontSize16Weight600,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: StyleText.fontSize16Weight700.copyWith(color: AppColors.text),
                           ),
                           SizedBox(height: 2.h),
                           Text(
-                            FormatHelper.capitalize(user.email),
-                            style: StyleText.fontSize13Weight400
+                            user.email,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: StyleText.fontSize12Weight400
                                 .copyWith(color: AppColors.secondaryText),
                           ),
                           if (user.createdAt != null) ...<Widget>[
-                            SizedBox(height: 2.h),
-                            Text(
-                              FormatHelper.capitalize(s.memberSince(
-                                AppDates.day(context, user.createdAt),
-                              )),
-                              style: StyleText.fontSize12Weight400
-                                  .copyWith(color: AppColors.secondaryText),
+                            SizedBox(height: 6.h),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: <Widget>[
+                                AppIcon(Icons.calendar_today_rounded,
+                                    size: 14.r, color: AppColors.primary),
+                                SizedBox(width: 5.w),
+                                Flexible(
+                                  child: Text(
+                                    FormatHelper.capitalize(s.memberSince(
+                                      AppDates.day(context, user.createdAt),
+                                    )),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: StyleText.fontSize11Weight400
+                                        .copyWith(color: AppColors.secondaryText),
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ],
                       ),
                     ),
+                    SizedBox(width: 8.w),
+                    // Role pill in the accent colour.
                     Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 10.w,
-                        vertical: 5.h,
-                      ),
+                      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
                       decoration: BoxDecoration(
-                        color: AppColors.chip,
-                        borderRadius: BorderRadius.circular(10.r),
+                        color: AppColors.primary.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(20.r),
                       ),
                       child: Text(
                         FormatHelper.capitalize(user.role.label(context)),
-                        style: StyleText.fontSize11Weight600
-                            .copyWith(color: AppColors.onChip),
+                        style: StyleText.fontSize11Weight600.copyWith(color: AppColors.primary),
                       ),
                     ),
                   ],
@@ -178,80 +207,67 @@ class SettingsPage extends StatelessWidget {
                   final List<MemberLink> links =
                       MemberLinks.forUser(context, user);
                   if (links.isEmpty) return const SizedBox.shrink();
-                  return Padding(
-                    padding: EdgeInsets.only(bottom: 16.h),
-                    child: AppCard(
-                      title: s.settingsMySpace,
-                      caption: s.settingsMySpaceHint,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: <Widget>[
-                          for (final MemberLink link in links)
-                            _SettingsTile(
-                              icon: link.icon,
-                              title: link.label,
-                              onTap: () => link.open(context),
-                              trailing: AppIcon(
-                                Icons.chevron_right_rounded,
-                                color: AppColors.secondaryText,
-                                size: 20.sp,
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
+                  // MY SPACE (03/11/2026): two groups, each title above its
+                  // own box (no icon beside it), rows with an icon tile,
+                  // title, line under it and an arrow.
+                  final List<MemberLink> learning = links
+                      .where((MemberLink l) => l.group == MemberLinkGroup.learning)
+                      .toList();
+                  final List<MemberLink> resources = links
+                      .where((MemberLink l) => l.group == MemberLinkGroup.resources)
+                      .toList();
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      if (learning.isNotEmpty)
+                        _MySpaceGroup(title: s.mySpaceLearning, links: learning),
+                      if (resources.isNotEmpty)
+                        _MySpaceGroup(title: s.mySpaceResources, links: resources),
+                    ],
                   );
                 }),
 
-              // ── Appearance ───────────────────────────────────────────────
-              AppCard(
+              // ── Appearance (03/11/2026: the My space look) ───────────────
+              _SettingsGroup(
                 title: s.appearance,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    // Each tile gets a transparent Material of its own:
-                    // ListTile paints its ink on the nearest Material
-                    // ancestor, and the card's coloured box sits in between.
-                    Obx(
-                      () => _SettingsTile(
-                        icon: Icons.dark_mode_rounded,
-                        title: s.darkMode,
-                        trailing: Switch.adaptive(
-                          value: theme.isDarkMode.value,
-                          activeTrackColor: AppColors.secondaryPrimary,
-                          onChanged: theme.setDarkMode,
-                        ),
+                rows: <Widget>[
+                  Obx(
+                    () => _GroupRow(
+                      icon: Icons.dark_mode_rounded,
+                      title: s.darkMode,
+                      onTap: () => theme.setDarkMode(!theme.isDarkMode.value),
+                      trailing: Switch.adaptive(
+                        value: theme.isDarkMode.value,
+                        activeTrackColor: AppColors.secondaryPrimary,
+                        onChanged: theme.setDarkMode,
                       ),
                     ),
-                    Obx(
-                      () => _SettingsTile(
-                        icon: Icons.translate_rounded,
-                        title: s.language,
-                        onTap: theme.toggleLanguage,
-                        trailing: Text(
-                          FormatHelper.capitalize(theme.languageCode.value == 'ar'
-                              ? 'العربية'
-                              : 'English'),
-                          style: StyleText.fontSize13Weight600
-                              .copyWith(color: AppColors.primary),
-                        ),
+                  ),
+                  Obx(
+                    () => _GroupRow(
+                      icon: Icons.translate_rounded,
+                      title: s.language,
+                      onTap: theme.toggleLanguage,
+                      trailing: Text(
+                        theme.languageCode.value == 'ar' ? 'العربية' : 'English',
+                        style: StyleText.fontSize13Weight600.copyWith(color: AppColors.primary),
                       ),
                     ),
-                    Obx(
-                      () => _SettingsTile(
-                        icon: Icons.vibration_rounded,
-                        title: s.haptics,
-                        trailing: Switch.adaptive(
-                          value: haptics.isHapticEnabled.value,
-                          activeTrackColor: AppColors.secondaryPrimary,
-                          onChanged: haptics.toggleHapticFeedback,
-                        ),
+                  ),
+                  Obx(
+                    () => _GroupRow(
+                      icon: Icons.vibration_rounded,
+                      title: s.haptics,
+                      onTap: () => haptics.toggleHapticFeedback(!haptics.isHapticEnabled.value),
+                      trailing: Switch.adaptive(
+                        value: haptics.isHapticEnabled.value,
+                        activeTrackColor: AppColors.secondaryPrimary,
+                        onChanged: haptics.toggleHapticFeedback,
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              SizedBox(height: 16.h),
 
               // ── Branding (admin only — it changes the app for everybody
               //    on THIS device, so it is not hidden behind a rule) ───────
@@ -304,30 +320,24 @@ class SettingsPage extends StatelessWidget {
 
 
 
-              AppButton(
-                label: s.signOut,
-                icon: Icons.logout_rounded,
-                kind: AppButtonKind.danger,
-                expand: true,
-                onPressed: () => _confirmSignOut(context),
-              ),
-              SizedBox(height: 16.h),
-
-              // ── Delete account — every role, every platform ─────────────
-              AppCard(
-                title: s.dangerZone,
-                caption: s.deleteAccountHint,
-                child: _SettingsTile(
-                  icon: Icons.delete_forever_rounded,
-                  title: s.deleteAccount,
-                  color: AppColors.red,
-                  onTap: () => _confirmDeleteAccount(context),
-                  trailing: AppIcon(
-                    Icons.chevron_right_rounded,
+              // ── Account: sign out and delete (03/11/2026, My space look) ──
+              _SettingsGroup(
+                title: s.account,
+                rows: <Widget>[
+                  _GroupRow(
+                    icon: Icons.logout_rounded,
+                    title: s.signOut,
                     color: AppColors.red,
-                    size: 20.sp,
+                    onTap: () => _confirmSignOut(context),
                   ),
-                ),
+                  _GroupRow(
+                    icon: Icons.delete_forever_rounded,
+                    title: s.deleteAccount,
+                    subtitle: s.deleteAccountHint,
+                    color: AppColors.red,
+                    onTap: () => _confirmDeleteAccount(context),
+                  ),
+                ],
               ),
           ];
 
@@ -404,41 +414,181 @@ class SettingsPage extends StatelessWidget {
   }
 }
 
-/// One row in a settings card: icon, label, and whatever control belongs on
-/// the end. The Material is not decoration — see the comment at the call site.
-class _SettingsTile extends StatelessWidget {
-  const _SettingsTile({
+/// A Settings group (03/11/2026): the title above, the rows in one box,
+/// thin lines between rows starting where the text starts.
+class _SettingsGroup extends StatelessWidget {
+  const _SettingsGroup({required this.title, required this.rows});
+
+  final String title;
+  final List<Widget> rows;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 14.h),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Padding(
+            padding: EdgeInsetsDirectional.only(start: 4.w, bottom: 8.h),
+            child: Text(
+              FormatHelper.capitalize(title),
+              style: StyleText.fontSize18Weight600.copyWith(color: AppColors.text),
+            ),
+          ),
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.card,
+              borderRadius: BorderRadius.circular(16.r),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16.r),
+              child: Column(
+                children: <Widget>[
+                  for (int i = 0; i < rows.length; i++) ...<Widget>[
+                    if (i > 0)
+                      Padding(
+                        padding: EdgeInsetsDirectional.only(start: 64.w, end: 14.w),
+                        child: Divider(height: 1, thickness: 1, color: AppColors.text.withOpacity(0.08)),
+                      ),
+                    rows[i],
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One Settings row: icon square · title (+ line under) · trailing.
+/// Without [trailing] it shows the arrow. [color] tints it (red = sign out,
+/// delete). [iconWidget] replaces the icon (an SVG).
+class _GroupRow extends StatelessWidget {
+  const _GroupRow({
     required this.icon,
     required this.title,
-    required this.trailing,
+    this.subtitle,
+    this.trailing,
     this.onTap,
     this.color,
+    this.iconWidget,
+    this.dimmed = false,
   });
 
   final IconData icon;
   final String title;
-  final Widget trailing;
+  final String? subtitle;
+  final Widget? trailing;
   final VoidCallback? onTap;
-
-  /// Tints the icon and label — red for the destructive row.
   final Color? color;
+  final Widget? iconWidget;
+  final bool dimmed;
 
   @override
   Widget build(BuildContext context) {
+    final Color accent = color ?? AppColors.primary;
     return Material(
       color: AppColors.transparent,
-      child: ListTile(
-        contentPadding: EdgeInsets.zero,
+      child: InkWell(
         onTap: onTap,
-        leading: AppIcon(icon, color: color),
-        title: Text(
-          FormatHelper.capitalize(title),
-          style: color == null
-              ? StyleText.fontSize14Weight500
-              : StyleText.fontSize14Weight500.copyWith(color: color),
+        child: Opacity(
+          opacity: dimmed ? 0.55 : 1,
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
+            child: Row(
+              children: <Widget>[
+                Container(
+                  width: 38.r,
+                  height: 38.r,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: accent.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(10.r),
+                  ),
+                  child: iconWidget ?? AppIcon(icon, size: 20.r, color: accent),
+                ),
+                SizedBox(width: 12.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Text(
+                        FormatHelper.capitalize(title),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: StyleText.fontSize14Weight600.copyWith(color: color ?? AppColors.text),
+                      ),
+                      if (subtitle != null && subtitle!.isNotEmpty) ...<Widget>[
+                        SizedBox(height: 2.h),
+                        Text(
+                          subtitle!,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: StyleText.fontSize12Weight400.copyWith(color: AppColors.secondaryText),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                SizedBox(width: 8.w),
+                trailing ??
+                    AppIcon(Icons.chevron_right_rounded, size: 18.r, color: color ?? AppColors.text),
+              ],
+            ),
+          ),
         ),
-        trailing: trailing,
       ),
+    );
+  }
+}
+
+/// One "My space" group.
+class _MySpaceGroup extends StatelessWidget {
+  const _MySpaceGroup({required this.title, required this.links});
+
+  final String title;
+  final List<MemberLink> links;
+
+  @override
+  Widget build(BuildContext context) => _SettingsGroup(
+        title: title,
+        rows: <Widget>[for (final MemberLink l in links) _MySpaceRow(link: l)],
+      );
+}
+
+class _MySpaceRow extends StatelessWidget {
+  const _MySpaceRow({required this.link});
+
+  final MemberLink link;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color accent = AppColors.primary;
+    return _GroupRow(
+      icon: link.icon,
+      title: link.label,
+      subtitle: link.locked ? (link.lockedHint ?? link.hint) : link.hint,
+      dimmed: link.locked,
+      iconWidget: link.svg == null
+          ? null
+          : SvgPicture.asset(
+              link.svg!,
+              width: 20.r,
+              height: 20.r,
+              colorFilter: ColorFilter.mode(accent, BlendMode.srcIn),
+            ),
+      trailing: link.locked
+          ? AppIcon(Icons.lock_outline_rounded, size: 18.r, color: AppColors.secondaryText)
+          : null,
+      onTap: link.locked
+          ? () => AppMessenger.of(context)
+            ..hide()
+            ..show(AppMessage(content: Text(FormatHelper.capitalize(link.lockedHint ?? ''))))
+          : () => link.open(context),
     );
   }
 }

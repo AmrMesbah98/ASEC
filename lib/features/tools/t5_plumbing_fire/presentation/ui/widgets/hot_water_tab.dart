@@ -180,7 +180,7 @@ class _HotWaterTabState extends State<HotWaterTab> {
               ResultItem('Probable max demand', fmt(r.probableDemand, 1), 'L/h'),
               ResultItem('Storage factor', fmt(r.storageFactor, 2)),
               ResultItem('Storage heater tank capacity', fmt(r.tankCapacity, 0), 'L'),
-              ResultItem('Power consumption (Q)', fmt(r.power, 0), 'kW'),
+              ResultItem('Power consumption (Q)', fmt(r.power, 0), 'KW'),
             ],
           ),
       ],

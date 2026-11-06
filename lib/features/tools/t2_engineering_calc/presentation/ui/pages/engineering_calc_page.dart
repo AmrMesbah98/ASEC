@@ -358,7 +358,7 @@ class _EngineeringCalcPageState extends State<EngineeringCalcPage> {
           maxOverlayHeight: 320,
           items: <DropdownItem<int>>[
             for (int i = 0; i < units.length; i++)
-              DropdownItem<int>(value: i, label: units[i].symbol),
+              DropdownItem<int>(value: i, label: units[i].shown),
           ],
           onChanged: (int? i) {
             if (i != null) setState(() => session.changeUnit(f, i));
@@ -692,7 +692,7 @@ class _CalcSession {
       }
       final double? v = _parsed(f.id);
       final Qty? q = f.qty;
-      final String unit = q == null ? f.unit : q.category.units[units[f.id]!].symbol;
+      final String unit = q == null ? f.unit : q.category.units[units[f.id]!].shown;
       final String n = v == null ? '—' : formatCalc(v, digits: 6);
       inputs.add(CalcRow(
         label: f.name(ar),
@@ -711,7 +711,7 @@ class _CalcSession {
       if (r.text == null && value != null && value.isFinite) {
         final double shown = q == null ? value : q.fromBase(value, resultUnits[r.id]!);
         number = double.tryParse(formatCalc(shown, digits: 6));
-        if (q != null) unit = q.category.units[resultUnits[r.id]!].symbol;
+        if (q != null) unit = q.category.units[resultUnits[r.id]!].shown;
       }
       out.add(CalcRow(
         label: r.name(ar),
@@ -754,6 +754,6 @@ class _CalcSession {
       return r.unit.isEmpty ? n : '$n ${r.unit}';
     }
     final int u = resultUnits[r.id]!;
-    return '${formatCalc(q.fromBase(value, u))} ${q.category.units[u].symbol}';
+    return '${formatCalc(q.fromBase(value, u))} ${q.category.units[u].shown}';
   }
 }

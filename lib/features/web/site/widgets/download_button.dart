@@ -47,6 +47,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:asec/core/custom/111-app_svg_icon.dart';
 import 'package:asec/features/web/core/i18n.dart';
 import 'package:asec/features/web/core/theme.dart';
+import 'package:asec/core/helper/main_helper/format_helper.dart';
 
 /// The GitHub repository the Windows build is released from.
 const String kReleaseRepo = 'AmrMesbah82/asec-app';
@@ -306,7 +307,7 @@ class _DownloadAppButtonState extends State<DownloadAppButton> with TickerProvid
             duration: const Duration(milliseconds: 220),
             curve: Curves.easeOutCubic,
             child: Text(
-              _label,
+              FormatHelper.capitalize(_label),
               maxLines: 1,
               style: const TextStyle(
                 fontFamily: 'Cairo',

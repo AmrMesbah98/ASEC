@@ -38,6 +38,10 @@ String titleCase(String text) => text.splitMapJoin(
       RegExp(r'[A-Za-z][^\s/()\-]*'),
       onMatch: (Match m) {
         final String w = m[0]!;
+        // A unit in brackets stays as written: "Volume (gal)", "(in)".
+        if (m.start > 0 && text[m.start - 1] == '(') return w;
+        // Small joining words stay small inside a label: "Flow per Area".
+        if (m.start > 0 && isSmallWord(w)) return lowerSmallWord(w);
         final String first = w[0];
         return first == first.toLowerCase() && first != first.toUpperCase()
             ? '${first.toUpperCase()}${w.substring(1)}'
@@ -45,10 +49,14 @@ String titleCase(String text) => text.splitMapJoin(
       },
     );
 
-/// Fixed decimals, or "-" for NaN / infinity / null.
+/// At most [decimals] — and never more than 2 — decimals, trailing zeros
+/// dropped (14.50 → 14.5, 3.00 → 3); "-" for NaN / infinity / null.
+/// (03/11/2026: two digits after the point, no useless zeros.)
 String fmt(double? value, int decimals) {
   if (value == null || !value.isFinite) return '-';
-  return value.toStringAsFixed(decimals);
+  final String s = value.toStringAsFixed(decimals > 2 ? 2 : decimals);
+  final String t = s.contains('.') ? s.replaceFirst(RegExp(r'\.?0+$'), '') : s;
+  return t == '-0' ? '0' : t;
 }
 
 /// Whole number with thousands separators (Reynolds number).
@@ -197,8 +205,9 @@ class ResultItem {
   final String unit;
 }
 
-/// Results as a two-column [AppDataTable] (Item | Value). Two columns fit
-/// a phone, so it stays a full-width table there instead of cards.
+/// Results as a two-column table (Item | Value), in the same look as the
+/// Flexible Duct table (03/11/2026): a header row in the primary colour,
+/// card-coloured rows with thin lines between them, rounded corners.
 class ResultTable extends StatelessWidget {
   const ResultTable({super.key, required this.items});
 
@@ -206,25 +215,43 @@ class ResultTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AppDataTable<ResultItem>(
-      shrinkWrap: true,
-      cardsOnTablet: false,
-      rows: items,
-      columns: <AppTableColumn<ResultItem>>[
-        AppTableColumn<ResultItem>(
-          label: 'Item',
-          flex: 3,
-          cell: (BuildContext context, ResultItem r) =>
-              AppTableCellText(titleCase(r.label), emphasis: true),
-        ),
-        AppTableColumn<ResultItem>(
-          label: 'Value',
-          flex: 2,
-          cell: (BuildContext context, ResultItem r) => AppTableCellText(
-            r.unit.isEmpty ? r.value : '${r.value} ${r.unit}',
+    final TextStyle head = StyleText.fontSize13Weight600.copyWith(color: AppColors.textButton);
+    final TextStyle label = StyleText.fontSize14Weight600.copyWith(color: AppColors.text);
+    final TextStyle value = StyleText.fontSize14Weight500.copyWith(color: AppColors.text);
+
+    Widget cell(String text, TextStyle style) => Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Text(text, style: style),
+        );
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: ColoredBox(
+        color: AppColors.card,
+        child: Table(
+          columnWidths: const <int, TableColumnWidth>{
+            0: FlexColumnWidth(3),
+            1: FlexColumnWidth(2),
+          },
+          defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+          border: TableBorder(
+            horizontalInside: BorderSide(color: AppColors.secondaryText.withOpacity(0.12)),
           ),
+          children: <TableRow>[
+            TableRow(
+              decoration: BoxDecoration(color: AppColors.primary),
+              children: <Widget>[cell('Item', head), cell('Value', head)],
+            ),
+            for (final ResultItem r in items)
+              TableRow(
+                children: <Widget>[
+                  cell(titleCase(r.label), label),
+                  cell(r.unit.isEmpty ? r.value : '${r.value} ${r.unit}', value),
+                ],
+              ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }

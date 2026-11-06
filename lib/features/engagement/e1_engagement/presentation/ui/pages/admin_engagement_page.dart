@@ -29,6 +29,7 @@ import 'package:asec/features/engagement/e1_engagement/presentation/ui/widgets/m
 import 'package:asec/features/onboarding/o2_authentication/domain/enums/admin_permission.dart';
 import 'package:asec/features/onboarding/o2_authentication/presentation/controller/session_controller.dart';
 import 'package:asec/features/engagement/e1_engagement/presentation/ui/widgets/partners_orbit.dart';
+import 'package:asec/features/engagement/e1_engagement/presentation/ui/widgets/questions_section.dart';
 import 'package:asec/generated/l10n.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
 import 'package:asec/core/network/shared_stream.dart';
@@ -122,6 +123,7 @@ class _AdminEngagementPageState extends State<AdminEngagementPage> {
           _EngTab.stars => s.engStarsTab,
           // The website's partners — the same list the home page's ring shows.
           _EngTab.partners => s.engPartners,
+          _EngTab.questions => s.engQuestions,
         }),
     ];
 
@@ -151,6 +153,7 @@ class _AdminEngagementPageState extends State<AdminEngagementPage> {
           onPressed: _uploadLibrary,
         ),
       _EngTab.stars => const SizedBox.shrink(),
+      _EngTab.questions => const SizedBox.shrink(),
     };
 
     final String caption = switch (current) {
@@ -159,6 +162,7 @@ class _AdminEngagementPageState extends State<AdminEngagementPage> {
       _EngTab.library => s.engLibraryAdminSub,
       _EngTab.stars => s.engStarsAdminSub,
       _EngTab.partners => s.engPartnersAdminSub,
+      _EngTab.questions => s.engQuestionsAdminSub,
     };
 
     return Scaffold(
@@ -166,7 +170,9 @@ class _AdminEngagementPageState extends State<AdminEngagementPage> {
       body: ConsolePage(
         title: s.engEngagement,
         subtitle: s.engEngagementSub,
-        actions: <Widget>[if (current != _EngTab.stars) action],
+        actions: <Widget>[
+          if (current != _EngTab.stars && current != _EngTab.questions) action,
+        ],
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
@@ -197,6 +203,7 @@ class _AdminEngagementPageState extends State<AdminEngagementPage> {
                       _EngTab.stars =>
                         const LeaderboardPage(admin: true, framed: false),
                       _EngTab.partners => const PartnersAdminTab(),
+                      _EngTab.questions => const AdminQuestionsTab(),
                     }),
                 ],
               ),
@@ -319,7 +326,9 @@ enum _EngTab {
   tips(AdminAction.engagementTips),
   library(AdminAction.engagementLibrary),
   stars(AdminAction.engagementStars),
-  partners(AdminAction.engagementPartners);
+  partners(AdminAction.engagementPartners),
+  // 03/11/2026: members' questions — answer, edit, delete.
+  questions(AdminAction.engagementQuestions);
 
   const _EngTab(this.action);
 

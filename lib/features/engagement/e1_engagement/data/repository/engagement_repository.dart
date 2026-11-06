@@ -49,6 +49,8 @@ class EngagementRepository {
       _db.collection(FirebaseCollections.courseSettings);
   CollectionReference<Map<String, dynamic>> get _progress =>
       _db.collection(FirebaseCollections.progress);
+  CollectionReference<Map<String, dynamic>> get _questions =>
+      _db.collection(FirebaseCollections.questions);
 
   static int _newestFirst(DateTime? a, DateTime? b) =>
       (b ?? DateTime(0)).compareTo(a ?? DateTime(0));
@@ -80,6 +82,74 @@ class EngagementRepository {
       });
 
   Future<void> deleteNotice(String id) => _notices.doc(id).delete();
+
+  // ── Questions & answers (03/11/2026) ──────────────────────────────────
+  //
+  // questions/{id}: uid, user_name, text, answered (bool), answer,
+  // answered_by, created_at, answered_at. Members read the ANSWERED ones
+  // and their own; the queries say exactly that, so firestore.rules can
+  // allow them. Sorted on the device (no composite index).
+
+  static AppQuestion _question(DocumentSnapshot<Map<String, dynamic>> d) {
+    final Map<String, dynamic> m = d.safeData;
+    return AppQuestion(
+      id: d.id,
+      uid: m.str('uid'),
+      userName: m.str('user_name'),
+      text: m.str('text'),
+      answer: m.str('answer'),
+      answeredBy: m.str('answered_by'),
+      createdAt: m.date(FirebaseCollections.createdAtField) ?? DateTime.now(),
+      answeredAt: m.date('answered_at'),
+    );
+  }
+
+  static List<AppQuestion> _byAnswered(QuerySnapshot<Map<String, dynamic>> s) =>
+      s.docs.map(_question).toList()
+        ..sort((AppQuestion a, AppQuestion b) =>
+            _newestFirst(a.answeredAt ?? a.createdAt, b.answeredAt ?? b.createdAt));
+
+  /// Every answered question, newest answer first (home page + Questions page).
+  Stream<List<AppQuestion>> watchAnsweredQuestions() => _questions
+      .where('answered', isEqualTo: true)
+      .snapshots()
+      .map(_byAnswered);
+
+  /// [uid]'s own questions, answered or not.
+  Stream<List<AppQuestion>> watchMyQuestions(String uid) => _questions
+      .where('uid', isEqualTo: uid)
+      .snapshots()
+      .map((QuerySnapshot<Map<String, dynamic>> s) => s.docs.map(_question).toList()
+        ..sort((AppQuestion a, AppQuestion b) => _newestFirst(a.createdAt, b.createdAt)));
+
+  /// Admin: every question, waiting ones first.
+  Stream<List<AppQuestion>> watchAllQuestions() => _questions.snapshots().map(
+        (QuerySnapshot<Map<String, dynamic>> s) => s.docs.map(_question).toList()
+          ..sort((AppQuestion a, AppQuestion b) {
+            if (a.answered != b.answered) return a.answered ? 1 : -1;
+            return _newestFirst(a.createdAt, b.createdAt);
+          }),
+      );
+
+  Future<void> askQuestion({required String uid, required String userName, required String text}) =>
+      _questions.add(<String, dynamic>{
+        'uid': uid,
+        'user_name': userName.trim(),
+        'text': text.trim(),
+        'answered': false,
+        FirebaseCollections.createdAtField: FieldValue.serverTimestamp(),
+      });
+
+  /// Admin: post (or edit) the answer.
+  Future<void> answerQuestion(String id, {required String answer, required String by}) =>
+      _questions.doc(id).update(<String, dynamic>{
+        'answered': answer.trim().isNotEmpty,
+        'answer': answer.trim(),
+        'answered_by': by.trim(),
+        'answered_at': FieldValue.serverTimestamp(),
+      });
+
+  Future<void> deleteQuestion(String id) => _questions.doc(id).delete();
 
   // ── Tips & tricks ─────────────────────────────────────────────────────────
 

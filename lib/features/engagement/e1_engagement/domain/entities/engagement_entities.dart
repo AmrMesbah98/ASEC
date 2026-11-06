@@ -142,3 +142,34 @@ class MemberProgress {
 
   double of(String videoId) => videos[videoId] ?? 0;
 }
+
+/// A member's question and the admin's answer (03/11/2026) — shown like a
+/// post with its reply: on the home page (the 3 newest answered) and on the
+/// Questions page. `questions/{id}`.
+class AppQuestion {
+  const AppQuestion({
+    required this.id,
+    required this.uid,
+    required this.userName,
+    required this.text,
+    this.answer = '',
+    this.answeredBy = '',
+    this.createdAt,
+    this.answeredAt,
+  });
+
+  final String id;
+
+  /// Who asked.
+  final String uid;
+  final String userName;
+  final String text;
+
+  /// '' = still waiting for the admin.
+  final String answer;
+  final String answeredBy;
+  final DateTime? createdAt;
+  final DateTime? answeredAt;
+
+  bool get answered => answer.trim().isNotEmpty;
+}

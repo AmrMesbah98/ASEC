@@ -96,6 +96,14 @@ class MainActivity : FlutterActivity() {
             }
           }
           result.success(null)
+        } else if (call.method == "stableId") {
+          // lib/.../device_identity.dart — ANDROID_ID stays the same for this
+          // app on this phone after an uninstall / reinstall (Android 8+), so
+          // a reinstall is not "another device".
+          val id = try {
+            Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID)
+          } catch (_: Throwable) { null }
+          result.success(id)
         } else if (call.method == "integrity") {
           // lib/core/settings/app_integrity.dart — a release build refuses
           // to run while any of these is found.

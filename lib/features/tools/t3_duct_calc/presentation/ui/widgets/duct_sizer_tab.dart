@@ -67,19 +67,11 @@ class _DuctSizerTabState extends State<DuctSizerTab> {
     super.dispose();
   }
 
-  /// Decimals shown for each field, per unit system.
+  /// Whole numbers in the Duct Sizer — EXCEPT head loss, which is below 1
+  /// (0.08 inwg/100ft) and would show as 0: 3 decimals (inch), 2 (metric).
   int _decimals(SizerField f) {
-    final bool ip = _units == SizerUnits.ip;
-    switch (f) {
-      case SizerField.flow:
-        return ip ? 0 : 1;
-      case SizerField.headLoss:
-        return ip ? 3 : 2;
-      case SizerField.velocity:
-        return 1;
-      case SizerField.diameter:
-        return ip ? 1 : 0;
-    }
+    if (f == SizerField.headLoss) return _units == SizerUnits.ip ? 3 : 2;
+    return 0;
   }
 
   void _toggle(SizerField f) {
@@ -105,7 +97,7 @@ class _DuctSizerTabState extends State<DuctSizerTab> {
         _fields[f]!.text = fmt(SizerConvert.field(f, v, from, u), _decimals(f));
       }
     }
-    final int lenDecimals = u == SizerUnits.ip ? 1 : 0;
+    const int lenDecimals = 0;
     final double? a = parseNumber(_sideA.text);
     if (a != null) _sideA.text = fmt(SizerConvert.length(a, from, u), lenDecimals);
     if (!_sideBAuto) {
@@ -170,7 +162,7 @@ class _DuctSizerTabState extends State<DuctSizerTab> {
         sideB: _sideBAuto ? null : parseNumber(_sideB.text),
       );
       if (_sideBAuto && r.rectSideB != null) {
-        _sideB.text = fmt(r.rectSideB, _units == SizerUnits.ip ? 1 : 0);
+        _sideB.text = fmt(r.rectSideB, 0);
       }
       for (final SizerField f in SizerField.values) {
         if (!_ticked.contains(f)) {
@@ -227,14 +219,14 @@ class _DuctSizerTabState extends State<DuctSizerTab> {
       if (r.rectEquivalentDiameter != null) ...<ResultItem>[
         ResultItem(
           'Rectangle',
-          '${fmt(r.rectSideA, ip ? 1 : 0)} × ${fmt(r.rectSideB, ip ? 1 : 0)}',
+          '${fmt(r.rectSideA, 0)} × ${fmt(r.rectSideB, 0)}',
           len,
         ),
-        ResultItem('Equivalent diameter', fmt(r.rectEquivalentDiameter, ip ? 1 : 0), len),
+        ResultItem('Equivalent diameter', fmt(r.rectEquivalentDiameter, 0), len),
       ],
       // 31/10/2026 (Eng. Ahmed Shuhayb): velocity and head loss only —
       // flow area, Reynolds, friction factor and velocity pressure removed.
-      ResultItem('Fluid velocity', fmt(r.velocity, ip ? 1 : 2), ip ? 'ft/min' : 'm/s'),
+      ResultItem('Fluid velocity', fmt(r.velocity, 0), ip ? 'ft/min' : 'm/s'),
       ResultItem('Head loss', fmt(r.headLoss, ip ? 3 : 2), ip ? 'inwg/100ft' : 'Pa/m'),
     ];
   }

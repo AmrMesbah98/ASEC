@@ -20,6 +20,12 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+/// Symbols shown differently from how they are stored (03/11/2026).
+const Map<String, String> kUnitShown = <String, String>{
+  'kW': 'KW',
+  'BTU/h': 'BTU/HR',
+};
+
 class UnitDef {
   const UnitDef(
     this.symbol,
@@ -40,6 +46,10 @@ class UnitDef {
         approx = false,
         _toBase = toBase,
         _fromBase = fromBase;
+
+  /// How the symbol is SHOWN (03/11/2026): KW, not kW; BTU/HR, not BTU/h.
+  /// [symbol] stays the key other code looks units up by.
+  String get shown => kUnitShown[symbol] ?? symbol;
 
   final String symbol;
   final String nameEn;
@@ -116,7 +126,7 @@ abstract final class UnitCatalog {
     ('volume', null, null, <String>['m³', 'L', 'ft³', 'gal (US)', 'gal (UK)'], 'm³', 'L'),
     ('mass', null, null, <String>['kg', 'g', 'lb'], 'kg', 'lb'),
     ('temperature', null, null, <String>['°C', '°F', 'K'], '°C', '°F'),
-    ('pressure', null, null, <String>['Pa', 'kPa', 'bar', 'psi', 'atm', 'inHg', 'inwg'], 'bar', 'psi'),
+    ('pressure', null, null, <String>['Pa', 'kPa', 'bar', 'psi', 'atm', 'inwg'], 'bar', 'psi'),
     ('flow', null, null, <String>[], 'L/s', 'CFM'),
     ('speed', null, null, <String>['m/s', 'ft/s', 'FPM'], 'm/s', 'FPM'),
     ('power', 'Cooling load', 'حمل التبريد', <String>['kW', 'BTU/h', 'TR', 'HP'], 'TR', 'kW'),
@@ -273,7 +283,7 @@ abstract final class UnitCatalog {
         UnitDef('atm', 'Atmosphere', 'ضغط جوي', 101325),
         UnitDef('kgf/cm²', 'Kilogram-force per cm²', 'كجم قوة لكل سم²', 98066.5),
         UnitDef('mmHg', 'Millimeter of mercury', 'ملم زئبق', 133.322387415),
-        UnitDef('inHg', 'Inch of mercury', 'بوصة زئبق', 3386.388640341),
+        // 03/11/2026: Inch of mercury removed from the pressure units.
         UnitDef('mmH₂O', 'Millimeter of water', 'ملم ماء', 9.80665),
         UnitDef('inwg', 'Inch water gauge', 'بوصة عمود ماء', 249.08891),
         UnitDef('ftH₂O', 'Foot of water', 'قدم ماء', 2989.06692),

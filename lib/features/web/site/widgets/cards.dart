@@ -11,6 +11,7 @@ import 'package:asec/features/web/core/theme.dart';
 import 'package:asec/features/web/core/widgets.dart';
 import 'package:asec/features/web/site/site_nav.dart';
 import 'package:asec/features/web/site/widgets/motion.dart';
+import 'package:asec/core/helper/main_helper/format_helper.dart';
 
 /// Lays children out in `cols` equal columns that wrap, heights free.
 class GridOf extends StatelessWidget {
@@ -99,18 +100,18 @@ class ServiceCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 18),
-            Text(doc.s('title'),
+            Text(FormatHelper.capitalize(doc.s('title')),
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: WebColors.navy)),
             const SizedBox(height: 8),
-            Text(doc.s('tagline'),
+            Text(FormatHelper.capitalize(doc.s('tagline')),
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: WebColors.redBright)),
             const SizedBox(height: 22),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: WebColors.navy),
               onPressed: () => siteGo(context, '/services/${doc.raw('slug').isEmpty ? doc.id : doc.raw('slug')}'),
-              child: Text(const L('المزيد', 'Read more').t),
+              child: Text(FormatHelper.capitalize(const L('المزيد', 'Read more').t)),
             ),
           ],
         ),
@@ -131,7 +132,7 @@ class FeatureTile extends StatelessWidget {
         children: <Widget>[
           NetImage(doc.s('icon_url'), width: 72, height: 72, fit: BoxFit.contain),
           const SizedBox(height: 12),
-          Text(doc.s('title'),
+          Text(FormatHelper.capitalize(doc.s('title')),
               textAlign: TextAlign.center,
               style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w800)),
         ],
@@ -160,7 +161,7 @@ class CountersBand extends StatelessWidget {
                   CountUp(
                     value: double.tryParse('${c['value']}') ?? 0,
                     builder: (_, int v) => Text(
-                      '+$v',
+                      FormatHelper.capitalize('+$v'),
                       textDirection: TextDirection.ltr,
                       style: TextStyle(
                           color: Colors.white,
@@ -169,7 +170,7 @@ class CountersBand extends StatelessWidget {
                           fontFamily: 'Cairo'),
                     ),
                   ),
-                  Text(counterLabel(c),
+                  Text(FormatHelper.capitalize(counterLabel(c)),
                       style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w700)),
                 ],
               ),
@@ -253,10 +254,10 @@ class ProjectCard extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
                           margin: const EdgeInsets.only(bottom: 6),
                           decoration: BoxDecoration(color: WebColors.red, borderRadius: BorderRadius.circular(20)),
-                          child: Text(kProjectCategories[doc.s('category')]!,
+                          child: Text(FormatHelper.capitalize(kProjectCategories[doc.s('category')]!),
                               style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
                         ),
-                      Text(doc.s('title'),
+                      Text(FormatHelper.capitalize(doc.s('title')),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w800)),
@@ -316,20 +317,20 @@ class ArticleCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     if (doc.s('category').isNotEmpty)
-                      Text(doc.s('category'),
+                      Text(FormatHelper.capitalize(doc.s('category')),
                           style: const TextStyle(color: WebColors.blue, fontSize: 12, fontWeight: FontWeight.w700)),
                     const SizedBox(height: 4),
-                    Text(doc.s('title'),
+                    Text(FormatHelper.capitalize(doc.s('title')),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(fontSize: 17, height: 1.5, fontWeight: FontWeight.w800, color: WebColors.ink)),
                     const SizedBox(height: 8),
                     Row(
                       children: <Widget>[
-                        Text(panelDate(doc.t('published_at')),
+                        Text(FormatHelper.capitalize(panelDate(doc.t('published_at'))),
                             style: TextStyle(color: WebColors.muted, fontSize: 12)),
                         const Spacer(),
-                        Text(const L('المزيد', 'Read more').t,
+                        Text(FormatHelper.capitalize(const L('المزيد', 'Read more').t),
                             style: const TextStyle(color: WebColors.red, fontWeight: FontWeight.w700, fontSize: 13)),
                         AppIcon(AppLang.isAr ? Icons.chevron_left_rounded : Icons.chevron_right_rounded,
                             color: WebColors.red, size: 18),
@@ -380,10 +381,10 @@ class TestimonialCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             const AppIcon(Icons.format_quote_rounded, color: WebColors.red, size: 30),
-            Text(doc.s('name'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
-            Text(doc.s('role'), style: TextStyle(color: WebColors.muted, fontSize: 12)),
+            Text(FormatHelper.capitalize(doc.s('name')), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+            Text(FormatHelper.capitalize(doc.s('role')), style: TextStyle(color: WebColors.muted, fontSize: 12)),
             const Divider(height: 22),
-            Text(doc.s('quote'), style: TextStyle(height: 1.8, fontSize: 14, color: WebColors.ink)),
+            Text(FormatHelper.capitalize(doc.s('quote')), style: TextStyle(height: 1.8, fontSize: 14, color: WebColors.ink)),
           ],
         ),
       );

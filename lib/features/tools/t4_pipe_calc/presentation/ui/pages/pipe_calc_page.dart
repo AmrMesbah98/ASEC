@@ -59,7 +59,7 @@ class _PipeCalcPageState extends State<PipeCalcPage> {
   /// A flow in gpm, written in the current units.
   String _flowText(double gpm) => _ip
       ? _trim(gpm.toStringAsFixed(2))
-      : _trim((gpm * PipeSi.gpmToLs).toStringAsFixed(3));
+      : _trim((gpm * PipeSi.gpmToLs).toStringAsFixed(2));
 
   static String _trim(String s) =>
       s.contains('.') ? s.replaceFirst(RegExp(r'\.?0+$'), '') : s;

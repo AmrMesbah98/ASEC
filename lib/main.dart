@@ -34,6 +34,7 @@ import 'package:asec/core/settings/crash_tracker.dart';
 import 'package:asec/core/settings/desktop_video.dart';
 import 'package:asec/core/settings/error_reports.dart';
 import 'package:asec/core/settings/screen_protection.dart';
+import 'package:asec/features/onboarding/o2_authentication/data/device/device_identity.dart';
 import 'package:asec/core/settings/super_admin_bootstrap.dart';
 
 Future<void> main() async {
@@ -42,6 +43,10 @@ Future<void> main() async {
   // Storage first — the theme controller reads it during construction, and
   // the crash tracker writes its breadcrumb to it.
   await GetStorage.init();
+
+  // The device id, kept across an uninstall / reinstall (Keychain on iPhone,
+  // ANDROID_ID on Android) — before anything reads it.
+  await DeviceIdentity.init();
 
   // Did the LAST run finish, or did it vanish (crash to desktop, force-close)?
   // Read now; a crash is reported to the super admin once a session is up.

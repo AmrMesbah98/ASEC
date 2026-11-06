@@ -469,12 +469,25 @@ class DialogShell extends StatelessWidget {
     this.width = 560,
     this.icon,
     this.iconColor,
+    this.showClose = true,
+    this.spreadActions = false,
+    this.centerTitle = false,
   });
 
   final String title;
   final String? subtitle;
   final Widget child;
   final List<Widget> actions;
+
+  /// The ✕ in the corner. Off when the actions already have a Cancel.
+  final bool showClose;
+
+  /// Actions share the width: the first on the left, the last on the right
+  /// (Cancel | Send) instead of both at the end.
+  final bool spreadActions;
+
+  /// Title (and subtitle) centred on the icon instead of aligned to its top.
+  final bool centerTitle;
   final double width;
   final IconData? icon;
   final Color? iconColor;
@@ -507,7 +520,8 @@ class DialogShell extends StatelessWidget {
           children: <Widget>[
             // ── Title row ───────────────────────────────────────────────
             Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment:
+                  centerTitle ? CrossAxisAlignment.center : CrossAxisAlignment.start,
               children: <Widget>[
                 if (icon != null) ...<Widget>[
                   TypeBadge(icon: icon!, color: accent, size: 38),
@@ -529,12 +543,13 @@ class DialogShell extends StatelessWidget {
                     ],
                   ),
                 ),
-                IconButton(
-                  tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
-                  icon: AppIcon(Icons.close_rounded,
-                      size: 20.sp, color: AppColors.secondaryText),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
+                if (showClose)
+                  IconButton(
+                    tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
+                    icon: AppIcon(Icons.close_rounded,
+                        size: 20.sp, color: AppColors.secondaryText),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
               ],
             ),
             SizedBox(height: 16.h),
@@ -552,7 +567,7 @@ class DialogShell extends StatelessWidget {
                 children: <Widget>[
                   for (int i = 0; i < actions.length; i++) ...<Widget>[
                     if (i > 0) SizedBox(width: 10.w),
-                    actions[i],
+                    if (spreadActions) Expanded(child: actions[i]) else actions[i],
                   ],
                 ],
               ),

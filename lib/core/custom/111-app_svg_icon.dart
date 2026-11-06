@@ -55,6 +55,9 @@ class AppSvgIcons {
     Icons.settings_rounded: '${_roles}settings_gear.svg',
     Icons.settings_outlined: '${_roles}settings_gear.svg',
     Icons.logout_rounded: '${_main}logout_door_arrow.svg',
+    // 03/11/2026: Settings → Account / profile card.
+    Icons.delete_forever_rounded: '${_settings}delete_account_trash.svg',
+    Icons.calendar_today_rounded: '${_settings}calendar_since.svg',
     Icons.power_settings_new_rounded: '${_home}logout_arrow.svg',
     Icons.search: '${_main}search_magnifier_alt.svg',
     Icons.filter_alt_outlined: '${_main}filter_sliders.svg',

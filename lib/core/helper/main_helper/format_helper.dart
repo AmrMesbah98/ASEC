@@ -54,11 +54,59 @@ const Set<String> _unitWords = <String>{
   'l', 'ml', 'lb', 'lbs', 'oz', 'ft', 'ft²', 'ft³', 'in²', 'in³', 'in⁴',
   'kw', 'kj', 'kpa', 'mpa', 'pa', 'mbar', 'psi', 'gpm', 'cfm', 'fpm',
   's', 'h', 'rpm', 'in.wg', 'inwg',
+  // 03/11/2026: volume / flow units stay small too — "gal", not "Gal".
+  'gal', 'gals', 'gph', 'gpd', 'lpm', 'lps', 'lph', 'cfh', 'scfm',
+  'hp', 'kwh', 'mj', 'gj', 'ppm', 'psig', 'psia', 'mph', 'kph',
+  'ftwc', 'mwc', 'cu', 'yd', 'yd²', 'yd³',
+  // Unit converter symbols (unit_catalog.dart) written in lower case — they
+  // stay that way: "0.987 atm", "29.53 inHg", not "Atm" / "InHg".
+  'atm', 'inhg', 'mmhg', 'mh₂o', 'mmh₂o', 'fth₂o', 'kcal', 'cal', 'kgf', 'lbf',
+  'kip', 'kn', 'tf', 'thm', 'bbl', 'ac', 'ha', 'feddan', 'nmi', 'µm', 'ms',
+  'rad', 'grad', 'rev', 'd', 'wk', 'yr', 'mi',
 };
+
+/// Units that are also English words ("in", "min", "bar", "hr", "day"):
+/// kept small when they are a unit — in brackets "(in)", or the whole text
+/// is just that unit (a unit column / suffix).
+const Set<String> _wordUnits = <String>{'in', 'min', 'bar', 'hr', 'hrs', 'sec'};
 
 /// Words that are units ONLY right after a number ("2.1 in", "5 min",
 /// "3 bar") — elsewhere they are ordinary English and get capitalised.
 const Set<String> _unitsAfterNumber = <String>{'in', 'min', 'bar'};
+
+/// Small joining words that stay lower case inside a title (02/11/2026):
+/// "Save as PDF", "Flow in l/s", "Tips and Tricks", "Head loss per 100 ft".
+/// The first word of a text (or after ":" / "-") is still capitalised.
+const Set<String> smallWords = <String>{
+  'a', 'an', 'the',
+  'and', 'or', 'nor', 'but', 'so', 'yet',
+  'as', 'at', 'by', 'for', 'from', 'in', 'into', 'of', 'off', 'on',
+  'onto', 'per', 'to', 'up', 'via', 'with', 'vs', 'vs.',
+};
+
+/// True when [word] (ignoring wrapping punctuation) is one of [smallWords].
+bool isSmallWord(String word) => smallWords.contains(
+      word.replaceAll(RegExp(r'''^[(\["']+|[)\],.:;!?"']+$'''), '').toLowerCase(),
+    );
+
+/// True when the word at [i] starts a text or a new part of it.
+bool startsPart(List<String> words, int i) {
+  if (i == 0) return true;
+  final String prev = words[i - 1];
+  if (prev.isEmpty) return startsPart(words, i - 1);
+  return prev == '-' || prev == '—' || prev == '|' || RegExp(r'[:.!?]$').hasMatch(prev);
+}
+
+/// Lower-cases a small word written "As" / "as" — but never "AS" (all caps
+/// stays as written) and never a lone capital "A" ("Type A", "Class A").
+String lowerSmallWord(String word) {
+  final int at = word.indexOf(RegExp(r'[A-Za-z]'));
+  if (at < 0) return word;
+  final String rest = word.substring(at + 1);
+  if (rest.isEmpty && word[at] == 'A') return word;
+  if (rest != rest.toLowerCase()) return word;
+  return word.substring(0, at) + word[at].toLowerCase() + rest;
+}
 
 final RegExp _numberWord = RegExp(r'^[-+]?\d[\d.,]*$');
 
@@ -107,12 +155,26 @@ abstract class FormatHelper {
       if (word.isEmpty) continue;
       // An email or a link stays exactly as it is.
       if (word.contains('@') || word.contains('://')) continue;
+      // A web address stays small too: asecbim.com, www.asecbim.com.
+      if (RegExp(r'^(www\.)?[a-z0-9-]+(\.[a-z0-9-]+)*\.(com|net|org|io|app|eg|sa|ae|co|edu|gov|info)(/\S*)?[.,]?$').hasMatch(word)) continue;
       // A unit symbol stays exactly as it is: kg, mm, m/s, kg/m³, in.wg.
       if (_isUnit(word)) continue;
+      // "(in)", "(min)", or a text that IS the unit ("gal", "in"): small.
+      final String bare = word.replaceAll(RegExp(r'^[(\[]+|[)\],.:;]+$'), '').toLowerCase();
+      if (_wordUnits.contains(bare) &&
+          (word.startsWith('(') || words.where((String w) => w.isNotEmpty).length == 1)) {
+        words[i] = word.toLowerCase();
+        continue;
+      }
       // "2.1 in", "5 min": a unit because a number comes right before it.
       if (i > 0 &&
           _numberWord.hasMatch(words[i - 1]) &&
           _unitsAfterNumber.contains(word)) {
+        continue;
+      }
+      // Small joining words stay small inside a title: "Save as PDF".
+      if (isSmallWord(word) && !startsPart(words, i)) {
+        words[i] = lowerSmallWord(word);
         continue;
       }
       words[i] = word[0].toUpperCase() + word.substring(1);

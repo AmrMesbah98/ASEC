@@ -2,8 +2,10 @@
 ///
 ///*************************** FILE INFO ****************************///
 /// File Name: certificate_quizzes_page.dart
-/// Purpose: Declares `CertificateQuizzesPage` — the member's "Certificate
-///          quiz" tab: one card per course with its final exam.
+/// Purpose: Declares `CertificateQuizzesPage` — the member's "Quiz" tab
+///          (Settings): one card per course with its final exam. With
+///          [earnedOnly] it is the home page's "Certificate" card instead:
+///          only the certificates the member has earned (02/11/2026).
 /// Author: ASEC team
 /// Created: 1/10/2026
 ///
@@ -55,9 +57,13 @@ class _Feed {
 }
 
 class CertificateQuizzesPage extends StatefulWidget {
-  const CertificateQuizzesPage({super.key, required this.user});
+  const CertificateQuizzesPage({super.key, required this.user, this.earnedOnly = false});
 
   final AppUser user;
+
+  /// Home → Certificate: only courses with a certificate (exam passed or
+  /// issued by the admin). False = Settings → Quiz: every course's exam.
+  final bool earnedOnly;
 
   @override
   State<CertificateQuizzesPage> createState() => _CertificateQuizzesPageState();
@@ -154,6 +160,7 @@ class _CertificateQuizzesPageState extends State<CertificateQuizzesPage> {
               .where((Quiz q) => q.certificate && q.questionCount > 0)
               .toList();
 
+          final bool earned = widget.earnedOnly;
           final List<_CourseExam> rows = <_CourseExam>[
             for (final VideoCategory c in VideoCategory.group(videos))
               if (c.name.isNotEmpty)
@@ -163,19 +170,30 @@ class _CertificateQuizzesPageState extends State<CertificateQuizzesPage> {
                   feed.attempts,
                   feed.issued[c.name.trim().toLowerCase()],
                 ),
-          ];
+          ]
+              // Certificate: only what was earned. Quiz: only courses that
+              // have an exam the admin created — no "coming soon" cards.
+              .where((_CourseExam e) => earned
+                  ? e.status == _ExamStatus.passed
+                  : e.quiz != null)
+              .toList();
+
+          final String title = earned ? s.engLibraryCertificate : s.quizTab;
+          final String subtitle = earned ? s.myCertificatesSub : s.certificateQuizzesUserSub;
 
           if (rows.isEmpty) {
             return ConsolePage(
-              title: s.certificateQuiz,
-              subtitle: s.certificateQuizzesUserSub,
-              child: AppEmptyView(title: s.noCoursesTitle, subtitle: s.noCoursesUserSub),
+              title: title,
+              subtitle: subtitle,
+              child: earned
+                  ? AppEmptyView(title: s.noCertificatesTitle, subtitle: s.noCertificatesSub)
+                  : AppEmptyView(title: s.noQuizzesTitle, subtitle: s.noQuizzesUserSub),
             );
           }
 
           return ConsolePage(
-            title: s.certificateQuiz,
-            subtitle: s.certificateQuizzesUserSub,
+            title: title,
+            subtitle: subtitle,
             child: LayoutBuilder(
               builder: (BuildContext context, BoxConstraints constraints) {
                 return GridView.builder(
