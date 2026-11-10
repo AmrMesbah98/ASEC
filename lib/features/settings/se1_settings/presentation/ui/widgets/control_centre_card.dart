@@ -71,6 +71,14 @@ class ControlCentreCard extends StatelessWidget {
         return (s.ctlVideoSearch, s.ctlVideoSearchHint);
       case AppFeature.videoCourseProgress:
         return (s.ctlVideoCourseProgress, s.ctlVideoCourseProgressHint);
+      case AppFeature.videoDownloads:
+        return (s.ctlVideoDownloads, s.ctlVideoDownloadsHint);
+      case AppFeature.videoCloud:
+        return (
+          'Play lessons from Cloudflare',
+          'ON = lessons come only from your Cloudflare lesson server — no Google Drive download limit. '
+              'Copy the lessons first (Settings → Cloudflare lessons). OFF = Google Drive.',
+        );
       case AppFeature.calcConverter:
         return (s.unitConverter, s.ctlCalcHint);
       case AppFeature.calcEngineering:

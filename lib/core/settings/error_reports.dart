@@ -29,6 +29,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import 'package:asec/core/settings/device_specs.dart';
 import 'package:asec/core/network/app_firebase.dart';
 import 'package:asec/core/settings/capture_context.dart';
 import 'package:asec/features/onboarding/o2_authentication/data/device/device_identity.dart';
@@ -56,6 +57,7 @@ class ErrorReport {
     required this.code,
     required this.message,
     required this.stack,
+    this.specs = '',
     this.at,
   });
 
@@ -81,6 +83,9 @@ class ErrorReport {
   final String code;
   final String message;
   final String stack;
+
+  /// The PC: Windows edition, CPU (and whether it is an OLD CPU), RAM, graphics.
+  final String specs;
   final DateTime? at;
 
   /// Everything, as plain text — what "Copy" puts on the clipboard.
@@ -88,6 +93,7 @@ class ErrorReport {
         'When: ${at?.toLocal() ?? '-'}',
         'User: $userName <$email> ($role) uid=$uid',
         'Platform: $platform · Device: $deviceName ($deviceId) · App: $appVersion',
+        if (specs.isNotEmpty) 'PC: ${PcRating.of(specs).text}\n    $specs',
         if (page.isNotEmpty || course.isNotEmpty || detail.isNotEmpty)
           'Where: ${<String>[page, course, detail].where((String x) => x.isNotEmpty).join(' › ')}',
         'Source: $source',
@@ -152,6 +158,9 @@ abstract final class ErrorReports {
     if (error == null) return;
     // Always in the debug console too.
     debugPrint('⚠️ [$source] ${error.runtimeType}: $error');
+    // A debug run (Android Studio) is the developer's own — stopping it, hot
+    // reload and layout warnings are not member errors (07/11/2026).
+    if (kDebugMode) return;
 
     unawaited(_save(error, stack, source, context).catchError((Object _) {}));
   }
@@ -208,6 +217,7 @@ abstract final class ErrorReports {
       'code': code,
       'message': message,
       'stack': trace,
+      'device_specs': await DeviceSpecs.summaryWithin(const Duration(seconds: 4)),
       'at': FieldValue.serverTimestamp(),
     });
   }
@@ -227,6 +237,17 @@ abstract final class ErrorReports {
   /// at [stage] (a startup step) on version [version]. Saved as source
   /// 'crash', with a clear message so the super admin sees where it died.
   static void reportStartupCrash(String stage, String version, DateTime? when) {
+    unawaited(_reportStartupCrash(stage, version, when));
+  }
+
+  static Future<void> _reportStartupCrash(String stage, String version, DateTime? when) async {
+    // UPDATED SINCE (06/11/2026, from ENGX): the last run was an OLDER
+    // version — the installer closed it on purpose to install this one.
+    // Not a crash — no report.
+    if (version.isNotEmpty) {
+      final String now = await _appVersion();
+      if (now.isNotEmpty && now != '?' && now != version) return;
+    }
     final String ago = when == null ? '' : ' at ${when.toLocal()}';
     report(
       'The app closed unexpectedly before it finished opening$ago '
@@ -270,6 +291,7 @@ abstract final class ErrorReports {
       code: t('code'),
       message: t('message'),
       stack: t('stack'),
+      specs: t('device_specs'),
       at: (m['at'] as Timestamp?)?.toDate(),
     );
   }

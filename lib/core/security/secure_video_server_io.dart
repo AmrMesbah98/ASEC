@@ -42,12 +42,17 @@ import 'package:asec/core/security/security_monitor.dart';
 import 'package:asec/core/settings/error_reports.dart';
 
 class _Source {
-  _Source.remote(this.url, this.sizeBytes, this.label)
+  _Source.remote(this.url, this.sizeBytes, this.label, {this.cloud})
       : path = null,
         key = null;
   _Source.local(this.path, this.key, this.label)
       : url = null,
+        cloud = null,
         sizeBytes = 0;
+
+  /// Signs a fresh Cloudflare address for this lesson (07/11/2026, from
+  /// ENGX). Set = the lesson comes from Cloudflare ONLY, never Drive.
+  final String Function()? cloud;
 
   final String? url;
   final String? path;
@@ -93,10 +98,10 @@ abstract final class SecureVideoServer {
 
   /// A one-time local address that plays [url] (a Drive link, already in
   /// its playable form).
-  static Future<Uri> remote(String url, {int sizeBytes = 0, String label = ''}) async {
+  static Future<Uri> remote(String url, {int sizeBytes = 0, String label = '', String Function()? cloud}) async {
     final HttpServer s = await _ensure();
     final String t = _newToken();
-    _tokens[t] = _Source.remote(url, sizeBytes, label);
+    _tokens[t] = _Source.remote(url, sizeBytes, label, cloud: cloud);
     return Uri.parse('http://127.0.0.1:${s.port}/v/$t.mp4');
   }
 
@@ -183,13 +188,66 @@ abstract final class SecureVideoServer {
 
   static Future<void> _serveRemote(HttpRequest req, _Source src, String token) async {
     final HttpResponse res = req.response;
-    final HttpClientResponse up;
+    HttpClientResponse up;
+    final String? range = req.headers.value(HttpHeaders.rangeHeader);
+    final bool head = req.method == 'HEAD';
     try {
-      up = await PinnedFetch.get(
-        Uri.parse(src.url!),
-        range: req.headers.value(HttpHeaders.rangeHeader),
-        head: req.method == 'HEAD',
-      );
+      final String Function()? cloud = src.cloud;
+      if (cloud != null) {
+        // CLOUDFLARE ONLY (07/11/2026, from ENGX): never Google Drive while
+        // it is on — Drive's daily download limit stopped every lesson. No
+        // answer → 3 tries (10 s each) before the player is told.
+        HttpClientResponse? fromCloud;
+        Object? lastError;
+        for (int attempt = 0; attempt < 3 && fromCloud == null; attempt++) {
+          try {
+            final Uri at = Uri.parse(cloud());
+            try {
+              fromCloud = await PinnedFetch.get(at, range: range, head: head)
+                  .timeout(const Duration(seconds: 15));
+            } on TimeoutException {
+              // NO ANSWER (07/11/2026, from ENGX): some providers send
+              // *.workers.dev to an address that never answers instead of
+              // failing the name lookup. The next try connects to the
+              // address Google's DNS gives instead.
+              PinnedFetch.suspect(at);
+              rethrow;
+            } on SocketException {
+              PinnedFetch.suspect(at);
+              rethrow;
+            }
+          } on InterceptedException {
+            rethrow;
+          } catch (e) {
+            lastError = e;
+            if (attempt < 2) await Future<void>.delayed(Duration(milliseconds: 600 * (attempt + 1)));
+          }
+        }
+        if (fromCloud == null) {
+          ErrorReports.report('Lesson "${src.label}" could not play: the lesson server did not answer ($lastError)',
+              StackTrace.empty, source: 'video');
+          res.statusCode = HttpStatus.badGateway;
+          await res.close();
+          return;
+        }
+        if (fromCloud.statusCode >= 400) {
+          final int code = fromCloud.statusCode;
+          unawaited(fromCloud.drain<void>().catchError((Object _) {}));
+          ErrorReports.report(
+            code == HttpStatus.notFound
+                ? 'Lesson "${src.label}" is not in Cloudflare yet — Settings → Cloudflare lessons → Copy lessons.'
+                : 'Lesson "${src.label}" could not play: the lesson server answered $code.',
+            StackTrace.empty,
+            source: 'video',
+          );
+          res.statusCode = HttpStatus.badGateway;
+          await res.close();
+          return;
+        }
+        up = fromCloud;
+      } else {
+        up = await PinnedFetch.get(Uri.parse(src.url!), range: range, head: head);
+      }
     } on InterceptedException {
       _tokens.remove(token);
       res.statusCode = HttpStatus.forbidden;
@@ -326,11 +384,132 @@ abstract final class PinnedFetch {
   static bool _isGoogle(X509Certificate? c) =>
       c != null && c.issuer.contains('Google Trust Services');
 
+  /// The public authorities Cloudflare's certificates come from (07/11/2026,
+  /// lessons on Cloudflare R2). A sniffer's own certificate is none of these.
+  static const List<String> _cloudflareIssuers = <String>[
+    'Google Trust Services',
+    "Let's Encrypt",
+    'SSL.com',
+    'SSL Corporation',
+    'Sectigo',
+    'DigiCert',
+  ];
+
+  static bool _trusted(X509Certificate? c, Uri uri) {
+    if (c == null) return false;
+    if (uri.host.contains('google')) return _isGoogle(c);
+    return _cloudflareIssuers.any(c.issuer.contains);
+  }
+
+  // Some internet providers' DNS does not answer for *.workers.dev ("Failed
+  // host lookup") although the server is reachable. Then the address is
+  // asked from Google's DNS over HTTPS and the app connects to it directly,
+  // with full HTTPS checks for the real name. Google hosts never take this
+  // path. (07/11/2026, from ENGX)
+  static final Map<String, HttpClient> _viaDoh = <String, HttpClient>{};
+
+  /// Hosts that did not answer (time-out / connection error) through the
+  /// device's own DNS: their next request goes through DNS over HTTPS.
+  static final Set<String> _suspect = <String>{};
+
+  static void suspect(Uri uri) {
+    if (!uri.host.contains('google')) _suspect.add(uri.host);
+  }
+
+  static Future<HttpClientRequest> _open(Uri uri, bool head) async {
+    final HttpClient? doh = _viaDoh[uri.host];
+    if (doh != null) return head ? doh.headUrl(uri) : doh.getUrl(uri);
+    if (_suspect.remove(uri.host)) {
+      final HttpClient? client = await _clientByDoh(uri.host);
+      if (client != null) {
+        _viaDoh[uri.host] = client;
+        return head ? client.headUrl(uri) : client.getUrl(uri);
+      }
+    }
+    try {
+      return head ? await _client.headUrl(uri) : await _client.getUrl(uri);
+    } on SocketException catch (e) {
+      if (uri.host.contains('google') || !'$e'.contains('host lookup')) rethrow;
+      final HttpClient? client = await _clientByDoh(uri.host);
+      if (client == null) {
+        throw SocketException('${e.message} — and DNS over HTTPS failed too ($lastDohError)',
+            osError: e.osError, address: e.address, port: e.port);
+      }
+      _viaDoh[uri.host] = client;
+      return head ? client.headUrl(uri) : client.getUrl(uri);
+    }
+  }
+
+  static Future<HttpClient?> _clientByDoh(String host) async {
+    final List<InternetAddress> ips = await _dohLookup(host);
+    if (ips.isEmpty) return null;
+    final HttpClient c = HttpClient()
+      ..findProxy = ((Uri _) => 'DIRECT')
+      ..autoUncompress = false
+      ..connectionTimeout = const Duration(seconds: 20)
+      ..badCertificateCallback = ((X509Certificate cert, String h, int port) {
+        SecurityMonitor.intercepted(h, cert.issuer);
+        return false;
+      });
+    int next = 0;
+    c.connectionFactory = (Uri url, String? proxyHost, int? proxyPort) async {
+      final InternetAddress ip = ips[next++ % ips.length];
+      final int port = url.hasPort ? url.port : 443;
+      final Future<SecureSocket> socket = Socket.connect(ip, port, timeout: const Duration(seconds: 15))
+          .then((Socket raw) => SecureSocket.secure(raw, host: url.host));
+      return ConnectionTask.fromSocket(socket, () {});
+    };
+    return c;
+  }
+
+  /// Why the last DNS-over-HTTPS lookup failed (for the error report).
+  static String lastDohError = '';
+
+  /// A host's IPv4 addresses from DNS over HTTPS ([] when none). Asked by IP
+  /// address first (8.8.8.8, 1.1.1.1), so a network whose own DNS does not
+  /// answer — even for dns.google — still gets an answer (07/11/2026).
+  static Future<List<InternetAddress>> _dohLookup(String host) async {
+    final List<Uri> servers = <Uri>[
+      Uri.https('8.8.8.8', '/resolve', <String, String>{'name': host, 'type': 'A'}),
+      Uri.https('1.1.1.1', '/dns-query', <String, String>{'name': host, 'type': 'A'}),
+      Uri.https('8.8.4.4', '/resolve', <String, String>{'name': host, 'type': 'A'}),
+      Uri.https('1.0.0.1', '/dns-query', <String, String>{'name': host, 'type': 'A'}),
+      Uri.https('dns.google', '/resolve', <String, String>{'name': host, 'type': 'A'}),
+    ];
+    final List<String> why = <String>[];
+    for (final Uri server in servers) {
+      try {
+        final HttpClientRequest rq = await _client.getUrl(server).timeout(const Duration(seconds: 6));
+        rq.headers.set(HttpHeaders.acceptHeader, 'application/dns-json');
+        final HttpClientResponse r = await rq.close().timeout(const Duration(seconds: 6));
+        final String body = await r.transform(const Utf8Decoder(allowMalformed: true)).join();
+        final Object? data = jsonDecode(body);
+        final Object? answers = data is Map ? data['Answer'] : null;
+        final List<InternetAddress> ips = <InternetAddress>[
+          if (answers is List)
+            for (final Object? a in answers)
+              if (a is Map && a['type'] == 1 && InternetAddress.tryParse('${a['data']}') != null)
+                InternetAddress('${a['data']}'),
+        ];
+        if (ips.isNotEmpty) {
+          lastDohError = '';
+          return ips;
+        }
+        why.add('${server.host}: no address');
+      } catch (e) {
+        final String t = '$e';
+        why.add('${server.host}: ${t.length > 80 ? t.substring(0, 80) : t}');
+      }
+    }
+    lastDohError = why.join('; ');
+    return <InternetAddress>[];
+  }
+
   static Future<HttpClientResponse> _send(Uri uri, String? range, bool head) async {
-    final HttpClientRequest rq = head ? await _client.headUrl(uri) : await _client.getUrl(uri);
+    final HttpClientRequest rq = await _open(uri, head);
     if (range != null) rq.headers.set(HttpHeaders.rangeHeader, range);
     final HttpClientResponse r = await rq.close();
-    if (!_isGoogle(r.certificate)) {
+    if (!_trusted(r.certificate, uri)) {
       final String issuer = r.certificate?.issuer ?? 'none';
       SecurityMonitor.intercepted(uri.host, issuer);
       unawaited(r.drain<void>().catchError((Object _) {}));

@@ -39,7 +39,6 @@ import 'package:asec/core/constants/app_assets.dart';
 import 'package:asec/core/theme/app_colors.dart';
 import 'package:asec/core/theme/app_theme.dart';
 import 'package:asec/features/tools/t1_unit_converter/presentation/ui/pages/unit_converter_page.dart';
-import 'package:asec/features/tools/t2_engineering_calc/data/calc_access.dart';
 import 'package:asec/features/tools/t2_engineering_calc/presentation/ui/pages/engineering_calc_page.dart';
 import 'package:asec/features/tools/t3_duct_calc/presentation/ui/pages/duct_calc_page.dart';
 import 'package:asec/features/tools/t4_pipe_calc/presentation/ui/pages/pipe_calc_page.dart';
@@ -238,16 +237,13 @@ class _OfflineScreenState extends State<_OfflineScreen> {
                 // (AppFeature.calc*, read from the cached settings).
                 final AppFeatures feats = AppFeatures.to;
                 feats.values.length; // tracked by Obx
-                // Engineering offline: its switch, or this account's own
-                // unlock remembered on the device (CalcAccess).
-                final bool engUnlocked = CalcAccess.allowed;
                 final List<(_OfflineTool, String)> tools = <(_OfflineTool, String)>[
-                  if (VideoDownloads.items.isNotEmpty)
+                  if (VideoDownloads.enabled && VideoDownloads.items.isNotEmpty)
                     (_OfflineTool.downloads, s.downloads),
                   if (feats.calcOn(AppFeature.calcConverter))
                     (_OfflineTool.converter, s.unitConverter),
-                  if (feats.calcOn(AppFeature.calcEngineering) || engUnlocked)
-                    (_OfflineTool.calculators, s.engineeringCalc),
+                  // 09/11/2026: HVAC = the load estimation, for everybody.
+                  (_OfflineTool.calculators, 'HVAC'),
                   if (feats.calcOn(AppFeature.calcDuct))
                     (_OfflineTool.ducts, s.ductCalc),
                   if (feats.calcOn(AppFeature.calcPipe))
@@ -268,7 +264,7 @@ class _OfflineScreenState extends State<_OfflineScreen> {
                 final Widget page = switch (shown) {
                   _OfflineTool.downloads => const DownloadsPage(),
                   _OfflineTool.converter => const UnitConverterPage(),
-                  _OfflineTool.calculators => const EngineeringCalcPage(),
+                  _OfflineTool.calculators => const EngineeringCalcPage.hvac(),
                   _OfflineTool.ducts => const DuctCalcPage(),
                   _OfflineTool.pipes => const PipeCalcPage(),
                   _OfflineTool.plumbingFire => const PlumbingFirePage(),
@@ -310,7 +306,7 @@ class _OfflineScreenState extends State<_OfflineScreen> {
                             switch (tool) {
                               _OfflineTool.downloads => const DownloadsPage(),
                               _OfflineTool.converter => const UnitConverterPage(),
-                              _OfflineTool.calculators => const EngineeringCalcPage(),
+                              _OfflineTool.calculators => const EngineeringCalcPage.hvac(),
                               _OfflineTool.ducts => const DuctCalcPage(),
                               _OfflineTool.pipes => const PipeCalcPage(),
                               _OfflineTool.plumbingFire => const PlumbingFirePage(),

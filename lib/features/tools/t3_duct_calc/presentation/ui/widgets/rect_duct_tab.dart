@@ -74,6 +74,18 @@ class _RectDuctTabState extends State<RectDuctTab> {
           Text(FormatHelper.capitalize('Enter the air flow, both sides and the length.'))
         else
           ResultTable(
+            exportTitle: 'Rectangular duct',
+            discipline: 'Ducts',
+            inputs: <ResultItem>[
+              ResultItem('Air volume flow', _flow.text.trim(), 'l/s'),
+              ResultItem('Side A', _sideA.text.trim(), 'mm'),
+              ResultItem('Side B', _sideB.text.trim(), 'mm'),
+              ResultItem('Duct length', _length.text.trim(), 'm'),
+            ],
+            method: 'De = 1.30 × (a × b)^0.625 ÷ (a + b)^0.25  (Huebscher)\n'
+                'V = Q ÷ (a × b)\n'
+                'ΔP/L from the Darcy friction factor (galvanised steel)\n'
+                'Velocity pressure = ρ × V² ÷ 2',
             items: <ResultItem>[
               ResultItem('Equivalent diameter', fmt(r.equivalentDiameterMm, 0), 'mm'),
               ResultItem('Velocity', fmt(r.velocity, 2), 'm/s'),

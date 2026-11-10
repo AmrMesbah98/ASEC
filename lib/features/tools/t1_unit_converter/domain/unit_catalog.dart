@@ -20,6 +20,25 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+/// Symbols shown differently from how they are stored (03/11/2026).
+/// 09/11/2026 (Eng. Ahmed Shuhayb's review): flow is written the way
+/// engineers write it — l/s and l/min in lower case, and GPM with no (US) —
+/// and foot per second is FPS, like FPM.
+const Map<String, String> kUnitShown = <String, String>{
+  'kW': 'KW',
+  'BTU/h': 'BTU/HR',
+  'L/s': 'l/s',
+  'L/min': 'l/min',
+  'GPM (US)': 'GPM',
+  'GPM (UK)': 'GPM',
+  'gal (US)': 'gal',
+  'gal (UK)': 'gal',
+  'ft/s': 'FPS',
+  'L/s/person': 'l/s/person',
+  'L/s/m²': 'l/s/m²',
+  'L/min/bar½': 'l/min/bar½',
+};
+
 class UnitDef {
   const UnitDef(
     this.symbol,
@@ -40,6 +59,10 @@ class UnitDef {
         approx = false,
         _toBase = toBase,
         _fromBase = fromBase;
+
+  /// How the symbol is SHOWN (03/11/2026): KW, not kW; BTU/HR, not BTU/h.
+  /// [symbol] stays the key other code looks units up by.
+  String get shown => kUnitShown[symbol] ?? symbol;
 
   final String symbol;
   final String nameEn;
@@ -113,12 +136,18 @@ abstract final class UnitCatalog {
       <(String, String?, String?, List<String>, String, String)>[
     ('length', null, null, <String>['m', 'cm', 'mm', 'in', 'ft'], 'm', 'ft'),
     ('area', null, null, <String>['m²', 'mm²', 'in²', 'ft²'], 'm²', 'ft²'),
+    // 09/11/2026: both gallons, named "Gallon (US)" / "Gallon (UK)", symbol "gal".
     ('volume', null, null, <String>['m³', 'L', 'ft³', 'gal (US)', 'gal (UK)'], 'm³', 'L'),
-    ('mass', null, null, <String>['kg', 'g', 'lb'], 'kg', 'lb'),
+    // 06/11/2026: Flow Rate and Velocity come right after Volume, Mass and
+    // Temperature after Pressure; "Weight / Mass" → "Mass",
+    // "Speed / Velocity" → "Velocity".
+    // 09/11/2026: one gallon only — US vs UK does not matter in the field,
+    // so the UK gallon is gone and the US one is just "GPM".
+    ('flow', null, null, <String>['m³/s', 'm³/h', 'L/s', 'L/min', 'CFM', 'GPM (US)', 'GPM (UK)'], 'L/s', 'CFM'),
+    ('speed', 'Velocity', 'السرعة', <String>['m/s', 'ft/s', 'FPM'], 'm/s', 'FPM'),
+    ('pressure', null, null, <String>['Pa', 'kPa', 'bar', 'psi', 'atm', 'inwg'], 'bar', 'psi'),
+    ('mass', 'Mass', 'الكتلة', <String>['kg', 'g', 'lb'], 'kg', 'lb'),
     ('temperature', null, null, <String>['°C', '°F', 'K'], '°C', '°F'),
-    ('pressure', null, null, <String>['Pa', 'kPa', 'bar', 'psi', 'atm', 'inHg', 'inwg'], 'bar', 'psi'),
-    ('flow', null, null, <String>[], 'L/s', 'CFM'),
-    ('speed', null, null, <String>['m/s', 'ft/s', 'FPM'], 'm/s', 'FPM'),
     ('power', 'Cooling load', 'حمل التبريد', <String>['kW', 'BTU/h', 'TR', 'HP'], 'TR', 'kW'),
     ('density', null, null, <String>['kg/m³', 'lb/ft³', 'lb/gal'], 'kg/m³', 'lb/ft³'),
     ('time', null, null, <String>['s', 'min', 'h', 'd'], 'h', 'min'),
@@ -126,7 +155,11 @@ abstract final class UnitCatalog {
 
   /// The converter's tabs, built once from [all]. An empty symbol list keeps
   /// every unit of the category.
-  static final List<UnitCategory> converter = <UnitCategory>[
+  ///
+  /// A GETTER, not a cached `static final` (09/11/2026): a cached list kept
+  /// the old units after a hot reload, so a removed unit (Gallon UK) stayed
+  /// on screen until a full restart. It is small and cheap to rebuild.
+  static List<UnitCategory> get converter => <UnitCategory>[
     for (final (String id, String? en, String? ar, List<String> keep, String from, String to)
         in _shown)
       _subset(id, en, ar, keep, from, to),
@@ -273,7 +306,7 @@ abstract final class UnitCatalog {
         UnitDef('atm', 'Atmosphere', 'ضغط جوي', 101325),
         UnitDef('kgf/cm²', 'Kilogram-force per cm²', 'كجم قوة لكل سم²', 98066.5),
         UnitDef('mmHg', 'Millimeter of mercury', 'ملم زئبق', 133.322387415),
-        UnitDef('inHg', 'Inch of mercury', 'بوصة زئبق', 3386.388640341),
+        // 03/11/2026: Inch of mercury removed from the pressure units.
         UnitDef('mmH₂O', 'Millimeter of water', 'ملم ماء', 9.80665),
         UnitDef('inwg', 'Inch water gauge', 'بوصة عمود ماء', 249.08891),
         UnitDef('ftH₂O', 'Foot of water', 'قدم ماء', 2989.06692),
@@ -293,8 +326,8 @@ abstract final class UnitCatalog {
         UnitDef('L/s', 'Liter per second', 'لتر/ثانية', 0.001),
         UnitDef('L/min', 'Liter per minute', 'لتر/دقيقة', 1 / 60000),
         UnitDef('CFM', 'Cubic foot per minute', 'قدم مكعب/دقيقة', 0.028316846592 / 60),
-        UnitDef('GPM (US)', 'US gallon per minute', 'جالون أمريكي/دقيقة', 0.003785411784 / 60),
-        UnitDef('GPM (UK)', 'UK gallon per minute', 'جالون إنجليزي/دقيقة', 0.00454609 / 60),
+        UnitDef('GPM (US)', 'Gallon per minute (US)', 'جالون أمريكي/دقيقة', 0.003785411784 / 60),
+        UnitDef('GPM (UK)', 'Gallon per minute (UK)', 'جالون إنجليزي/دقيقة', 0.00454609 / 60),
       ],
     ),
     UnitCategory(

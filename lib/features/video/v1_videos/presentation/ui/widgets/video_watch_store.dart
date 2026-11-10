@@ -11,6 +11,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:intl/intl.dart';
 
 import 'package:asec/features/engagement/e1_engagement/presentation/controller/watch_sync.dart';
 import 'package:asec/generated/l10n.dart';
@@ -96,6 +97,16 @@ String videoClock(Duration d) {
   final String minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
   final String seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
   return d.inHours > 0 ? '${d.inHours}:$minutes:$seconds' : '$minutes:$seconds';
+}
+
+/// "8 Nov 2026 · 3:45 PM" — the exact day and time something was uploaded
+/// or created, in the app's language (from Eduneers, 09/11/2026).
+String videoDateTime(BuildContext context, DateTime? at) {
+  if (at == null) return '';
+  final String locale = Localizations.localeOf(context).languageCode;
+  final DateTime t = at.toLocal();
+  return '${DateFormat('d MMM yyyy', locale).format(t)} · '
+      '${DateFormat('h:mm a', locale).format(t)}';
 }
 
 /// "3 days ago", the way a video site says it.

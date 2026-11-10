@@ -21,12 +21,33 @@ class CertificateData {
     this.percent,
     required this.date,
     required this.number,
+    this.finalExam = true,
+    this.subject = '',
+    this.correct,
+    this.questions,
+    this.points,
+    this.totalPoints,
+    this.duration,
+    this.tries,
   });
 
+  /// Any passed quiz (10/11/2026): a course's final exam names the course;
+  /// any other quiz names the quiz, with its course under it. Both carry
+  /// the attempt's data — score, correct answers, points, time, attempt.
   factory CertificateData.from(Quiz quiz, QuizAttempt attempt) {
-    final String course =
-        quiz.course.trim().isNotEmpty ? quiz.course.trim() : quiz.title.trim();
+    final bool finalExam = quiz.certificate;
+    final String course = finalExam
+        ? (quiz.course.trim().isNotEmpty ? quiz.course.trim() : quiz.title.trim())
+        : quiz.title.trim();
     return CertificateData(
+      finalExam: finalExam,
+      subject: finalExam || quiz.course.trim() == quiz.title.trim() ? '' : quiz.course.trim(),
+      correct: attempt.correctCount,
+      questions: attempt.questionCount,
+      points: attempt.score,
+      totalPoints: attempt.totalPoints,
+      duration: attempt.timeTaken,
+      tries: attempt.tries,
       name: attempt.userName.trim().isNotEmpty
           ? attempt.userName.trim()
           : attempt.userEmail.split('@').first,
@@ -61,6 +82,12 @@ class CertificateData {
         percent: 92,
         date: DateTime.now(),
         number: numberFor('sample_$course'),
+        correct: 23,
+        questions: 25,
+        points: 46,
+        totalPoints: 50,
+        duration: const Duration(minutes: 18, seconds: 40),
+        tries: 1,
       );
 
   final String name;
@@ -73,6 +100,52 @@ class CertificateData {
 
   /// "ASEC-7K2Q9XA" — stable for one member and one exam.
   final String number;
+
+  /// True: a course's final exam (or issued by hand). False: any other
+  /// quiz the member passed.
+  final bool finalExam;
+
+  /// A quiz's course, shown under the quiz title. Empty for a final exam.
+  final String subject;
+
+  final int? correct;
+  final int? questions;
+  final int? points;
+  final int? totalPoints;
+  final Duration? duration;
+  final int? tries;
+
+  /// The attempt's data is known (not issued by hand, not the preview).
+  bool get hasDetails => percent != null && questions != null;
+
+  String get completedLine => finalExam
+      ? 'has successfully completed the course'
+      : 'has successfully passed the quiz';
+
+  String get scoreLine => finalExam
+      ? 'and passed the final exam with a score of $percent%'
+      : subject.isEmpty
+          ? 'with a score of $percent%'
+          : 'of the $subject course with a score of $percent%';
+
+  /// "12m 05s", "1h 02m", or "—" when the time is unknown.
+  String get timeLabel {
+    final Duration? d = duration;
+    if (d == null || d.isNegative) return '—';
+    final String m = (d.inMinutes % 60).toString().padLeft(2, '0');
+    final String sec = (d.inSeconds % 60).toString().padLeft(2, '0');
+    if (d.inHours > 0) return '${d.inHours}h ${m}m';
+    return '${d.inMinutes}m ${sec}s';
+  }
+
+  /// Label → value, in the order the certificate shows them.
+  List<(String, String)> get details => <(String, String)>[
+        ('Score', '$percent%'),
+        ('Correct Answers', '${correct ?? 0}/${questions ?? 0}'),
+        if ((totalPoints ?? 0) > 0) ('Points', '${points ?? 0}/$totalPoints'),
+        ('Time Taken', timeLabel),
+        if (tries != null) ('Attempt', '$tries'),
+      ];
 
   String get dateLabel => DateFormat('d MMMM yyyy', 'en').format(date);
 

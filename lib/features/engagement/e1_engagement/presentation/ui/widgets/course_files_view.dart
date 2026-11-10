@@ -24,12 +24,19 @@ import 'package:asec/core/theme/app_colors.dart';
 import 'package:asec/core/theme/app_theme.dart';
 import 'package:asec/features/engagement/e1_engagement/data/repository/engagement_repository.dart';
 import 'package:asec/features/engagement/e1_engagement/domain/entities/engagement_entities.dart';
+import 'package:asec/features/engagement/e1_engagement/presentation/ui/pages/file_viewer_page.dart';
 import 'package:asec/features/engagement/e1_engagement/presentation/ui/widgets/engagement_widgets.dart';
 import 'package:asec/features/onboarding/o2_authentication/domain/entities/app_user.dart';
+import 'package:asec/features/video/v1_videos/presentation/ui/widgets/video_categories.dart';
 import 'package:asec/features/onboarding/o2_authentication/domain/enums/admin_permission.dart';
 import 'package:asec/features/onboarding/o2_authentication/presentation/controller/session_controller.dart';
 import 'package:asec/generated/l10n.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
+
+/// English or Arabic, by the app's language.
+String _tr(BuildContext context, String en, String ar) =>
+    Localizations.localeOf(context).languageCode == 'ar' ? ar : en;
+
 
 class CourseFilesView extends StatefulWidget {
   const CourseFilesView({
@@ -74,6 +81,35 @@ class _CourseFilesViewState extends State<CourseFilesView> {
 
   /// The folder opened; null = the folder list.
   String? _folderId;
+
+  /// "Move to folder…": any folder, of this course or another one.
+  Future<void> _move(CourseEntry file) async {
+    final S s = S.of(context);
+    final AppUser me = SessionController.to.current;
+    List<CourseEntry> folders;
+    try {
+      folders = (await _repository.allCourseFolders())
+          .where((CourseEntry f) => f.course == EngagementRepository.libraryCourse
+              ? me.canDo(AdminAction.engagementLibrary)
+              : me.canDo(AdminAction.videosEdit))
+          .toList();
+    } catch (e) {
+      if (mounted) showEngagementToast(context, engErrorText(context, e));
+      return;
+    }
+    if (!mounted) return;
+    final CourseEntry? target = await showDialog<CourseEntry>(
+      context: context,
+      builder: (_) => _MoveFileDialog(file: file, folders: folders),
+    );
+    if (target == null || !mounted) return;
+    try {
+      await _repository.moveCourseFile(file, target);
+      if (mounted) showEngagementToast(context, _tr(context, 'Moved to “${target.name}”.', 'تم النقل إلى «${target.name}».'));
+    } catch (e) {
+      if (mounted) showEngagementToast(context, engErrorText(context, e));
+    }
+  }
 
   @override
   void didUpdateWidget(covariant CourseFilesView old) {
@@ -214,24 +250,24 @@ class _CourseFilesViewState extends State<CourseFilesView> {
         else
           LayoutBuilder(
             builder: (BuildContext context, BoxConstraints c) {
-              final double gap = 12.w;
-              final int cols = ((c.maxWidth + gap) / (260 + gap)).floor().clamp(1, 5);
+              // The same cards and grid as the video folders.
+              final double gap = 16.w;
+              final int cols = ((c.maxWidth + gap) / (280 + gap)).floor().clamp(1, 6);
               final double width = (c.maxWidth - gap * (cols - 1)) / cols;
               return Wrap(
                 spacing: gap,
-                runSpacing: gap,
+                runSpacing: 20.h,
                 children: <Widget>[
                   for (int i = 0; i < folders.length; i++)
                     SizedBox(
                       width: width,
                       child: FadeSlideIn(
                         delay: staggerDelay(i, stepMs: 40),
-                        child: _FolderCard(
-                          folder: folders[i],
-                          count: all
-                              .where((CourseEntry e) =>
-                                  !e.isFolder && e.folderId == folders[i].id)
-                              .length,
+                        child: FolderCoverCard(
+                          title: folders[i].name,
+                          index: i,
+                          count: _countIn(all, folders[i]),
+                          countLabel: FormatHelper.capitalize(s.engFileCount(_countIn(all, folders[i]))),
                           onTap: () => setState(() => _folderId = folders[i].id),
                           trailing: (_canEdit || _canDelete)
                               ? DeleteMenu(
@@ -258,6 +294,9 @@ class _CourseFilesViewState extends State<CourseFilesView> {
       ],
     );
   }
+
+  static int _countIn(List<CourseEntry> all, CourseEntry folder) =>
+      all.where((CourseEntry e) => !e.isFolder && e.folderId == folder.id).length;
 
   Widget _folderFiles(
     BuildContext context,
@@ -315,97 +354,50 @@ class _CourseFilesViewState extends State<CourseFilesView> {
             child: AppEmptyView(title: s.engFolderEmpty, size: 120),
           )
         else
-          for (int i = 0; i < files.length; i++) ...<Widget>[
-            if (i > 0) SizedBox(height: 10.h),
-            FadeSlideIn(
-              delay: staggerDelay(i, stepMs: 40),
-              child: FileTile(
-                file: files[i].file!,
-                trailing: _canDelete
-                    ? DeleteMenu(
-                        onDelete: () => confirmDelete(
-                          context,
-                          name: files[i].name,
-                          action: () => _repository.deleteCourseFile(files[i]),
+          // A grid of cards — the same column widths as the folder grid,
+          // so a few files never stretch across the whole page.
+          LayoutBuilder(
+            builder: (BuildContext context, BoxConstraints c) {
+              final double gap = 16.w;
+              final int cols = ((c.maxWidth + gap) / (260 + gap)).floor().clamp(1, 6);
+              final double width = (c.maxWidth - gap * (cols - 1)) / cols;
+              final List<LibraryFile> all = <LibraryFile>[
+                for (final CourseEntry e in files) e.file!,
+              ];
+              return Wrap(
+                spacing: gap,
+                runSpacing: 18.h,
+                children: <Widget>[
+                  for (int i = 0; i < files.length; i++)
+                    SizedBox(
+                      width: width,
+                      child: FadeSlideIn(
+                        delay: staggerDelay(i, stepMs: 40),
+                        child: FileCard(
+                          file: files[i].file!,
+                          onTap: () => openFilesInApp(context, all, index: i),
+                          trailing: _canDelete || _canEdit
+                              ? DeleteMenu(
+                                  extra: <(String, VoidCallback)>[
+                                    if (_canEdit) (_tr(context, 'Move to folder…', 'نقل إلى مجلد…'), () => _move(files[i])),
+                                  ],
+                                  onDelete: _canDelete
+                                      ? () => confirmDelete(
+                                            context,
+                                            name: files[i].name,
+                                            action: () => _repository.deleteCourseFile(files[i]),
+                                          )
+                                      : null,
+                                )
+                              : null,
                         ),
-                      )
-                    : null,
-              ),
-            ),
-          ],
-      ],
-    );
-  }
-}
-
-class _FolderCard extends StatelessWidget {
-  const _FolderCard({
-    required this.folder,
-    required this.count,
-    required this.onTap,
-    this.trailing,
-  });
-
-  final CourseEntry folder;
-  final int count;
-  final VoidCallback onTap;
-  final Widget? trailing;
-
-  @override
-  Widget build(BuildContext context) {
-    final S s = S.of(context);
-    return Material(
-      color: AppColors.card,
-      borderRadius: BorderRadius.circular(16.r),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16.r),
-        onTap: onTap,
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(14.w, 12.h, 4.w, 12.h),
-          child: Row(
-            children: <Widget>[
-              Container(
-                width: 44.r,
-                height: 44.r,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF59E0B).withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-                child: AppIcon(Icons.folder_rounded,
-                    size: 24.sp, color: const Color(0xFFF59E0B)),
-              ),
-              SizedBox(width: 12.w),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    Text(
-                      FormatHelper.capitalize(folder.name),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: StyleText.fontSize15Weight600
-                          .copyWith(color: AppColors.text),
+                      ),
                     ),
-                    SizedBox(height: 2.h),
-                    Text(
-                      FormatHelper.capitalize(s.engFileCount(count)),
-                      style: StyleText.fontSize12Weight400
-                          .copyWith(color: AppColors.secondaryText),
-                    ),
-                  ],
-                ),
-              ),
-              trailing ??
-                  Padding(
-                    padding: EdgeInsetsDirectional.only(end: 10.w),
-                    child: AppIcon(Icons.chevron_right_rounded,
-                        size: 20.sp, color: AppColors.secondaryText),
-                  ),
-            ],
+                ],
+              );
+            },
           ),
-        ),
-      ),
+      ],
     );
   }
 }
@@ -577,3 +569,102 @@ class _FolderPickerDialogState extends State<_FolderPickerDialog> {
 /// so the animation sits in the middle of the screen rather than at the top.
 double _emptyHeight(BuildContext context) =>
     (MediaQuery.sizeOf(context).height * 0.6).clamp(280.0, 720.0);
+
+// ── "Move to folder…" ───────────────────────────────────────────────────────
+
+/// Every folder, grouped by course; the file's own folder is marked and
+/// cannot be picked. Resolves to the folder tapped.
+class _MoveFileDialog extends StatelessWidget {
+  const _MoveFileDialog({required this.file, required this.folders});
+
+  final CourseEntry file;
+  final List<CourseEntry> folders;
+
+  String _course(S s, String c) => c == EngagementRepository.libraryCourse
+      ? s.engLibrary
+      : c.isEmpty
+          ? s.videoCategoryGeneral
+          : c;
+
+  @override
+  Widget build(BuildContext context) {
+    final S s = S.of(context);
+    final List<String> courses = <String>[];
+    for (final CourseEntry f in folders) {
+      if (!courses.contains(f.course)) courses.add(f.course);
+    }
+    // The file's own course first.
+    if (courses.remove(file.course)) courses.insert(0, file.course);
+
+    return DialogShell(
+      title: _tr(context, 'Move “${file.name}” to', 'نقل «${file.name}» إلى'),
+      icon: Icons.move_down_rounded,
+      width: 480,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.6),
+        child: folders.isEmpty
+            ? Text(
+                FormatHelper.capitalize(s.engNoFoldersYet),
+                style: StyleText.fontSize13Weight400.copyWith(color: AppColors.secondaryText),
+              )
+            : SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    for (final String c in courses) ...<Widget>[
+                      Padding(
+                        padding: EdgeInsets.only(top: 4.h, bottom: 6.h),
+                        child: Text(
+                          FormatHelper.capitalize(_course(s, c)),
+                          style: StyleText.fontSize12Weight600.copyWith(color: AppColors.secondaryText),
+                        ),
+                      ),
+                      for (final CourseEntry f in folders.where((CourseEntry f) => f.course == c)) ...<Widget>[
+                        _folderRow(context, s, f, current: f.id == file.folderId),
+                        SizedBox(height: 8.h),
+                      ],
+                    ],
+                  ],
+                ),
+              ),
+      ),
+    );
+  }
+
+  Widget _folderRow(BuildContext context, S s, CourseEntry f, {required bool current}) {
+    return Material(
+      color: current ? AppColors.primary.withOpacity(0.08) : AppColors.background,
+      borderRadius: BorderRadius.circular(12.r),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12.r),
+        onTap: current ? null : () => Navigator.of(context).pop(f),
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+          child: Row(
+            children: <Widget>[
+              AppIcon(Icons.folder_rounded, size: 22.sp, color: const Color(0xFFF59E0B)),
+              SizedBox(width: 10.w),
+              Expanded(
+                child: Text(
+                  FormatHelper.capitalize(f.name),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: StyleText.fontSize14Weight600.copyWith(color: AppColors.text),
+                ),
+              ),
+              if (current)
+                Text(
+                  FormatHelper.capitalize(_tr(context, 'Current', 'الحالي')),
+                  style: StyleText.fontSize12Weight600.copyWith(color: AppColors.primary),
+                )
+              else
+                AppIcon(Icons.chevron_right_rounded, size: 20.sp, color: AppColors.secondaryText),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+

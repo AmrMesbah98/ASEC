@@ -44,6 +44,10 @@ class _AerosolTabState extends AgentTabState<AerosolTab> {
 
   @override
   Widget build(BuildContext context) {
+    // 06/11/2026: the fields are created FIRST, so their default values
+    // count on the very first build — before, the table only appeared
+    // after a field was changed.
+    final List<Widget> enclosure = enclosureFields();
     final double? v = netVolumeFromFields();
     final AerosolResult? r =
         v == null ? null : Aerosol.calculate(volume: v, densityGm3: _class.density);
@@ -53,7 +57,7 @@ class _AerosolTabState extends AgentTabState<AerosolTab> {
       padding: const EdgeInsets.symmetric(vertical: 16),
       children: <Widget>[
         const AgentHeading('Hazard Volume'),
-        ResponsiveFields(children: enclosureFields()),
+        ResponsiveFields(children: enclosure),
         const SizedBox(height: 8),
         const AgentHeading('Design Density'),
         ResponsiveFields(
@@ -80,6 +84,13 @@ class _AerosolTabState extends AgentTabState<AerosolTab> {
           Text(FormatHelper.capitalize('Enter the room length, width and height.'))
         else
           ResultTable(
+            exportTitle: 'Aerosol',
+            discipline: 'Fire fighting',
+            inputs: <ResultItem>[
+              ...inputItems(),
+              ResultItem('Fire Class', '${_class.label} — ${fmt(_class.density, 2)} g/m³'),
+            ],
+            method: 'V = L × W × H\nM = V × design density (g/m³)',
             items: <ResultItem>[
               ResultItem('Net Protected Volume', fmt(r.volume, 2), 'm³'),
               ResultItem('Aerosol Mass Required', fmt(r.baseMass, 0), 'g'),

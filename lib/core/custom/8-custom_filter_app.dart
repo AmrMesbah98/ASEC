@@ -55,6 +55,10 @@ class StatusChipFilter extends StatelessWidget {
   /// Size of the count box — defaults to 45.sp (35.sp on a phone).
   final double? chipSize;
 
+  /// COMPACT (09/11/2026, "The Best"): a small round count and smaller
+  /// text. Off by default, so every other filter row stays as it was.
+  final bool compact;
+
   const StatusChipFilter({
     super.key,
     required this.items,
@@ -65,6 +69,7 @@ class StatusChipFilter extends StatelessWidget {
     this.chipSpacing,
     this.innerSpacing,
     this.chipSize,
+    this.compact = false,
   });
 
   @override
@@ -80,9 +85,10 @@ class StatusChipFilter extends StatelessWidget {
             isSelected: item.key == selectedKey,
             selectedColor: selectedColor ?? AppColors.primary,
             unselectedColor: unselectedColor ?? AppColors.card,
-            chipSpacing: chipSpacing ?? 30.sp,
-            innerSpacing: innerSpacing ?? 15.sp,
-            chipSize: chipSize ?? (isMobile ? 35.sp : 45.sp),
+            chipSpacing: chipSpacing ?? (compact ? 18.sp : 30.sp),
+            innerSpacing: innerSpacing ?? (compact ? 8.sp : 15.sp),
+            chipSize: chipSize ?? (compact ? 26.sp : (isMobile ? 35.sp : 45.sp)),
+            compact: compact,
             onTap: () => onSelected(item.key),
           );
         }).toList(),
@@ -99,6 +105,7 @@ class _StatusChip extends StatelessWidget {
   final double chipSpacing;
   final double innerSpacing;
   final double chipSize;
+  final bool compact;
   final VoidCallback onTap;
 
   const _StatusChip({
@@ -109,6 +116,7 @@ class _StatusChip extends StatelessWidget {
     required this.chipSpacing,
     required this.innerSpacing,
     required this.chipSize,
+    this.compact = false,
     required this.onTap,
   });
 
@@ -167,7 +175,8 @@ class _StatusChip extends StatelessWidget {
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: isSelected ? selectedColor : unselectedColor,
-                borderRadius: AppRadius.buttonR,
+                shape: compact ? BoxShape.circle : BoxShape.rectangle,
+                borderRadius: compact ? null : AppRadius.buttonR,
               ),
               child: AnimatedCount(
                 // ADDED 8/9/2026: the count travels to its new value instead
@@ -185,7 +194,7 @@ class _StatusChip extends StatelessWidget {
                   applyHeightToLastDescent: false,
                   leadingDistribution: TextLeadingDistribution.even,
                 ),
-                style: StyleText.fontSize20Weight500.copyWith(
+                style: (compact ? StyleText.fontSize12Weight600 : StyleText.fontSize20Weight500).copyWith(
                   color: countColor,
                   height: 1.0.h,
                   leadingDistribution: TextLeadingDistribution.even,
@@ -198,7 +207,8 @@ class _StatusChip extends StatelessWidget {
             // ── Label ─────────────────────────────────────────────────────
             Text(
               FormatHelper.capitalize(item.label),
-              style: StyleText.fontSize16Weight600.copyWith(color: labelColor),
+              style: (compact ? StyleText.fontSize13Weight600 : StyleText.fontSize16Weight600)
+                  .copyWith(color: labelColor),
             ),
 
             SizedBox(width: chipSpacing),

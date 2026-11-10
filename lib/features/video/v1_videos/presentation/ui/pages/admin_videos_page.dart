@@ -33,6 +33,8 @@ import 'package:asec/features/video/v1_videos/data/catalog/video_catalog.dart';
 import 'package:asec/features/video/v1_videos/data/seed/drive_lessons.dart';
 import 'package:asec/features/video/v1_videos/domain/base_repository/video_base_repository.dart';
 import 'package:asec/features/video/v1_videos/domain/entities/video_item.dart';
+import 'package:asec/features/video/v1_videos/data/upload/drive_uploader.dart';
+import 'package:asec/features/video/v1_videos/presentation/ui/pages/upload/bulk_upload_page.dart';
 import 'package:asec/features/video/v1_videos/presentation/ui/pages/video_form_page.dart';
 import 'package:asec/features/video/v1_videos/presentation/ui/pages/video_player_page.dart';
 import 'package:asec/features/video/v1_videos/presentation/ui/widgets/video_categories.dart';
@@ -86,6 +88,18 @@ class _AdminVideosPageState extends State<AdminVideosPage> {
       messenger.show(AppMessage(content: Text(FormatHelper.capitalize(s.errUnknown))));
     }
   }
+
+  /// "Upload lessons" (from ENGX, 09/11/2026): many videos at once, straight
+  /// into the Drive lessons folder, then one sync makes them lessons. Desktop
+  /// only (the Google sign-in needs it); phones keep the single-video form.
+  Future<void> _openBulk() => Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => BulkUploadPage(
+            adminUid: widget.adminUid,
+            category: _category ?? '',
+          ),
+        ),
+      );
 
   Future<void> _openForm([VideoItem? video]) => Navigator.of(context).push(
         MaterialPageRoute<bool>(
@@ -181,11 +195,14 @@ class _AdminVideosPageState extends State<AdminVideosPage> {
         // FAB the same default hero tag, and two heroes with one tag is an
         // exception on the next page push — hence an explicit tag each.
         heroTag: 'asec_fab_videos',
-        onPressed: _openForm,
+        onPressed: DriveUploader.supported ? _openBulk : _openForm,
         backgroundColor: AppColors.primary,
-        icon: AppIcon(Icons.cloud_upload_outlined, color: AppColors.textButton),
+        icon: AppIcon(
+          DriveUploader.supported ? Icons.rocket_launch_rounded : Icons.cloud_upload_outlined,
+          color: AppColors.textButton,
+        ),
         label: Text(
-          FormatHelper.capitalize(s.addVideo),
+          FormatHelper.capitalize(DriveUploader.supported ? 'Upload lessons' : s.addVideo),
           style: StyleText.fontSize14Weight600.copyWith(color: AppColors.textButton),
         ),
       ),

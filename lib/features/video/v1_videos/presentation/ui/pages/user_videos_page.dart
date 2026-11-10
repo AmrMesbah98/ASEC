@@ -445,7 +445,7 @@ class _UserVideosPageState extends State<_UserVideosView> {
               lessonNumbers: numbers,
               // Save inside the app for offline. A locked lesson cannot be
               // downloaded — that would get round the order.
-              trailingBuilder: VideoDownloads.supported
+              trailingBuilder: VideoDownloads.enabled
                   ? (VideoItem v) => locked.contains(v.id)
                       ? const SizedBox.shrink()
                       : VideoDownloadButton(video: v)

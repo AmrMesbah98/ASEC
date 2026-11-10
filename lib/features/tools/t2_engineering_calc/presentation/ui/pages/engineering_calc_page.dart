@@ -46,7 +46,23 @@ import 'package:asec/core/helper/main_helper/format_helper.dart';
 import 'package:asec/core/custom/114-app_messenger.dart';
 
 class EngineeringCalcPage extends StatefulWidget {
-  const EngineeringCalcPage({super.key});
+  const EngineeringCalcPage({super.key})
+      : disciplines = CalcCatalog.all,
+        title = null;
+
+  /// 09/11/2026: the HVAC item of the Calculations menu — ONLY the load
+  /// estimation (rule of thumb), no discipline tabs, no calculator chips.
+  /// The full engineering calculators are no longer in the menus.
+  const EngineeringCalcPage.hvac({super.key})
+      : disciplines = CalcCatalog.hvacOnly,
+        title = 'HVAC';
+
+  /// The tabs this page shows. One tab hides the tab bar; one calculator in
+  /// it hides the calculator chips.
+  final List<CalcDiscipline> disciplines;
+
+  /// Page title; null = "Engineering calculators" with its subtitle.
+  final String? title;
 
   @override
   State<EngineeringCalcPage> createState() => _EngineeringCalcPageState();
@@ -67,7 +83,7 @@ class _EngineeringCalcPageState extends State<EngineeringCalcPage> {
   /// True while a PDF / Excel file is being made.
   bool _exporting = false;
 
-  CalcDiscipline get _disc => CalcCatalog.all[_discipline];
+  CalcDiscipline get _disc => widget.disciplines[_discipline];
   int get _calcIndex => _picked[_disc.id] ?? 0;
   EngCalc get _calc => _disc.calcs[_calcIndex];
 
@@ -205,14 +221,17 @@ class _EngineeringCalcPageState extends State<EngineeringCalcPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              CustomTabs(
-                tabs: <String>[for (final CalcDiscipline d in CalcCatalog.all) d.name(ar)],
-                selectedValue: _discipline,
-                onChanged: (int i) => setState(() => _discipline = i),
-                spacing: 24.sp,
-                textStyle: StyleText.fontSize16Weight500,
-              ),
-              SizedBox(height: 14.h),
+              if (widget.disciplines.length > 1) ...<Widget>[
+                CustomTabs(
+                  tabs: <String>[for (final CalcDiscipline d in widget.disciplines) d.name(ar)],
+                  selectedValue: _discipline,
+                  onChanged: (int i) => setState(() => _discipline = i),
+                  spacing: 24.sp,
+                  textStyle: StyleText.fontSize16Weight500,
+                ),
+                SizedBox(height: 14.h),
+              ],
+              if (_disc.calcs.length > 1) ...<Widget>[
               Wrap(
                 spacing: 8.w,
                 runSpacing: 8.h,
@@ -226,6 +245,7 @@ class _EngineeringCalcPageState extends State<EngineeringCalcPage> {
                 ],
               ),
               SizedBox(height: 16.h),
+              ],
               if (wide)
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -249,8 +269,8 @@ class _EngineeringCalcPageState extends State<EngineeringCalcPage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: ConsolePage(
-        title: s.engineeringCalc,
-        subtitle: s.engineeringCalcSub,
+        title: widget.title ?? s.engineeringCalc,
+        subtitle: widget.title == null ? s.engineeringCalcSub : null,
         child: body,
       ),
     );
@@ -263,7 +283,9 @@ class _EngineeringCalcPageState extends State<EngineeringCalcPage> {
       title: label,
       function: onTap,
       wrapContent: true,
-      color: selected ? AppColors.primary : AppColors.card,
+      // 09/11/2026: not selected = the page background, so it stands apart
+      // from the card it sits on (SI / IP).
+      color: selected ? AppColors.primary : AppColors.background,
       textColor: selected ? AppColors.textButton : AppColors.text,
     );
   }
@@ -291,12 +313,27 @@ class _EngineeringCalcPageState extends State<EngineeringCalcPage> {
                   style: StyleText.fontSize18Weight600.copyWith(color: AppColors.text),
                 ),
               ),
-              SizedBox(width: 8.w),
-              _chip('SI', selected: !_imperial, onTap: () => _setSystem(false)),
-              SizedBox(width: 6.w),
-              _chip('IP', selected: _imperial, onTap: () => _setSystem(true)),
+              // 09/11/2026: the HVAC item (load estimation) has no SI / IP.
+              if (widget.title == null) ...<Widget>[
+                SizedBox(width: 8.w),
+                _chip('SI', selected: !_imperial, onTap: () => _setSystem(false)),
+                SizedBox(width: 6.w),
+                _chip('IP', selected: _imperial, onTap: () => _setSystem(true)),
+              ],
             ],
           ),
+          // 09/11/2026: the calculator's subtitle, e.g. "Using rule of
+          // thumb method" under "Load Estimation".
+          if (calc.subtitle(ar).isNotEmpty) ...<Widget>[
+            SizedBox(height: 4.h),
+            Padding(
+              padding: EdgeInsetsDirectional.only(start: 30.w),
+              child: Text(
+                FormatHelper.capitalize(calc.subtitle(ar)),
+                style: StyleText.fontSize13Weight500.copyWith(color: AppColors.primary),
+              ),
+            ),
+          ],
           SizedBox(height: 6.h),
           Text(
             FormatHelper.capitalize(s.calcInputs),
@@ -358,7 +395,7 @@ class _EngineeringCalcPageState extends State<EngineeringCalcPage> {
           maxOverlayHeight: 320,
           items: <DropdownItem<int>>[
             for (int i = 0; i < units.length; i++)
-              DropdownItem<int>(value: i, label: units[i].symbol),
+              DropdownItem<int>(value: i, label: units[i].shown),
           ],
           onChanged: (int? i) {
             if (i != null) setState(() => session.changeUnit(f, i));
@@ -692,7 +729,7 @@ class _CalcSession {
       }
       final double? v = _parsed(f.id);
       final Qty? q = f.qty;
-      final String unit = q == null ? f.unit : q.category.units[units[f.id]!].symbol;
+      final String unit = q == null ? f.unit : q.category.units[units[f.id]!].shown;
       final String n = v == null ? '—' : formatCalc(v, digits: 6);
       inputs.add(CalcRow(
         label: f.name(ar),
@@ -711,7 +748,7 @@ class _CalcSession {
       if (r.text == null && value != null && value.isFinite) {
         final double shown = q == null ? value : q.fromBase(value, resultUnits[r.id]!);
         number = double.tryParse(formatCalc(shown, digits: 6));
-        if (q != null) unit = q.category.units[resultUnits[r.id]!].symbol;
+        if (q != null) unit = q.category.units[resultUnits[r.id]!].shown;
       }
       out.add(CalcRow(
         label: r.name(ar),
@@ -725,6 +762,7 @@ class _CalcSession {
     return CalcReport(
       id: calc.id,
       title: calc.name(ar),
+      subtitle: calc.subtitle(ar),
       discipline: discipline.name(ar),
       arabic: ar,
       inputs: inputs,
@@ -754,6 +792,6 @@ class _CalcSession {
       return r.unit.isEmpty ? n : '$n ${r.unit}';
     }
     final int u = resultUnits[r.id]!;
-    return '${formatCalc(q.fromBase(value, u))} ${q.category.units[u].symbol}';
+    return '${formatCalc(q.fromBase(value, u))} ${q.category.units[u].shown}';
   }
 }

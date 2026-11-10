@@ -29,6 +29,7 @@ import 'package:flutter/foundation.dart';
 import 'package:asec/core/constants/firebase_collections.dart';
 import 'package:asec/core/helper/main_helper/firestore_mapper.dart';
 import 'package:asec/core/helper/upload/picked_upload.dart' as picked;
+import 'package:asec/features/video/v1_videos/data/cloud/cloud_lessons.dart';
 import 'package:asec/core/network/app_firebase.dart';
 import 'package:asec/features/engagement/e1_engagement/domain/entities/engagement_entities.dart';
 
@@ -49,6 +50,8 @@ class EngagementRepository {
       _db.collection(FirebaseCollections.courseSettings);
   CollectionReference<Map<String, dynamic>> get _progress =>
       _db.collection(FirebaseCollections.progress);
+  CollectionReference<Map<String, dynamic>> get _questions =>
+      _db.collection(FirebaseCollections.questions);
 
   static int _newestFirst(DateTime? a, DateTime? b) =>
       (b ?? DateTime(0)).compareTo(a ?? DateTime(0));
@@ -80,6 +83,74 @@ class EngagementRepository {
       });
 
   Future<void> deleteNotice(String id) => _notices.doc(id).delete();
+
+  // ── Questions & answers (03/11/2026) ──────────────────────────────────
+  //
+  // questions/{id}: uid, user_name, text, answered (bool), answer,
+  // answered_by, created_at, answered_at. Members read the ANSWERED ones
+  // and their own; the queries say exactly that, so firestore.rules can
+  // allow them. Sorted on the device (no composite index).
+
+  static AppQuestion _question(DocumentSnapshot<Map<String, dynamic>> d) {
+    final Map<String, dynamic> m = d.safeData;
+    return AppQuestion(
+      id: d.id,
+      uid: m.str('uid'),
+      userName: m.str('user_name'),
+      text: m.str('text'),
+      answer: m.str('answer'),
+      answeredBy: m.str('answered_by'),
+      createdAt: m.date(FirebaseCollections.createdAtField) ?? DateTime.now(),
+      answeredAt: m.date('answered_at'),
+    );
+  }
+
+  static List<AppQuestion> _byAnswered(QuerySnapshot<Map<String, dynamic>> s) =>
+      s.docs.map(_question).toList()
+        ..sort((AppQuestion a, AppQuestion b) =>
+            _newestFirst(a.answeredAt ?? a.createdAt, b.answeredAt ?? b.createdAt));
+
+  /// Every answered question, newest answer first (home page + Questions page).
+  Stream<List<AppQuestion>> watchAnsweredQuestions() => _questions
+      .where('answered', isEqualTo: true)
+      .snapshots()
+      .map(_byAnswered);
+
+  /// [uid]'s own questions, answered or not.
+  Stream<List<AppQuestion>> watchMyQuestions(String uid) => _questions
+      .where('uid', isEqualTo: uid)
+      .snapshots()
+      .map((QuerySnapshot<Map<String, dynamic>> s) => s.docs.map(_question).toList()
+        ..sort((AppQuestion a, AppQuestion b) => _newestFirst(a.createdAt, b.createdAt)));
+
+  /// Admin: every question, waiting ones first.
+  Stream<List<AppQuestion>> watchAllQuestions() => _questions.snapshots().map(
+        (QuerySnapshot<Map<String, dynamic>> s) => s.docs.map(_question).toList()
+          ..sort((AppQuestion a, AppQuestion b) {
+            if (a.answered != b.answered) return a.answered ? 1 : -1;
+            return _newestFirst(a.createdAt, b.createdAt);
+          }),
+      );
+
+  Future<void> askQuestion({required String uid, required String userName, required String text}) =>
+      _questions.add(<String, dynamic>{
+        'uid': uid,
+        'user_name': userName.trim(),
+        'text': text.trim(),
+        'answered': false,
+        FirebaseCollections.createdAtField: FieldValue.serverTimestamp(),
+      });
+
+  /// Admin: post (or edit) the answer.
+  Future<void> answerQuestion(String id, {required String answer, required String by}) =>
+      _questions.doc(id).update(<String, dynamic>{
+        'answered': answer.trim().isNotEmpty,
+        'answer': answer.trim(),
+        'answered_by': by.trim(),
+        'answered_at': FieldValue.serverTimestamp(),
+      });
+
+  Future<void> deleteQuestion(String id) => _questions.doc(id).delete();
 
   // ── Tips & tricks ─────────────────────────────────────────────────────────
 
@@ -183,27 +254,32 @@ class EngagementRepository {
     return result.files.first;
   }
 
-  /// `files/{folder}/{timestamp}_{name}` → the file's download URL.
+  /// Uploads [file] to the same cloud drive as the lessons (Cloudflare R2,
+  /// through the ASEC Worker — from Eduneers, 09/11/2026) and returns `r2:<key>` as both the url
+  /// and the path. The url is signed only when the file is opened
+  /// (openFilesInApp), because a signed address expires.
+  ///
+  /// [folder] ('course' / 'library') is kept for the log only: the Worker
+  /// accepts `lessons/…` keys, and the key keeps the file's extension.
   Future<({String url, String path})> _upload(
     PlatformFile file,
     String folder, {
     void Function(double progress)? onProgress,
   }) async {
-    final String safeName = file.name.replaceAll(RegExp(r'[^\w\.\-]'), '_');
-    final String path = '${FirebaseCollections.storageFiles}/$folder/'
-        '${DateTime.now().millisecondsSinceEpoch}_$safeName';
-    final Reference ref = AppFirebase.storage.ref(path);
-    final UploadTask task = picked.startUpload(
-      ref,
-      file,
-      SettableMetadata(contentType: contentTypeFor(file.name)),
+    final String key = CloudLessons.newKey(file.name);
+    debugPrint('🟡 [upload] drive put ($folder) ${file.name} → $key');
+    int sent = 0;
+    await CloudLessons.upload(
+      key,
+      picked.pickedBytes(file),
+      onBytes: (int b) {
+        sent += b;
+        if (file.size > 0) onProgress?.call((sent / file.size).clamp(0, 1).toDouble());
+      },
     );
-    final Stream<TaskSnapshot> events = task.snapshotEvents;
-    events.listen((TaskSnapshot s) {
-      if (s.totalBytes > 0) onProgress?.call(s.bytesTransferred / s.totalBytes);
-    }, onError: (Object _) {});
-    final TaskSnapshot done = await task;
-    return (url: await done.ref.getDownloadURL(), path: path);
+    debugPrint('🟢 [upload] drive ok: $key');
+    final String ref = '${CloudLessons.directPrefix}$key';
+    return (url: ref, path: ref);
   }
 
   static String contentTypeFor(String name) {
@@ -236,6 +312,16 @@ class EngagementRepository {
 
   Future<void> _deleteObject(String path) async {
     if (path.isEmpty) return;
+    // On the cloud drive (Cloudflare R2).
+    if (CloudLessons.isDirect(path)) {
+      try {
+        await CloudLessons.delete(CloudLessons.keyFor(path)!);
+      } catch (e) {
+        debugPrint('🔴 [upload] drive delete failed ($path): $e');
+      }
+      return;
+    }
+    // Older files, uploaded to Firebase Storage.
     try {
       await AppFirebase.storage.ref(path).delete();
     } on FirebaseException catch (_) {
@@ -466,4 +552,26 @@ class EngagementRepository {
         'videos': videos,
         FirebaseCollections.updatedAtField: FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
+
+  /// Every folder of every course (and of the Library), for "Move to
+  /// folder…". Sorted by course, then A→Z.
+  Future<List<CourseEntry>> allCourseFolders() async {
+    final QuerySnapshot<Map<String, dynamic>> s =
+        await _courseFiles.where('kind', isEqualTo: 'folder').get();
+    return <CourseEntry>[
+      for (final QueryDocumentSnapshot<Map<String, dynamic>> d in s.docs)
+        _entry(d.id, d.data()),
+    ]..sort((CourseEntry a, CourseEntry b) {
+        final int c = a.course.toLowerCase().compareTo(b.course.toLowerCase());
+        return c != 0 ? c : a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      });
+  }
+
+  /// Moves a file into [folder] — of the same course or another one. Only
+  /// the document changes; the stored file stays where it is.
+  Future<void> moveCourseFile(CourseEntry file, CourseEntry folder) =>
+      _courseFiles.doc(file.id).update(<String, dynamic>{
+        'course': folder.course,
+        'folder_id': folder.id,
+      });
 }

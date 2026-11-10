@@ -30,6 +30,7 @@ import 'package:asec/features/onboarding/o2_authentication/data/repository/auth_
 import 'package:asec/features/onboarding/o2_authentication/domain/base_repository/auth_base_repository.dart';
 import 'package:asec/features/onboarding/o2_authentication/domain/entities/app_user.dart';
 import 'package:asec/features/admin/a2_members/presentation/ui/pages/member_access_page.dart';
+import 'package:asec/features/admin/a2_members/presentation/ui/widgets/access_import.dart';
 import 'package:asec/features/onboarding/o2_authentication/domain/entities/member_access.dart';
 import 'package:asec/features/onboarding/o2_authentication/presentation/controller/session_controller.dart';
 import 'package:asec/features/onboarding/o2_authentication/domain/enums/admin_permission.dart';
@@ -129,6 +130,15 @@ class _MembersPageState extends State<MembersPage> {
                 hint: s.searchMembers,
                 onChanged: (String value) => setState(() => _query = value),
               ),
+              // Course access for many members at once from an Excel sheet
+              // (email + course names) — widgets/access_import.dart.
+              if (me.canDo(AdminAction.membersAccess))
+                AppButton(
+                  label: s.accessUploadExcel,
+                  icon: Icons.upload_file_rounded,
+                  dense: true,
+                  onPressed: () => importAccessSheet(context, all),
+                ),
             ],
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,

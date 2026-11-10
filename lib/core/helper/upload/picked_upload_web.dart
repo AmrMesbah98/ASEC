@@ -17,3 +17,7 @@ UploadTask startUpload(
   SettableMetadata metadata,
 ) =>
     ref.putData(file.bytes!, metadata);
+
+/// The picked file as a byte stream (the browser only has its bytes).
+Stream<List<int>> pickedBytes(PlatformFile file) =>
+    Stream<List<int>>.value(file.bytes!);

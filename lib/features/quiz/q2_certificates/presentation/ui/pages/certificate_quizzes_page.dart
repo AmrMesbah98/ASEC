@@ -2,8 +2,10 @@
 ///
 ///*************************** FILE INFO ****************************///
 /// File Name: certificate_quizzes_page.dart
-/// Purpose: Declares `CertificateQuizzesPage` — the member's "Certificate
-///          quiz" tab: one card per course with its final exam.
+/// Purpose: Declares `CertificateQuizzesPage` — the member's "Quiz" tab
+///          (Settings): one card per course with its final exam. With
+///          [earnedOnly] it is the home page's "Certificate" card instead:
+///          only the certificates the member has earned (02/11/2026).
 /// Author: ASEC team
 /// Created: 1/10/2026
 ///
@@ -33,6 +35,7 @@ import 'package:asec/features/quiz/q1_quizzes/domain/entities/quiz_attempt.dart'
 import 'package:asec/features/quiz/q1_quizzes/presentation/ui/pages/quiz_attempt_page.dart';
 import 'package:asec/features/quiz/q2_certificates/presentation/ui/pages/certificate_page.dart';
 import 'package:asec/features/quiz/q2_certificates/data/issued_certificates.dart';
+import 'package:asec/features/quiz/q2_certificates/data/certificate_data.dart';
 import 'package:asec/features/video/v1_videos/domain/entities/video_item.dart';
 import 'package:asec/features/video/v1_videos/presentation/ui/widgets/video_categories.dart';
 import 'package:asec/generated/l10n.dart';
@@ -55,9 +58,13 @@ class _Feed {
 }
 
 class CertificateQuizzesPage extends StatefulWidget {
-  const CertificateQuizzesPage({super.key, required this.user});
+  const CertificateQuizzesPage({super.key, required this.user, this.earnedOnly = false});
 
   final AppUser user;
+
+  /// Home → Certificate: only courses with a certificate (exam passed or
+  /// issued by the admin). False = Settings → Quiz: every course's exam.
+  final bool earnedOnly;
 
   @override
   State<CertificateQuizzesPage> createState() => _CertificateQuizzesPageState();
@@ -154,6 +161,7 @@ class _CertificateQuizzesPageState extends State<CertificateQuizzesPage> {
               .where((Quiz q) => q.certificate && q.questionCount > 0)
               .toList();
 
+          final bool earned = widget.earnedOnly;
           final List<_CourseExam> rows = <_CourseExam>[
             for (final VideoCategory c in VideoCategory.group(videos))
               if (c.name.isNotEmpty)
@@ -163,19 +171,47 @@ class _CertificateQuizzesPageState extends State<CertificateQuizzesPage> {
                   feed.attempts,
                   feed.issued[c.name.trim().toLowerCase()],
                 ),
-          ];
+          ]
+              // Certificate: only what was earned. Quiz: only courses that
+              // have an exam the admin created — no "coming soon" cards.
+              .where((_CourseExam e) => earned
+                  ? e.status == _ExamStatus.passed
+                  : e.quiz != null)
+              .toList();
 
-          if (rows.isEmpty) {
+          // Certificate tab (10/11/2026): every other quiz the member passed
+          // earns a certificate too — the course exams above, then these.
+          final Set<String> shown = <String>{
+            for (final _CourseExam e in rows)
+              if (e.quiz != null) e.quiz!.id,
+          };
+          final List<(Quiz, QuizAttempt)> quizCerts = !earned
+              ? const <(Quiz, QuizAttempt)>[]
+              : <(Quiz, QuizAttempt)>[
+                  for (final Quiz q in feed.quizzes)
+                    if (!shown.contains(q.id) &&
+                        feed.attempts[q.id] != null &&
+                        _passed(q, feed.attempts[q.id]!))
+                      (q, feed.attempts[q.id]!),
+                ]..sort(((Quiz, QuizAttempt) a, (Quiz, QuizAttempt) b) =>
+                    (b.$2.submittedAt ?? DateTime(0)).compareTo(a.$2.submittedAt ?? DateTime(0)));
+
+          final String title = earned ? s.engLibraryCertificate : s.quizTab;
+          final String subtitle = earned ? s.myCertificatesSub : s.certificateQuizzesUserSub;
+
+          if (rows.isEmpty && quizCerts.isEmpty) {
             return ConsolePage(
-              title: s.certificateQuiz,
-              subtitle: s.certificateQuizzesUserSub,
-              child: AppEmptyView(title: s.noCoursesTitle, subtitle: s.noCoursesUserSub),
+              title: title,
+              subtitle: subtitle,
+              child: earned
+                  ? AppEmptyView(title: s.noCertificatesTitle, subtitle: s.noCertificatesSub)
+                  : AppEmptyView(title: s.noQuizzesTitle, subtitle: s.noQuizzesUserSub),
             );
           }
 
           return ConsolePage(
-            title: s.certificateQuiz,
-            subtitle: s.certificateQuizzesUserSub,
+            title: title,
+            subtitle: subtitle,
             child: LayoutBuilder(
               builder: (BuildContext context, BoxConstraints constraints) {
                 return GridView.builder(
@@ -186,11 +222,22 @@ class _CertificateQuizzesPageState extends State<CertificateQuizzesPage> {
                     minCellWidth: 320,
                     availableWidth: constraints.maxWidth,
                   ),
-                  itemCount: rows.length,
+                  itemCount: rows.length + quizCerts.length,
                   itemBuilder: (BuildContext context, int index) => FadeSlideIn(
                     delay: staggerDelay(index, stepMs: 55),
                     child: HoverLift(
-                      child: _ExamCard(exam: rows[index], onTap: () => _open(rows[index])),
+                      child: index < rows.length
+                          ? _ExamCard(exam: rows[index], onTap: () => _open(rows[index]))
+                          : _QuizCertCard(
+                              quiz: quizCerts[index - rows.length].$1,
+                              attempt: quizCerts[index - rows.length].$2,
+                              onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
+                                builder: (_) => CertificatePage(
+                                  quiz: quizCerts[index - rows.length].$1,
+                                  attempt: quizCerts[index - rows.length].$2,
+                                ),
+                              )),
+                            ),
                     ),
                   ),
                 );
@@ -201,6 +248,11 @@ class _CertificateQuizzesPageState extends State<CertificateQuizzesPage> {
       ),
     );
   }
+
+  /// A final exam is passed when the attempt says so; any other quiz at
+  /// [Quiz.passPercent] or more — the same rule as the result screen.
+  static bool _passed(Quiz quiz, QuizAttempt attempt) =>
+      quiz.certificate ? attempt.passed : attempt.percent >= Quiz.passPercent;
 
   static Quiz? _examFor(List<Quiz> exams, String course) {
     final String key = course.trim().toLowerCase();
@@ -388,6 +440,122 @@ class _ExamCard extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: StyleText.fontSize13Weight600.copyWith(color: color),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A certificate from a passed quiz (not a course's final exam): the quiz,
+/// its course, and the attempt's data.
+class _QuizCertCard extends StatelessWidget {
+  const _QuizCertCard({required this.quiz, required this.attempt, required this.onTap});
+
+  final Quiz quiz;
+  final QuizAttempt attempt;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final S s = S.of(context);
+    final CertificateData data = CertificateData.from(quiz, attempt);
+
+    Widget fact(IconData icon, String text) => Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Icon(icon, size: 15, color: AppColors.secondaryText),
+            SizedBox(width: 4.w),
+            Text(
+              text,
+              style: StyleText.fontSize12Weight600.copyWith(color: AppColors.secondaryText),
+            ),
+          ],
+        );
+
+    return Material(
+      color: AppColors.card,
+      borderRadius: BorderRadius.circular(16.r),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16.r),
+        onTap: onTap,
+        child: Padding(
+          padding: EdgeInsets.all(14.r),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Row(
+                children: <Widget>[
+                  Container(
+                    width: 42.r,
+                    height: 42.r,
+                    decoration: BoxDecoration(
+                      color: AppColors.green.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(12.r),
+                    ),
+                    child: Icon(Icons.workspace_premium_rounded, color: AppColors.green, size: 22),
+                  ),
+                  SizedBox(width: 10.w),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        Text(
+                          FormatHelper.capitalize(quiz.title),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: StyleText.fontSize15Weight600.copyWith(color: AppColors.text),
+                        ),
+                        Text(
+                          FormatHelper.capitalize(
+                              quiz.course.trim().isNotEmpty ? quiz.course : s.quizTab),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: StyleText.fontSize12Weight400.copyWith(color: AppColors.secondaryText),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                    decoration: BoxDecoration(
+                      color: AppColors.green.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
+                    child: Text(
+                      FormatHelper.capitalize(s.certificateBadge),
+                      style: StyleText.fontSize11Weight700.copyWith(color: AppColors.green),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 12.h),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: <Widget>[
+                  fact(Icons.check_circle_outline_rounded, '${attempt.correctCount}/${attempt.questionCount}'),
+                  fact(Icons.timer_outlined, data.timeLabel),
+                  fact(Icons.event_rounded, data.dateLabel),
+                ],
+              ),
+              const Spacer(),
+              Row(
+                children: <Widget>[
+                  Icon(Icons.workspace_premium_rounded, size: 18, color: AppColors.green),
+                  SizedBox(width: 6.w),
+                  Expanded(
+                    child: Text(
+                      FormatHelper.capitalize(s.certPassed('${attempt.percent.round()}')),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: StyleText.fontSize13Weight600.copyWith(color: AppColors.green),
                     ),
                   ),
                 ],

@@ -26,6 +26,8 @@ Future<void> deleteVideoFile(String path) async {}
 
 Future<void> deleteVideoDir(String dir) async {}
 
+Future<void> deleteAllVideoDirs() async {}
+
 Future<void> downloadVideoFile({
   required String url,
   required String path,
@@ -33,6 +35,7 @@ Future<void> downloadVideoFile({
   required Uint8List key,
   required void Function(int received, int total) onProgress,
   required bool Function() cancelled,
+  String Function()? cloud,
 }) async =>
     throw UnsupportedError('Downloads are not available on the web');
 

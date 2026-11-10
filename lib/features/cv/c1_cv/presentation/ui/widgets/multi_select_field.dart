@@ -48,7 +48,17 @@ class MultiSelectField extends StatelessWidget {
   final bool enabled;
 
   Future<void> _open(BuildContext context) async {
-    if (!enabled || options.isEmpty) return;
+    if (!enabled) return;
+    if (options.isEmpty) {
+      // Nothing to pick yet (e.g. no role chosen): say why instead of
+      // silently doing nothing.
+      if (emptyHint != null) {
+        ScaffoldMessenger.maybeOf(context)
+          ?..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text(emptyHint!)));
+      }
+      return;
+    }
     final List<String>? picked = await showModalBottomSheet<List<String>>(
       context: context,
       backgroundColor: AppColors.card,

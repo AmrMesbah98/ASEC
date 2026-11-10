@@ -20,6 +20,11 @@
 /// ranked by stars) and the certificate. Videos, the converter and quizzes
 /// stay one tap away in the menu.
 ///
+/// ENGINEERING SERVICES (06/11/2026): right above the Library on every
+/// layout — Design Review, Engineering Design, Engineering Calculations,
+/// Site Supervision. A service opens its details; booking goes to WhatsApp
+/// (engineering_services.dart).
+///
 /// TIPS & TRICKS from the admin are laid over the page once per launch
 /// (TipsLayer): the page fades back behind them.
 
@@ -45,6 +50,7 @@ import 'package:asec/features/engagement/e1_engagement/presentation/controller/c
 import 'package:asec/features/engagement/e1_engagement/presentation/controller/watch_sync.dart';
 import 'package:asec/features/engagement/e1_engagement/presentation/ui/pages/library_pages.dart';
 import 'package:asec/features/engagement/e1_engagement/presentation/ui/widgets/partners_orbit.dart';
+import 'package:asec/features/engagement/e1_engagement/presentation/ui/widgets/questions_section.dart';
 import 'package:asec/features/engagement/e1_engagement/presentation/ui/widgets/stars_row.dart';
 import 'package:asec/features/engagement/e1_engagement/presentation/ui/widgets/tips_overlay.dart';
 import 'package:asec/features/onboarding/o2_authentication/domain/entities/app_user.dart';
@@ -57,6 +63,7 @@ import 'package:asec/features/video/v1_videos/presentation/ui/widgets/video_cate
 import 'package:asec/features/video/v1_videos/presentation/ui/widgets/video_watch_store.dart';
 import 'package:asec/generated/l10n.dart';
 import 'package:asec/features/user/u2_home/presentation/ui/widgets/member_projects_section.dart';
+import 'package:asec/features/user/u2_home/presentation/ui/widgets/engineering_services.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
 import 'package:asec/features/video/v1_videos/presentation/controller/member_videos.dart';
 import 'package:asec/core/network/shared_stream.dart';
@@ -235,12 +242,14 @@ class _HomeBody extends StatelessWidget {
       if (!AppShell.open(context, id)) fallback?.open(context);
     }
 
-    // LIBRARY: the admin's files, the leaderboard and the certificate.
+    // LIBRARY: the admin's files, the leaderboard, the quizzes and the
+    // certificates.
     // Titles only (29/10/2026): no hint line under them, so the cards are
     // shorter.
     final List<_Tile> main = <_Tile>[
       _Tile(
         icon: Icons.folder_copy_rounded,
+        bandIcon: Icons.folder_open_outlined,
         label: s.engLibraryFiles,
         onTap: () => PushedSectionPage.open(context, const LibraryFilesPage()),
       ),
@@ -249,6 +258,7 @@ class _HomeBody extends StatelessWidget {
       if (f.isOn(AppFeature.sectionCvDirectory))
         _Tile(
           icon: Icons.emoji_events_rounded,
+          bandIcon: Icons.star_outline_rounded,
           label: s.cvs,
           onTap: () {
             if (!AppShell.open(context, MemberSectionIds.cvs)) {
@@ -256,13 +266,22 @@ class _HomeBody extends StatelessWidget {
             }
           },
         ),
+      // Quizzes (03/11/2026): the course exams to take — Settings → Quiz.
+      if (f.isOn(AppFeature.sectionVideos))
+        _Tile(
+          icon: Icons.quiz_rounded,
+          bandIcon: Icons.help_center_outlined,
+          label: s.quizzes,
+          onTap: () => PushedSectionPage.open(context, CertificateQuizzesPage(user: user)),
+        ),
       if (f.isOn(AppFeature.sectionVideos))
         _Tile(
           icon: Icons.workspace_premium_rounded,
+          bandIcon: Icons.military_tech_outlined,
           label: s.engLibraryCertificate,
           onTap: () => PushedSectionPage.open(
             context,
-            CertificateQuizzesPage(user: user),
+            CertificateQuizzesPage(user: user, earnedOnly: true),
           ),
         ),
     ];
@@ -326,6 +345,12 @@ class _HomeBody extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
                 FadeSlideIn(child: hero),
+                const SizedBox(height: gap),
+                // ENGINEERING SERVICES: one row of four, above the Library.
+                const FadeSlideIn(
+                  delay: Duration(milliseconds: 60),
+                  child: ServicesSection(),
+                ),
                 const SizedBox(height: gap),
                 // LEVEL: both titles on one line, both cards the same height
                 // with the same top and bottom.
@@ -398,6 +423,14 @@ class _HomeBody extends StatelessWidget {
             children: <Widget>[
               FadeSlideIn(child: hero),
               SizedBox(height: 20.h),
+              // Wide: continue | library share a row — the services go above it.
+              if (wide && resumeCard != null) ...<Widget>[
+                const FadeSlideIn(
+                  delay: Duration(milliseconds: 60),
+                  child: ServicesSection(),
+                ),
+                SizedBox(height: 20.h),
+              ],
               if (wide && resumeCard != null)
                 FadeSlideIn(
                   delay: const Duration(milliseconds: 80),
@@ -418,6 +451,12 @@ class _HomeBody extends StatelessWidget {
                   ),
                   SizedBox(height: 20.h),
                 ],
+                // ENGINEERING SERVICES, right above the Library.
+                const FadeSlideIn(
+                  delay: Duration(milliseconds: 110),
+                  child: ServicesSection(),
+                ),
+                SizedBox(height: 20.h),
                 FadeSlideIn(
                   delay: const Duration(milliseconds: 140),
                   child: tiles,
@@ -430,6 +469,13 @@ class _HomeBody extends StatelessWidget {
                 child: MemberProjectsSection(),
               ),
               // "Your courses" was here — removed; the courses are in Videos.
+              // QUESTIONS & ANSWERS (03/11/2026): the 3 newest answered
+              // questions, Ask, See more — just above the partners.
+              SizedBox(height: 24.h),
+              FadeSlideIn(
+                delay: const Duration(milliseconds: 185),
+                child: QuestionsSection(user: user),
+              ),
               // OUR PARTNERS: one row of logos scrolling by itself (PartnersMarquee).
               SizedBox(height: 28.h),
               const FadeSlideIn(
@@ -935,9 +981,13 @@ class _Tile {
     required this.label,
     required this.onTap,
     this.hint,
+    this.bandIcon,
   });
 
   final IconData icon;
+
+  /// The small outline icon in the card's curved bottom band (Library).
+  final IconData? bandIcon;
   final String label;
   final String? hint;
   final VoidCallback onTap;
@@ -1024,6 +1074,7 @@ class _TileCardState extends State<_TileCard> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.big) return _libraryCard();
     final _Tile t = widget.tile;
     final Color accent = AppColors.primary;
 
@@ -1114,6 +1165,148 @@ class _TileCardState extends State<_TileCard> {
       ),
     );
   }
+
+  /// LIBRARY CARD (03/11/2026, the "glass" look): a softly lit card, the
+  /// icon in a round halo, a bold centred title, and a curved accent band
+  /// with a lighter rim and a small outline icon. Theme colours only
+  /// (primary / card / text), so light and dark mode follow the app.
+  Widget _libraryCard() {
+    final _Tile t = widget.tile;
+    final Color accent = AppColors.primary;
+    final double radius = 20.r;
+    final double band = 38.h;
+    // Four cards side by side on a phone are ~75 px wide: smaller halo.
+    final bool phone = MediaQuery.sizeOf(context).width < 600;
+    final double halo = phone ? 46.r : 58.r;
+
+    final Widget top = Padding(
+      padding: EdgeInsets.fromLTRB(8.w, 10.h, 8.w, 6.h),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            width: halo,
+            height: halo,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                colors: <Color>[
+                  accent.withOpacity(_hover ? 0.26 : 0.18),
+                  accent.withOpacity(_hover ? 0.12 : 0.07),
+                ],
+              ),
+            ),
+            child: AppIcon(t.icon, size: halo * 0.52, color: accent),
+          ),
+        ],
+      ),
+    );
+
+    // The band: a lighter rim just above, the full accent in front.
+    final Widget bottom = SizedBox(
+      height: band,
+      child: Stack(
+        fit: StackFit.expand,
+        children: <Widget>[
+          ClipPath(
+            clipper: const _BandClipper(rise: 0.12),
+            child: ColoredBox(color: accent.withOpacity(0.35)),
+          ),
+          ClipPath(
+            clipper: const _BandClipper(),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: <Color>[accent.withOpacity(0.9), accent],
+                ),
+              ),
+            ),
+          ),
+          // The card's name sits in the band (03/11/2026): no title under
+          // the icon any more, so the card is shorter.
+          Align(
+            alignment: const Alignment(0, 0.55),
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 6.w),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  FormatHelper.capitalize(t.label),
+                  maxLines: 1,
+                  style: StyleText.fontSize14Weight600.copyWith(color: AppColors.textButton),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: AnimatedSlide(
+        duration: const Duration(milliseconds: 160),
+        offset: Offset(0, _hover ? -0.02 : 0),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(radius),
+            // The card colour (white in light mode), like Continue watching.
+            color: AppColors.card,
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(radius),
+            child: Material(
+              color: AppColors.transparent,
+              child: InkWell(
+                onTap: t.onTap,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    // Fixed-height row (desktop): shrinks instead of overflowing.
+                    Expanded(child: Center(child: FittedBox(fit: BoxFit.scaleDown, child: top))),
+                    bottom,
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The library card's bottom band: flat along the bottom, its top edge a
+/// gentle dome. [rise] lifts the whole curve (a fraction of the height) —
+/// the lighter rim drawn just above the band.
+class _BandClipper extends CustomClipper<Path> {
+  const _BandClipper({this.rise = 0});
+
+  final double rise;
+
+  @override
+  Path getClip(Size size) {
+    final double w = size.width;
+    final double h = size.height;
+    final double up = h * rise;
+    final double edge = h * 0.55 - up;
+    return Path()
+      ..moveTo(0, h)
+      ..lineTo(0, edge)
+      ..quadraticBezierTo(w * 0.5, -h * 0.4 - up, w, edge)
+      ..lineTo(w, h)
+      ..close();
+  }
+
+  @override
+  bool shouldReclip(_BandClipper old) => old.rise != rise;
 }
 
 // ── Pieces ──────────────────────────────────────────────────────────────────

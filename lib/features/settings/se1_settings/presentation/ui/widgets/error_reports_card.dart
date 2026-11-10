@@ -9,10 +9,17 @@
 /// Author: ASEC team
 /// Created: 26/10/2026
 
+import 'dart:convert';
+import 'dart:io' show File;
+import 'dart:typed_data';
+
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import 'package:asec/core/settings/device_specs.dart';
 import 'package:asec/core/custom/101-custom_surface.dart';
 import 'package:asec/core/custom/110-app_widgets.dart';
 import 'package:asec/core/custom/57-custom_dialog_manager.dart';
@@ -44,6 +51,96 @@ class _ErrorReportsCardState extends State<ErrorReportsCard> {
     AppMessenger.of(context)
       ..hide()
       ..show(AppMessage(content: Text(FormatHelper.capitalize(text))));
+  }
+
+  bool _exporting = false;
+
+  bool get _ar => Localizations.localeOf(context).languageCode == 'ar';
+
+  /// Export all (06/11/2026, from ENGX): every report, with a summary on top,
+  /// as ONE text file (saved where the super admin picks) and on the
+  /// clipboard — ready to send to the developer in one go.
+  Future<void> _exportAll() async {
+    setState(() => _exporting = true);
+    try {
+      final List<ErrorReport> all = await ErrorReports.watch(limit: 100000).first;
+      final String text = _exportText(all);
+      await Clipboard.setData(ClipboardData(text: text));
+      final DateTime n = DateTime.now();
+      String two(int v) => v.toString().padLeft(2, '0');
+      final String name = 'ASEC-error-reports-${n.year}-${two(n.month)}-${two(n.day)}_${two(n.hour)}${two(n.minute)}.txt';
+      String? saved;
+      if (!kIsWeb) {
+        try {
+          saved = await FilePicker.platform.saveFile(
+            dialogTitle: _ar ? 'حفظ تقارير الأخطاء' : 'Save the error reports',
+            fileName: name,
+            type: FileType.custom,
+            allowedExtensions: <String>['txt'],
+            bytes: Uint8List.fromList(utf8.encode(text)),
+          );
+          // Desktop: file_picker only picks the path — write it.
+          if (saved != null &&
+              !(defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS)) {
+            await File(saved).writeAsString(text);
+          }
+        } catch (_) {}
+      }
+      _toast(saved == null
+          ? (_ar ? 'تم نسخ ${all.length} تقرير — الصقها في رسالتك.' : '${all.length} reports copied — paste them in your message.')
+          : (_ar ? 'تم حفظ ونسخ ${all.length} تقرير.' : '${all.length} reports saved and copied — send the file or paste them.'));
+    } catch (_) {
+      _toast(S.of(context).errUnknown);
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
+  }
+
+  /// Summary (by kind, version, platform, device rating) + every report.
+  static String _exportText(List<ErrorReport> all) {
+    Map<String, int> count(String Function(ErrorReport) key) {
+      final Map<String, int> m = <String, int>{};
+      for (final ErrorReport r in all) {
+        final String k = key(r).trim().isEmpty ? '(none)' : key(r).trim();
+        m[k] = (m[k] ?? 0) + 1;
+      }
+      final List<MapEntry<String, int>> e = m.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+      return Map<String, int>.fromEntries(e);
+    }
+
+    String block(String title, Map<String, int> m) =>
+        '$title\n${m.entries.map((MapEntry<String, int> e) => '  ${e.value.toString().padLeft(4)}  ${e.key}').join('\n')}';
+
+    final StringBuffer b = StringBuffer()
+      ..writeln('ASEC — error reports export (${DateTime.now()})')
+      ..writeln('${all.length} reports')
+      ..writeln()
+      ..writeln(block('By source:', count((ErrorReport r) => r.source)))
+      ..writeln()
+      ..writeln(block('By app version:', count((ErrorReport r) => r.appVersion)))
+      ..writeln()
+      ..writeln(block('By platform:', count((ErrorReport r) => r.platform)))
+      ..writeln()
+      ..writeln(block('By PC:', count((ErrorReport r) => PcRating.of(r.specs).label)))
+      ..writeln()
+      ..writeln(block('Most common (first line):', count((ErrorReport r) {
+        final String first = r.message.split('\n').first;
+        return first
+            .replaceAll(RegExp(r'\d{4}-\d\d-\d\d[ T][\d:.]+'), '<time>')
+            .replaceAll(RegExp(r'\d+(\.\d+)?'), '#');
+      })))
+      ..writeln()
+      ..writeln('=' * 72);
+    int i = 0;
+    for (final ErrorReport r in all) {
+      i++;
+      b
+        ..writeln()
+        ..writeln('#$i')
+        ..writeln(r.fullText)
+        ..writeln('-' * 72);
+    }
+    return b.toString();
   }
 
   Future<void> _clearAll() async {
@@ -126,6 +223,15 @@ class _ErrorReportsCardState extends State<ErrorReportsCard> {
           title: s.errorReportsTitle,
           caption: s.errorReportsCaption,
           actions: <Widget>[
+            if (reports.isNotEmpty)
+              TextButton.icon(
+                onPressed: _exporting ? null : _exportAll,
+                icon: Icon(Icons.ios_share_rounded, size: 18, color: AppColors.primary),
+                label: Text(
+                  _exporting ? (_ar ? 'جارٍ التصدير…' : 'Exporting…') : (_ar ? 'تصدير الكل' : 'Export all'),
+                  style: TextStyle(color: AppColors.primary),
+                ),
+              ),
             if (reports.isNotEmpty)
               TextButton(
                 onPressed: _clearAll,
@@ -242,6 +348,14 @@ class _ReportRow extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: StyleText.fontSize12Weight400.copyWith(color: AppColors.secondaryText),
                   ),
+                  // LOW / OK / GOOD device (DeviceSpecs) — which PCs may have trouble.
+                  if (PcRating.of(r.specs).isKnown)
+                    Text(
+                      PcRating.of(r.specs).text,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: StyleText.fontSize12Weight600.copyWith(color: pcRatingColor(PcRating.of(r.specs).level)),
+                    ),
                 ],
               ),
             ),

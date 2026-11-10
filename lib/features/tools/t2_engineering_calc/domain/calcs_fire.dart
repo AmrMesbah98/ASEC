@@ -193,7 +193,7 @@ const List<double> _nfpa20Ratings = <double>[
 ];
 
 String _ratingText(double gpm) =>
-    gpm.isNaN ? '—' : '${gpm.round()} gpm · ${(gpm * 3.785411784).round()} L/min';
+    gpm.isNaN ? '—' : '${gpm.round()} gpm · ${(gpm * 3.785411784).round()} l/min';
 
 Map<String, double> _firePump(Map<String, double> v) {
   final double demandGpm = v['flow']! / K.gpm;
@@ -291,7 +291,7 @@ const EngCalc pipeFriction = EngCalc(
   formula: 'SI:  hf/L = 10.67·Q^1.852 ÷ (C^1.852·D^4.87)   (Q m³/s, D m)\n'
       'IP:  p = 4.52·Q^1.85 ÷ (C^1.85·d^4.87)   (psi/ft, gpm, in)',
   noteEn: 'Use the INTERNAL diameter of the pipe schedule you are using. Fire mains are '
-      'usually kept under about 4.5 m/s (15 ft/s); domestic water under 2–2.5 m/s.',
+      'usually kept under about 4.5 m/s (15 FPS); domestic water under 2–2.5 m/s.',
   noteAr: 'استخدم القطر الداخلي حسب سُمك الماسورة المستخدمة. خطوط الحريق غالبًا أقل من '
       '4.5 م/ث (15 قدم/ث)، والمياه المنزلية أقل من 2–2.5 م/ث.',
 );

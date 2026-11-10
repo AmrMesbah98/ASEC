@@ -35,6 +35,16 @@ import 'package:video_player/video_player.dart';
 
 const bool videoDownloadsSupported = true;
 
+/// Every account's offline lessons on this device (the super admin switched
+/// downloads off in the Control centre).
+Future<void> deleteAllVideoDirs() async {
+  try {
+    final Directory base = await getApplicationSupportDirectory();
+    final Directory dir = Directory('${base.path}/asec_videos');
+    if (dir.existsSync()) await dir.delete(recursive: true);
+  } catch (_) {}
+}
+
 Future<String> videoDownloadsDir(String uid) async {
   final Directory base = await getApplicationSupportDirectory();
   final Directory dir = Directory('${base.path}/asec_videos/$uid');
@@ -67,13 +77,32 @@ Future<void> downloadVideoFile({
   required Uint8List key,
   required void Function(int received, int total) onProgress,
   required bool Function() cancelled,
+  String Function()? cloud,
 }) async {
   final File part = File('$path.part');
   IOSink? sink;
   try {
     // Past any system proxy, Google-issued certificates only — a sniffer
     // that decrypts HTTPS gets nothing and is reported (PinnedFetch).
-    final HttpClientResponse res = await PinnedFetch.get(Uri.parse(url));
+    // Cloudflare ONLY when it is on (07/11/2026) — never Google Drive.
+    HttpClientResponse? got;
+    if (cloud != null) {
+      Object? last;
+      for (int attempt = 0; attempt < 3 && got == null; attempt++) {
+        try {
+          got = await PinnedFetch.get(Uri.parse(cloud())).timeout(const Duration(seconds: 15));
+        } on InterceptedException {
+          rethrow;
+        } catch (e) {
+          last = e;
+          await Future<void>.delayed(Duration(seconds: attempt + 1));
+        }
+      }
+      if (got == null) throw HttpException('The lesson server did not answer ($last)');
+    } else {
+      got = await PinnedFetch.get(Uri.parse(url));
+    }
+    final HttpClientResponse res = got;
     final String type = res.headers.value(HttpHeaders.contentTypeHeader) ?? '';
     // A private Drive file, or Drive's "quota exceeded" page, answers 200
     // with an HTML page instead of the video.

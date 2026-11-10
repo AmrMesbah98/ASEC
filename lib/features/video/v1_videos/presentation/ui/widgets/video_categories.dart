@@ -499,6 +499,162 @@ class _CategoryCardState extends State<_CategoryCard> {
   }
 }
 
+/// A folder card that looks exactly like a video folder (the coloured,
+/// stacked card with the name on it, the count in the corner, and the name
+/// and count under it) — used for the course FILES folders, so both tabs
+/// look the same.
+class FolderCoverCard extends StatefulWidget {
+  const FolderCoverCard({
+    super.key,
+    required this.title,
+    required this.count,
+    required this.countLabel,
+    required this.index,
+    required this.onTap,
+    this.icon = Icons.folder_copy_rounded,
+    this.badgeIcon = Icons.insert_drive_file_rounded,
+    this.trailing,
+  });
+
+  final String title;
+  final int count;
+  final String countLabel;
+  final int index;
+  final VoidCallback onTap;
+  final IconData icon;
+  final IconData badgeIcon;
+
+  /// E.g. the rename / delete menu, at the end of the line under the card.
+  final Widget? trailing;
+
+  @override
+  State<FolderCoverCard> createState() => _FolderCoverCardState();
+}
+
+class _FolderCoverCardState extends State<FolderCoverCard> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final List<Color> colors =
+        _CategoryCardState._palettes[widget.index % _CategoryCardState._palettes.length];
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: widget.onTap,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            AnimatedScale(
+              duration: const Duration(milliseconds: 160),
+              scale: _hover ? 1.02 : 1,
+              child: AspectRatio(
+                aspectRatio: 16 / 9,
+                child: Stack(
+                  children: <Widget>[
+                    Positioned.fill(
+                      top: 0,
+                      left: 10,
+                      right: 10,
+                      bottom: 6,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: colors.first.withOpacity(0.35),
+                          borderRadius: BorderRadius.circular(14.r),
+                        ),
+                      ),
+                    ),
+                    Positioned.fill(
+                      top: 8,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(14.r),
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: AlignmentDirectional.topStart,
+                              end: AlignmentDirectional.bottomEnd,
+                              colors: colors,
+                            ),
+                          ),
+                          child: Padding(
+                            padding: EdgeInsets.all(14.r),
+                            child: Stack(
+                              children: <Widget>[
+                                PositionedDirectional(
+                                  end: -8,
+                                  bottom: -12,
+                                  child: Icon(widget.icon, size: 96, color: Colors.white.withOpacity(0.14)),
+                                ),
+                                Align(
+                                  alignment: AlignmentDirectional.centerStart,
+                                  child: Text(
+                                    FormatHelper.capitalize(widget.title),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: StyleText.fontSize22Weight700.copyWith(color: Colors.white, height: 1.2),
+                                  ),
+                                ),
+                                PositionedDirectional(
+                                  end: 0,
+                                  top: 0,
+                                  child: Container(
+                                    padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withOpacity(0.35),
+                                      borderRadius: BorderRadius.circular(6.r),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: <Widget>[
+                                        Icon(widget.badgeIcon, size: 15, color: Colors.white),
+                                        SizedBox(width: 4.w),
+                                        Text('${widget.count}',
+                                            style: StyleText.fontSize12Weight600.copyWith(color: Colors.white)),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            SizedBox(height: 12.h),
+            Row(
+              children: <Widget>[
+                AppIcon(Icons.folder_rounded, size: 20.sp, color: colors.last),
+                SizedBox(width: 8.w),
+                Expanded(
+                  child: Text(
+                    FormatHelper.capitalize(widget.title),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: StyleText.fontSize15Weight600.copyWith(color: AppColors.text),
+                  ),
+                ),
+                Text(
+                  widget.countLabel,
+                  style: StyleText.fontSize12Weight400.copyWith(color: AppColors.secondaryText),
+                ),
+                if (widget.trailing != null) widget.trailing!,
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// "← All categories   GENERAL NOTES · 16 videos" above a category's videos.
 class VideoCategoryHeader extends StatelessWidget {
   const VideoCategoryHeader({

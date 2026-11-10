@@ -13,6 +13,7 @@
 /// time. Same rows, same detail screen behind them; one is scoped to a quiz,
 /// the other to the whole centre.
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -33,6 +34,8 @@ import 'package:asec/features/quiz/q1_quizzes/presentation/ui/pages/attempt_deta
 import 'package:asec/generated/l10n.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
 import 'package:asec/core/network/shared_stream.dart';
+import 'package:asec/core/custom/114-app_messenger.dart';
+import 'package:asec/features/tools/t2_engineering_calc/data/calc_export.dart';
 
 /// The quizzes and every attempt, as one value.
 class _Results {
@@ -110,6 +113,77 @@ class _AdminResultsPageState extends State<AdminResultsPage> {
     return rows;
   }
 
+  bool _exporting = false;
+
+  /// 10/11/2026: the rows on screen (search + quiz filter + sort) as a PDF or
+  /// an Excel file — the same ASEC report as the calculators.
+  Future<void> _export(List<QuizAttempt> rows, _Results data, {required bool excel}) async {
+    if (_exporting) return;
+    final S s = S.of(context);
+    final bool ar = Localizations.localeOf(context).languageCode == 'ar';
+    final AppMessenger messenger = AppMessenger.of(context);
+    String filter = s.allQuizzes;
+    for (final Quiz q in data.quizzes) {
+      if (q.id == _quizFilter) filter = q.title;
+    }
+    String time(QuizAttempt a) => a.timeTaken == null
+        ? '—'
+        : s.minutesSeconds('${a.timeTaken!.inMinutes}', '${a.timeTaken!.inSeconds.remainder(60)}');
+    final CalcReport report = CalcReport(
+      id: 'quiz-results',
+      title: s.results,
+      subtitle: '$filter · ${rows.length}',
+      discipline: s.quizzes,
+      arabic: ar,
+      inputs: const <CalcRow>[],
+      results: const <CalcRow>[],
+      formula: '',
+      note: '',
+      extraTitle: s.results,
+      extraHeaders: <String>[s.member, s.email, s.quizLabel, s.score, '%', s.timeTaken, s.finishedAt],
+      extraRows: <List<String>>[
+        for (final QuizAttempt a in rows)
+          <String>[
+            a.userName.isEmpty ? a.userId : a.userName,
+            a.userEmail,
+            a.quizTitle,
+            '${a.score}/${a.totalPoints}',
+            '${a.percent.round()}',
+            time(a),
+            AppDates.dateTime(context, a.submittedAt),
+          ],
+      ],
+      labels: CalcReportLabels(
+        inputs: s.calcInputs,
+        results: s.calcResults,
+        method: s.calcFormula,
+        item: s.calcItem,
+        value: s.calcValue,
+        unit: s.calcUnit,
+        date: s.calcDate,
+        disclaimer: '',
+      ),
+    );
+    setState(() => _exporting = true);
+    try {
+      final String name = '${report.fileBase}.${excel ? 'xlsx' : 'pdf'}';
+      final String? saved = excel
+          ? await CalcExport.saveExcel(report, fileName: name, dialogTitle: s.calcExportExcel)
+          : await CalcExport.savePdf(report, fileName: name, dialogTitle: s.calcExportPdf);
+      if (saved != null) {
+        messenger
+          ..hide()
+          ..show(AppMessage(content: Text(FormatHelper.capitalize(s.calcSaved(saved)))));
+      }
+    } catch (e) {
+      messenger.show(AppMessage(
+        content: Text(FormatHelper.capitalize(kDebugMode ? '${s.errUnknown}\n$e' : s.errUnknown)),
+      ));
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
+  }
+
   void _sort(String key) => setState(() {
         if (_sortKey == key) {
           _ascending = !_ascending;
@@ -159,6 +233,20 @@ class _AdminResultsPageState extends State<AdminResultsPage> {
                 onChanged: (String value) => setState(() {
                   _search.text = value;
                 }),
+              ),
+              AppButton(
+                label: s.calcExportPdf,
+                icon: Icons.picture_as_pdf_rounded,
+                dense: true,
+                loading: _exporting,
+                onPressed: rows.isEmpty ? null : () => _export(rows, data, excel: false),
+              ),
+              AppButton(
+                label: s.calcExportExcel,
+                icon: Icons.table_view_rounded,
+                dense: true,
+                loading: _exporting,
+                onPressed: rows.isEmpty ? null : () => _export(rows, data, excel: true),
               ),
             ],
             child: Column(

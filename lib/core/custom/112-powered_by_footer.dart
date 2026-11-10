@@ -31,7 +31,7 @@ class PoweredByFooter extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         Text(
-          FormatHelper.capitalize(arabic ? 'تطوير ASEC' : 'Powered by ASEC'),
+          FormatHelper.capitalize(arabic ? 'تطوير Amr Mesbah' : 'Powered by Amr Mesbah'),
           textAlign: TextAlign.center,
           style: StyleText.fontSize12Weight600.copyWith(color: c),
         ),

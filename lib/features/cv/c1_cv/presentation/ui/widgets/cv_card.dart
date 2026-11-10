@@ -14,10 +14,27 @@ import 'package:asec/core/custom/111-app_svg_icon.dart';
 import 'package:asec/core/theme/app_colors.dart';
 import 'package:asec/core/theme/app_theme.dart';
 import 'package:asec/features/cv/c1_cv/domain/entities/cv_profile.dart';
-import 'package:asec/generated/l10n.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
 
-class CvCard extends StatelessWidget {
+/// The icon of a position (role) — on the directory's tabs and the cards.
+IconData cvRoleIcon(String role) {
+  switch (role) {
+    case 'Site Engineer':
+      return Icons.engineering_rounded;
+    case 'Technical Office Engineer':
+      return Icons.apartment_rounded;
+    case 'Design Engineer':
+      return Icons.design_services_rounded;
+    default:
+      return Icons.work_outline_rounded;
+  }
+}
+
+/// One CV in the directory — SLIM (09/11/2026): one compact row. The photo
+/// with a thin brand ring; the name; the position in the brand colour; one
+/// line of facts (graduation year · governorate · military status) as small icons
+/// and text, all on one baseline; a chevron. No pills, no borders.
+class CvCard extends StatefulWidget {
   const CvCard({
     super.key,
     required this.cv,
@@ -32,142 +49,105 @@ class CvCard extends StatelessWidget {
   final bool showStatus;
 
   @override
+  State<CvCard> createState() => _CvCardState();
+}
+
+class _CvCardState extends State<CvCard> {
+  bool _hover = false;
+
+  @override
   Widget build(BuildContext context) {
-    final S s = S.of(context);
-    final bool hasYear = cv.graduationYear.isNotEmpty;
-    final bool hasPlace = cv.location.isNotEmpty;
+    final CvProfile cv = widget.cv;
+    final List<(IconData, String)> facts = <(IconData, String)>[
+      if (cv.graduationYear.isNotEmpty) (Icons.school_outlined, cv.graduationYear),
+      if (cv.location.isNotEmpty) (Icons.location_on_outlined, cv.location),
+      if (cv.militaryStatus.isNotEmpty) (Icons.verified_user_outlined, cv.militaryStatus),
+    ];
 
-    return Material(
-      color: AppColors.card,
-      borderRadius: BorderRadius.circular(16.r),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16.r),
-        child: Container(
-          padding: EdgeInsets.fromLTRB(14.w, 14.h, 14.w, 12.h),
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          padding: EdgeInsetsDirectional.fromSTEB(12.w, 10.h, 10.w, 10.h),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16.r),
-            border: Border.all(
-              color: AppColors.secondaryText.withOpacity(0.12),
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              // ── Who ────────────────────────────────────────────────────
-              Row(
-                children: <Widget>[
-                  // A thin brand ring makes the photo the card's anchor.
-                  Container(
-                    padding: const EdgeInsets.all(2),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: AppColors.primary.withOpacity(0.35),
-                        width: 1.5,
-                      ),
-                    ),
-                    child: CvAvatar(cv: cv, size: 46),
-                  ),
-                  SizedBox(width: 12.w),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        Text(
-                          FormatHelper.capitalize(cv.fullName),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: StyleText.fontSize15Weight600
-                              .copyWith(color: AppColors.text),
-                        ),
-                        SizedBox(height: 3.h),
-                        Text(
-                          FormatHelper.capitalize(cv.headline),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: StyleText.fontSize12Weight400.copyWith(
-                            color: AppColors.secondaryText,
-                            height: 1.35,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(width: 8.w),
-                  if (showStatus)
-                    _Tag(label: cv.status.label(context), strong: true)
-                  else
-                    AppIcon(
-                      Icons.chevron_right_rounded,
-                      size: 20.sp,
-                      color: AppColors.secondaryText,
-                    ),
-                ],
+            color: _hover ? AppColors.primary.withOpacity(0.06) : AppColors.card,
+            borderRadius: BorderRadius.circular(14.r),
+            boxShadow: <BoxShadow>[
+              BoxShadow(
+                color: Colors.black.withOpacity(_hover ? 0.14 : 0.06),
+                blurRadius: _hover ? 14 : 8,
+                offset: const Offset(0, 3),
               ),
-
-              // ── Where / when ───────────────────────────────────────────
-              if (hasPlace || hasYear) ...<Widget>[
-                SizedBox(height: 12.h),
-                Wrap(
-                  spacing: 6.w,
-                  runSpacing: 6.h,
-                  children: <Widget>[
-                    if (hasPlace)
-                      _Meta(icon: Icons.location_on_outlined, text: cv.location),
-                    if (hasYear)
-                      _Meta(icon: Icons.school_outlined, text: cv.graduationYear),
-                  ],
+            ],
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: <Widget>[
+              // Photo, thin brand ring.
+              Container(
+                padding: const EdgeInsets.all(1.5),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: <Color>[AppColors.primary, AppColors.secondaryPrimary],
+                  ),
                 ),
-              ],
-
-              // ── Skills ─────────────────────────────────────────────────
-              if (cv.proSkills.isNotEmpty) ...<Widget>[
-                SizedBox(height: 10.h),
-                // Three skills and a counter: a card that lists twelve is a
-                // wall, and the detail page has them all anyway.
-                Wrap(
-                  spacing: 6.w,
-                  runSpacing: 6.h,
+                child: CvAvatar(cv: cv, size: 44),
+              ),
+              SizedBox(width: 12.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
-                    for (final String skill in cv.proSkills.take(3))
-                      _Tag(label: skill),
-                    if (cv.proSkills.length > 3)
-                      _Tag(label: '+${cv.proSkills.length - 3}', muted: true),
-                  ],
-                ),
-              ],
-
-              // ── Footer ─────────────────────────────────────────────────
-              if (cv.updatedAt != null) ...<Widget>[
-                SizedBox(height: 12.h),
-                Divider(
-                  height: 1,
-                  color: AppColors.secondaryText.withOpacity(0.12),
-                ),
-                SizedBox(height: 10.h),
-                Row(
-                  children: <Widget>[
-                    AppIcon(
-                      Icons.update_rounded,
-                      size: 13.sp,
-                      color: AppColors.secondaryText,
+                    Text(
+                      FormatHelper.capitalize(cv.fullName),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: StyleText.fontSize15Weight600
+                          .copyWith(color: AppColors.text, height: 1.2),
                     ),
-                    SizedBox(width: 4.w),
-                    Expanded(
-                      child: Text(
-                        FormatHelper.capitalize(s.cvUpdatedOn(AppDates.day(context, cv.updatedAt))),
+                    if (cv.role.isNotEmpty) ...<Widget>[
+                      SizedBox(height: 2.h),
+                      Text(
+                        FormatHelper.capitalize(cv.role),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: StyleText.fontSize10Weight400
-                            .copyWith(color: AppColors.secondaryText),
+                        style: StyleText.fontSize12Weight500
+                            .copyWith(color: AppColors.primary, height: 1.2),
                       ),
-                    ),
+                    ],
+                    if (facts.isNotEmpty) ...<Widget>[
+                      SizedBox(height: 6.h),
+                      // Spread across the whole line, the last one at the
+                      // end (09/11/2026).
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: <Widget>[
+                          for (final (IconData icon, String text) in facts)
+                            Flexible(child: _Fact(icon: icon, text: text)),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
-              ],
+              ),
+              SizedBox(width: 8.w),
+              if (widget.showStatus)
+                _Tag(label: cv.status.label(context), strong: true)
+              else
+                AppIcon(
+                  Directionality.of(context) == TextDirection.rtl
+                      ? Icons.chevron_left_rounded
+                      : Icons.chevron_right_rounded,
+                  size: 20.sp,
+                  color: _hover ? AppColors.primary : AppColors.secondaryText,
+                ),
             ],
           ),
         ),
@@ -176,35 +156,31 @@ class CvCard extends StatelessWidget {
   }
 }
 
-/// Location / graduation year: icon + text on a soft pill.
-class _Meta extends StatelessWidget {
-  const _Meta({required this.icon, required this.text});
+/// One fact on the card's last line: a small icon and its text, aligned on
+/// one baseline with the others.
+class _Fact extends StatelessWidget {
+  const _Fact({required this.icon, required this.text});
 
   final IconData icon;
   final String text;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-      decoration: BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.circular(20.r),
-      ),
-      child: Row(
+  Widget build(BuildContext context) => Row(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           AppIcon(icon, size: 13.sp, color: AppColors.secondaryText),
           SizedBox(width: 4.w),
-          Text(
-            FormatHelper.capitalize(text),
-            style: StyleText.fontSize11Weight400
-                .copyWith(color: AppColors.secondaryText),
+          Flexible(
+            child: Text(
+              FormatHelper.capitalize(text),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: StyleText.fontSize11Weight500
+                  .copyWith(color: AppColors.secondaryText, height: 1.2),
+            ),
           ),
         ],
-      ),
-    );
-  }
+      );
 }
 
 /// The CV's photo, or the app's avatar when there is none.

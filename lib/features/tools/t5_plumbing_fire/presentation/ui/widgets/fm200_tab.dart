@@ -78,11 +78,52 @@ class _Fm200TabState extends State<Fm200Tab> {
           Text(FormatHelper.capitalize('Enter the room length, width, height and ambient temperature.'))
         else ...<Widget>[
           ResultTable(
+            exportTitle: 'FM-200',
+            discipline: 'Fire fighting',
             items: <ResultItem>[
               ResultItem('Room Volume', fmt(r.volume, 2), 'm³'),
               ResultItem('Total Weight Of FM-200', fmt(r.agentWeight, 2), 'kg'),
               ResultItem('Take Weight Of FM-200 Cylinder', fmt(r.takeWeight, 0), 'kg'),
             ],
+            // 09/11/2026: the files carry the inputs, the cylinder and
+            // nozzle layout picked, the pipe-limits table, the catalogue
+            // figure and the method.
+            inputs: <ResultItem>[
+              ResultItem('Length', _length.text.trim(), 'm'),
+              ResultItem('Width', _width.text.trim(), 'm'),
+              ResultItem('Height', _height.text.trim(), 'm'),
+              ResultItem('Ambient', _ambient.text.trim(), '°C'),
+              if (cyl != null) ResultItem('Nozzles', _nozzles.label),
+            ],
+            exportResults: <ResultItem>[
+              ResultItem('Room Volume', fmt(r.volume, 2), 'm³'),
+              ResultItem('Total Weight Of FM-200', fmt(r.agentWeight, 2), 'kg'),
+              ResultItem('Take Weight Of FM-200 Cylinder', fmt(r.takeWeight, 0), 'kg'),
+              if (cyl != null && layout != null) ...<ResultItem>[
+                ResultItem('Use part no.', cyl.partNumber),
+                ResultItem('Cylinder', '${cyl.sizeLb}', 'lb'),
+                ResultItem('Nozzle size', _in(layout.nozzleSize)),
+                ResultItem('Page no.', '${_nozzles.page}'),
+                ResultItem('Table no.', _nozzles.table),
+                ResultItem('Figure', _nozzles.figure),
+              ],
+            ],
+            extraTitle: 'Pipe limits',
+            extraHeaders: layout == null
+                ? const <String>[]
+                : <String>['Item', for (final Fm200Section sec in layout.sections) 'Section ${sec.name}'],
+            extraRows: layout == null
+                ? const <List<String>>[]
+                : <List<String>>[
+                    for (final _Limit l in _Limit.all)
+                      <String>[l.label, for (final Fm200Section sec in layout.sections) l.value(sec)],
+                  ],
+            imageAsset: layout == null ? null : _nozzles.figureAsset,
+            imageCaption: layout == null ? '' : _nozzles.figure,
+            method: 'V = L × W × H\n'
+                'S = 0.1269 + 0.0005 × T\n'
+                'W = V ÷ S × C ÷ (100 − C),  C = ${fmt(Fm200.concentration, 0)} %\n'
+                'Cylinder: the smallest KIDDE cylinder that holds W (rounded up)',
           ),
           const SizedBox(height: 16),
           if (cyl == null)

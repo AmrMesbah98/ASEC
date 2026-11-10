@@ -69,6 +69,7 @@ class CvFormState {
       status == CvFormStatus.uploading || status == CvFormStatus.saving;
 
   /// The skills offered for the role that is currently picked.
+  /// 09/11/2026: only the fixed professional skills (CvOptions.proSkills).
   List<String> get availableProSkills => CvOptions.skillsFor(cv.role);
 
   CvFormState copyWith({
@@ -111,6 +112,7 @@ class CvFormCubit extends Cubit<CvFormState> {
             fullName: user.fullName,
             email: user.email,
             phone: user.phone,
+            specialization: CvOptions.defaultSpecialization,
           ),
         ));
 
@@ -130,8 +132,38 @@ class CvFormCubit extends Cubit<CvFormState> {
         emit(state.copyWith(status: CvFormStatus.editing, isNew: true));
         return;
       }
+      // A CV saved before the lists were narrowed may hold a specialization
+      // or role that is no longer offered: fall back to the default
+      // specialization and ask for the role again.
+      CvProfile cv = existing;
+      if (!CvOptions.specializations.contains(cv.specialization)) {
+        cv = cv.copyWith(specialization: CvOptions.defaultSpecialization);
+      }
+      if (cv.languages.any((String l) => !CvOptions.languages.contains(l))) {
+        cv = cv.copyWith(languages: <String>[
+          for (final String l in cv.languages)
+            if (CvOptions.languages.contains(l)) l,
+        ]);
+      }
+      // 09/11/2026: skills no longer offered are dropped from the form.
+      if (cv.proSkills.any((String k) => !CvOptions.proSkills.contains(k)) ||
+          cv.softSkills.any((String k) => !CvOptions.softSkills.contains(k))) {
+        cv = cv.copyWith(
+          proSkills: <String>[
+            for (final String k in cv.proSkills)
+              if (CvOptions.proSkills.contains(k)) k,
+          ],
+          softSkills: <String>[
+            for (final String k in cv.softSkills)
+              if (CvOptions.softSkills.contains(k)) k,
+          ],
+        );
+      }
+      if (cv.role.isNotEmpty && !CvOptions.roles.contains(cv.role)) {
+        cv = cv.copyWith(role: '');
+      }
       emit(state.copyWith(
-        cv: existing,
+        cv: cv,
         status: CvFormStatus.editing,
         isNew: false,
       ));
@@ -165,10 +197,9 @@ class CvFormCubit extends Cubit<CvFormState> {
   /// A NEW ROLE CLEARS THE PROFESSIONAL SKILLS. They were picked from the old
   /// role's list, and keeping "Site Supervision" on a sales engineer's CV is
   /// worse than making them pick again.
-  void setRole(String? v) => _edit(state.cv.copyWith(
-        role: v ?? '',
-        proSkills: const <String>[],
-      ));
+  /// A new role only changes which skills are OFFERED; the skills already
+  /// chosen are kept, so nothing the member picked disappears.
+  void setRole(String? v) => _edit(state.cv.copyWith(role: v ?? ''));
 
   void setProSkills(List<String> v) => _edit(state.cv.copyWith(proSkills: v));
   void setSoftSkills(List<String> v) => _edit(state.cv.copyWith(softSkills: v));

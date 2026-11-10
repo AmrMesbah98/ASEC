@@ -30,8 +30,7 @@ class OnlineUsersCard extends StatefulWidget {
 }
 
 class _OnlineUsersCardState extends State<OnlineUsersCard> {
-  late final Stream<List<PresenceEntry>> _people =
-      shared(() => Presence.watchRecent());
+  late final Stream<List<PresenceEntry>> _people = shared(() => Presence.watchRecent());
 
   /// Rows shown here before "View all".
   static const int _preview = 5;

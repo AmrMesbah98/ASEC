@@ -19,6 +19,7 @@ import 'package:asec/features/web/site/site_nav.dart';
 import 'package:asec/features/engagement/e1_engagement/presentation/ui/widgets/partners_orbit.dart'
     show PartnerLogoItem;
 import 'package:asec/features/engagement/e1_engagement/presentation/ui/widgets/partners_marquee.dart';
+import 'package:asec/core/helper/main_helper/format_helper.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -153,7 +154,7 @@ class ProjectsSection extends StatelessWidget {
             if (limit != null) ...<Widget>[
               const SizedBox(height: 28),
               OutlinedButton(
-                  onPressed: () => siteGo(context, '/projects'), child: Text(const L('كل الأعمال', 'All projects').t)),
+                  onPressed: () => siteGo(context, '/projects'), child: Text(FormatHelper.capitalize(const L('كل الأعمال', 'All projects').t))),
             ],
           ],
         ),
@@ -222,7 +223,7 @@ class BlogSection extends StatelessWidget {
             ),
             const SizedBox(height: 28),
             OutlinedButton(
-                onPressed: () => siteGo(context, '/articles'), child: Text(const L('كل المقالات', 'All articles').t)),
+                onPressed: () => siteGo(context, '/articles'), child: Text(FormatHelper.capitalize(const L('كل المقالات', 'All articles').t))),
           ],
         ),
       );
@@ -239,15 +240,15 @@ class CeoSection extends StatelessWidget {
           children: <Widget>[
             ClipOval(child: NetImage(settings.s('ceo_photo_url'), width: 140, height: 140, placeholderIcon: Icons.person)),
             const SizedBox(height: 14),
-            Text(settings.txt('ceo_label', const L('المدير التنفيذى', 'Chief Executive Officer')),
+            Text(FormatHelper.capitalize(settings.txt('ceo_label', const L('المدير التنفيذى', 'Chief Executive Officer'))),
                 style: TextStyle(fontWeight: FontWeight.w700, color: WebColors.ink)),
             const SizedBox(height: 4),
-            Text(settings.s('ceo_name'),
+            Text(FormatHelper.capitalize(settings.s('ceo_name')),
                 style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w800, color: WebColors.redBright)),
             const SizedBox(height: 18),
             // 01/11/2026: ONE short line under the name — the firm's name
             // only, no long bio and no "…".
-            Text('ASEC Engineering Consultants',
+            Text(FormatHelper.capitalize('ASEC Engineering Consultants'),
                 maxLines: 1,
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 17, height: 1.5, fontWeight: FontWeight.w600, color: WebColors.ink)),

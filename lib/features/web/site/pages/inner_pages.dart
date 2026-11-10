@@ -15,6 +15,7 @@ import 'package:asec/features/web/site/site_shell.dart';
 import 'package:asec/features/web/site/widgets/cards.dart';
 import 'package:asec/features/web/site/site_nav.dart';
 import 'package:asec/core/network/shared_stream.dart';
+import 'package:asec/core/helper/main_helper/format_helper.dart';
 
 // ── من نحن ───────────────────────────────────────────────────────────────
 
@@ -33,16 +34,16 @@ class AboutPage extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
-                    Text(const L('نبذة عن المكتب', 'About the firm').t,
+                    Text(FormatHelper.capitalize(const L('نبذة عن المكتب', 'About the firm').t),
                         style: const TextStyle(color: WebColors.redBright, fontWeight: FontWeight.w800, fontSize: 16)),
                     const SizedBox(height: 6),
-                    Text(s.s('about_heading'),
+                    Text(FormatHelper.capitalize(s.s('about_heading')),
                         style: TextStyle(fontSize: 30, fontWeight: FontWeight.w800, color: WebColors.navy)),
                     const SizedBox(height: 18),
-                    Text(s.s('about_text'), style: const TextStyle(fontSize: 16, height: 2)),
+                    Text(FormatHelper.capitalize(s.s('about_text')), style: const TextStyle(fontSize: 16, height: 2)),
                     if (s.l('team').isNotEmpty) ...<Widget>[
                       const SizedBox(height: 36),
-                      Text(const L('يتكون فريقنا من', 'Our team').t,
+                      Text(FormatHelper.capitalize(const L('يتكون فريقنا من', 'Our team').t),
                           style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: WebColors.navy)),
                       const SizedBox(height: 16),
                       GridOf(
@@ -56,7 +57,7 @@ class AboutPage extends StatelessWidget {
                                 color: WebColors.surface,
                                 border: const BorderDirectional(start: BorderSide(color: WebColors.red, width: 4)),
                               ),
-                              child: Text(t,
+                              child: Text(FormatHelper.capitalize(t),
                                   textAlign: TextAlign.center,
                                   style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
                             ),
@@ -122,10 +123,10 @@ class ServiceDetailPage extends StatelessWidget {
                     if (d.s('image_url').isNotEmpty)
                       AspectRatio(aspectRatio: 21 / 9, child: NetImage(d.s('image_url'), radius: 12)),
                     const SizedBox(height: 28),
-                    Text(d.s('body'), style: const TextStyle(fontSize: 16, height: 2.1)),
+                    Text(FormatHelper.capitalize(d.s('body')), style: const TextStyle(fontSize: 16, height: 2.1)),
                     if (points.isNotEmpty) ...<Widget>[
                       const SizedBox(height: 36),
-                      Text(const L('اهم النقاط فى هذه الصفحة', 'Key points').t,
+                      Text(FormatHelper.capitalize(const L('اهم النقاط فى هذه الصفحة', 'Key points').t),
                           style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: WebColors.navy)),
                       const SizedBox(height: 16),
                       for (int i = 0; i < points.length; i++)
@@ -137,11 +138,11 @@ class ServiceDetailPage extends StatelessWidget {
                               CircleAvatar(
                                 radius: 15,
                                 backgroundColor: WebColors.red,
-                                child: Text('${i + 1}',
+                                child: Text(FormatHelper.capitalize('${i + 1}'),
                                     style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
                               ),
                               const SizedBox(width: 12),
-                              Expanded(child: Text(points[i], style: const TextStyle(fontSize: 15, height: 1.9))),
+                              Expanded(child: Text(FormatHelper.capitalize(points[i]), style: const TextStyle(fontSize: 15, height: 1.9))),
                             ],
                           ),
                         ),
@@ -186,13 +187,13 @@ class _ProjectsPageState extends State<ProjectsPage> {
                       alignment: WrapAlignment.center,
                       children: <Widget>[
                         ChoiceChip(
-                          label: Text(const L('الكل', 'All').t),
+                          label: Text(FormatHelper.capitalize(const L('الكل', 'All').t)),
                           selected: _cat.isEmpty,
                           onSelected: (_) => setState(() => _cat = ''),
                         ),
                         for (final MapEntry<String, String> e in kProjectCategories.entries)
                           ChoiceChip(
-                            label: Text(e.value),
+                            label: Text(FormatHelper.capitalize(e.value)),
                             selected: _cat == e.key,
                             onSelected: (_) => setState(() => _cat = e.key),
                           ),
@@ -252,21 +253,21 @@ class ProjectDetailPage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
               for (final (String k, String v) in info) ...<Widget>[
-                Text(k, style: TextStyle(color: WebColors.muted, fontSize: 13)),
-                Text(v, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                Text(FormatHelper.capitalize(k), style: TextStyle(color: WebColors.muted, fontSize: 13)),
+                Text(FormatHelper.capitalize(v), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
                 const Divider(height: 22),
               ],
               if (d.l('team').isNotEmpty) ...<Widget>[
-                Text(const L('فريق العمل المشارك فيه', 'Project team').t, style: TextStyle(color: WebColors.muted, fontSize: 13)),
+                Text(FormatHelper.capitalize(const L('فريق العمل المشارك فيه', 'Project team').t), style: TextStyle(color: WebColors.muted, fontSize: 13)),
                 for (final String m in d.l('team'))
-                  Text(m, style: const TextStyle(fontWeight: FontWeight.w700, height: 1.8)),
+                  Text(FormatHelper.capitalize(m), style: const TextStyle(fontWeight: FontWeight.w700, height: 1.8)),
               ],
               if (d.s('download_url').isNotEmpty) ...<Widget>[
                 const SizedBox(height: 18),
                 ElevatedButton.icon(
                   onPressed: () => openLink(d.s('download_url')),
                   icon: const AppIcon(Icons.download_rounded),
-                  label: Text(const L('تحميل ملفات المشروع', 'Download project files').t),
+                  label: Text(FormatHelper.capitalize(const L('تحميل ملفات المشروع', 'Download project files').t)),
                 ),
               ],
             ],
@@ -275,10 +276,10 @@ class ProjectDetailPage extends StatelessWidget {
         final Widget body = Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            Text(d.s('description'), style: const TextStyle(fontSize: 16, height: 2.1)),
+            Text(FormatHelper.capitalize(d.s('description')), style: const TextStyle(fontSize: 16, height: 2.1)),
             if (d.l('role').isNotEmpty) ...<Widget>[
               const SizedBox(height: 26),
-              Text(const L('دورنا في المشروع:', 'Our role:').t,
+              Text(FormatHelper.capitalize(const L('دورنا في المشروع:', 'Our role:').t),
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: WebColors.navy)),
               const SizedBox(height: 10),
               for (final String r in d.l('role'))
@@ -292,7 +293,7 @@ class ProjectDetailPage extends StatelessWidget {
                         child: AppIcon(Icons.check_circle_rounded, color: WebColors.red, size: 18),
                       ),
                       const SizedBox(width: 10),
-                      Expanded(child: Text(r, style: const TextStyle(fontSize: 15, height: 1.9))),
+                      Expanded(child: Text(FormatHelper.capitalize(r), style: const TextStyle(fontSize: 15, height: 1.9))),
                     ],
                   ),
                 ),
@@ -370,7 +371,7 @@ class RequestsPage extends StatelessWidget {
                 maxWidth: 900,
                 child: Column(
                   children: <Widget>[
-                    Text(s.s('requests_text'),
+                    Text(FormatHelper.capitalize(s.s('requests_text')),
                         textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, height: 2)),
                     const SizedBox(height: 32),
                     GridOf(
@@ -429,9 +430,9 @@ class _RequestTile extends StatelessWidget {
               children: <Widget>[
                 AppIcon(icon, size: 48, color: enabled ? WebColors.red : WebColors.muted),
                 const SizedBox(height: 12),
-                Text(title, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: WebColors.navy)),
+                Text(FormatHelper.capitalize(title), style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: WebColors.navy)),
                 const SizedBox(height: 6),
-                Text(enabled ? text : const L('مغلق حاليًا', 'Currently closed').t,
+                Text(FormatHelper.capitalize(enabled ? text : const L('مغلق حاليًا', 'Currently closed').t),
                     textAlign: TextAlign.center, style: TextStyle(color: WebColors.muted)),
               ],
             ),
@@ -479,11 +480,11 @@ class NotFoundPage extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 100),
             child: Column(
               children: <Widget>[
-                const Text('404', style: TextStyle(fontSize: 72, fontWeight: FontWeight.w800, color: WebColors.red)),
-                Text(const L('الصفحة غير موجودة', 'Page not found').t,
+                Text(FormatHelper.capitalize('404'), style: TextStyle(fontSize: 72, fontWeight: FontWeight.w800, color: WebColors.red)),
+                Text(FormatHelper.capitalize(const L('الصفحة غير موجودة', 'Page not found').t),
                     style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 20),
-                ElevatedButton(onPressed: () => siteGo(context, '/'), child: Text(const L('الرئيسية', 'Home').t)),
+                ElevatedButton(onPressed: () => siteGo(context, '/'), child: Text(FormatHelper.capitalize(const L('الرئيسية', 'Home').t))),
               ],
             ),
           ),

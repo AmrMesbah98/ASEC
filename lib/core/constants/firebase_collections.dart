@@ -49,6 +49,9 @@ abstract final class FirebaseCollections {
   /// holds the uids of the members who saved one.
   static const String tips = 'tips';
 
+  /// `questions/{id}` — members ask, admins answer (home page Q&A).
+  static const String questions = 'questions';
+
   /// `library/{id}` — files in the member library (home → Library).
   static const String library = 'library';
 

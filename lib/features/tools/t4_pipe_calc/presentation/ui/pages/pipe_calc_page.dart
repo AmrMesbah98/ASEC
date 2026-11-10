@@ -59,7 +59,7 @@ class _PipeCalcPageState extends State<PipeCalcPage> {
   /// A flow in gpm, written in the current units.
   String _flowText(double gpm) => _ip
       ? _trim(gpm.toStringAsFixed(2))
-      : _trim((gpm * PipeSi.gpmToLs).toStringAsFixed(3));
+      : _trim((gpm * PipeSi.gpmToLs).toStringAsFixed(2));
 
   static String _trim(String s) =>
       s.contains('.') ? s.replaceFirst(RegExp(r'\.?0+$'), '') : s;
@@ -106,7 +106,7 @@ class _PipeCalcPageState extends State<PipeCalcPage> {
   List<ResultItem> _flowItems(PipeResult r, PipeFluid f) {
     if (_ip) {
       return <ResultItem>[
-        ResultItem('Fluid velocity', fmt(r.velocity, 2), 'ft/s'),
+        ResultItem('Fluid velocity', fmt(r.velocity, 2), 'FPS'),
         ResultItem('Head loss', fmt(r.headLoss, 3), 'ft/100 ft'),
       ];
     }
@@ -201,7 +201,7 @@ class _PipeCalcPageState extends State<PipeCalcPage> {
               NumberField(
                 controller: _flow,
                 label: 'Flow',
-                unit: _ip ? 'US gpm' : 'L/s',
+                unit: _ip ? 'GPM' : 'l/s',
                 onChanged: (_) => setState(() {}),
               ),
             ],
@@ -216,7 +216,22 @@ class _PipeCalcPageState extends State<PipeCalcPage> {
             const SizedBox(height: 24),
             Text(FormatHelper.capitalize('Flow')),
             const SizedBox(height: 8),
-            ResultTable(items: _flowItems(result, fluid)),
+            ResultTable(
+              items: _flowItems(result, fluid),
+              exportTitle: 'Pipe sizing',
+              discipline: 'Pipes',
+              inputs: <ResultItem>[
+                ResultItem('Units', _ip ? 'Imperial' : 'Metric'),
+                ResultItem('Pipe type', _type.label),
+                ResultItem('Pipe size', kPipeSizes[_size].label),
+                ResultItem('Fluid', _ip ? fluid.label : fluid.labelSi),
+                ResultItem('Flow', _flow.text.trim(), _ip ? 'GPM' : 'l/s'),
+              ],
+              method: 'V = Q ÷ A (pipe inside area)\n'
+                  'Re = ρ × V × D ÷ μ\n'
+                  'Head loss from the Darcy–Weisbach equation (Colebrook friction factor)',
+              exportResults: <ResultItem>[..._pipeItems(result), ..._flowItems(result, fluid)],
+            ),
           ],
         ],
       ),

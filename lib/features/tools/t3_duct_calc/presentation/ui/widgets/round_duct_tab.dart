@@ -12,6 +12,9 @@
 ///          only Vel and dP shown.
 /// Updated: 25/10/2026 - Units: Metric (l/s, mm, m/s, Pa/m) or Inch
 ///          (CFM, in, fpm, in.wg/100 ft). Same calculation underneath.
+/// Updated: 02/11/2026 - Every diameter of the old dropdown is a row of the
+///          table (100 … 300 mm / 4 … 12 in), so all sizes compare at once;
+///          the diameter dropdown is gone.
 library;
 
 import 'dart:math' as math;
@@ -20,7 +23,7 @@ import 'package:asec/core/helper/main_helper/format_helper.dart';
 import 'package:flutter/material.dart';
 
 import 'package:asec/core/custom/1-custom_dropdown.dart';
-import 'package:asec/core/custom/100-custom_data_table.dart';
+import 'package:asec/core/theme/app_theme.dart';
 import 'package:asec/core/theme/app_colors.dart';
 import 'package:asec/features/tools/t3_duct_calc/domain/duct_calculator.dart';
 import 'package:asec/features/tools/t3_duct_calc/domain/duct_sizer_calculator.dart' show SizerUnits;
@@ -65,9 +68,6 @@ class _FlexibleDuctTabState extends State<FlexibleDuctTab> {
 
   final TextEditingController _flow = TextEditingController(text: '183.7');
 
-  /// Index into the diameter lists, so switching units keeps the same size.
-  int _diameter = 0;
-
   bool get _ip => _units == SizerUnits.ip;
 
   @override
@@ -93,53 +93,31 @@ class _FlexibleDuctTabState extends State<FlexibleDuctTab> {
     if (q == null || q <= 0) return const <_FlexRow>[];
 
     final double flowM3s = (_ip ? q * _lsPerCfm : q) / 1000.0;
+
+    // One row per diameter (the sizes the dropdown used to offer).
+    return <_FlexRow>[
+      for (int i = 0; i < kFlexibleDuctDiametersMm.length; i++) _row(flowM3s, i),
+    ];
+  }
+
+  _FlexRow _row(double flowM3s, int i) {
     final double dM = _ip
-        ? kFlexibleDuctDiametersIn[_diameter] * _mPerIn
-        : kFlexibleDuctDiametersMm[_diameter] / 1000.0;
+        ? kFlexibleDuctDiametersIn[i] * _mPerIn
+        : kFlexibleDuctDiametersMm[i] / 1000.0;
     final double v = flowM3s / (math.pi * dM * dM / 4);
     final double dpm = DuctCalculator.roundPressureDropPerMetre(
       flowM3s: flowM3s,
       diameterM: dM,
       roughnessM: RoundDuctType.flexible.roughnessM,
     );
-
-    return <_FlexRow>[
-      _ip
-          ? _FlexRow('Ø ${kFlexibleDuctDiametersIn[_diameter]} in', v * _fpmPerMs,
-              dpm * _inwgPer100ftPerPaM)
-          : _FlexRow('Ø ${kFlexibleDuctDiametersMm[_diameter]} mm', v, dpm),
-    ];
-  }
-
-  List<AppTableColumn<_FlexRow>> _columns() {
-    AppTableColumn<_FlexRow> col(
-      String label,
-      String Function(_FlexRow r) value, {
-      bool emphasis = false,
-    }) {
-      return AppTableColumn<_FlexRow>(
-        label: label,
-        cell: (BuildContext context, _FlexRow r) =>
-            AppTableCellText(value(r), emphasis: emphasis),
-      );
-    }
-
-    return <AppTableColumn<_FlexRow>>[
-      col(_ip ? 'Ø (in)' : 'Ø (mm)', (_FlexRow r) => r.diameter, emphasis: true),
-      _ip
-          ? col('Vel (fpm)', (_FlexRow r) => fmt(r.velocity, 0))
-          : col('Vel (m/s)', (_FlexRow r) => fmt(r.velocity, 2)),
-      _ip
-          ? col('dP (inwg/100ft)', (_FlexRow r) => fmt(r.pressureDrop, 3))
-          : col('dP (Pa/m)', (_FlexRow r) => fmt(r.pressureDrop, 1)),
-    ];
+    return _ip
+        ? _FlexRow('${kFlexibleDuctDiametersIn[i]}', v * _fpmPerMs, dpm * _inwgPer100ftPerPaM)
+        : _FlexRow('${kFlexibleDuctDiametersMm[i]}', v, dpm);
   }
 
   @override
   Widget build(BuildContext context) {
     final List<_FlexRow> rows = _rows();
-    final List<AppTableColumn<_FlexRow>> columns = _columns();
-    final List<int> sizes = _ip ? kFlexibleDuctDiametersIn : kFlexibleDuctDiametersMm;
 
     return ListView(
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
@@ -168,36 +146,74 @@ class _FlexibleDuctTabState extends State<FlexibleDuctTab> {
               unit: _ip ? 'CFM' : 'l/s',
               onChanged: (_) => setState(() {}),
             ),
-            SizedBox(
-              width: 240,
-              child: CustomDropdown<int>(
-                fillColor: AppColors.card,
-                label: _ip ? 'Diameter (in)' : 'Diameter (mm)',
-                value: _diameter,
-                items: <DropdownItem<int>>[
-                  for (int i = 0; i < sizes.length; i++)
-                    DropdownItem<int>(value: i, label: '${sizes[i]}'),
-                ],
-                onChanged: (int? i) {
-                  if (i != null) setState(() => _diameter = i);
-                },
-              ),
-            ),
           ],
         ),
         const SizedBox(height: 16),
         if (rows.isEmpty)
           Text(FormatHelper.capitalize('Enter the air flow.'))
         else
-          AppDataTable<_FlexRow>(
-            shrinkWrap: true,
-            rows: rows,
-            columns: columns,
-            // Phone / tablet: one full-width card.
-            cardBuilder: (BuildContext context, _FlexRow r) =>
-                ductCard<_FlexRow>(context, r, columns),
-          ),
+          // A REAL TABLE on every screen (03/11/2026): AppDataTable turns
+          // into one card per row below 720 px; three short columns fit a
+          // phone, so all diameters read side by side.
+          _FlexTable(rows: rows, ip: _ip),
       ],
+    );
+  }
+}
+
+/// Ø | Vel | dP — header row, then one row per diameter, theme colours.
+class _FlexTable extends StatelessWidget {
+  const _FlexTable({required this.rows, required this.ip});
+
+  final List<_FlexRow> rows;
+  final bool ip;
+
+  @override
+  Widget build(BuildContext context) {
+    final TextStyle head = StyleText.fontSize13Weight600.copyWith(color: AppColors.textButton);
+    final TextStyle cell = StyleText.fontSize14Weight500.copyWith(color: AppColors.text);
+    final TextStyle first = StyleText.fontSize14Weight600.copyWith(color: AppColors.text);
+
+    Widget pad(Widget child) => Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+          child: child,
+        );
+    Widget text(String v, TextStyle style) =>
+        pad(Text(v, textAlign: TextAlign.center, style: style));
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          border: Border.all(color: AppColors.secondaryText.withOpacity(0.12)),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Table(
+          defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+          border: TableBorder(
+            horizontalInside: BorderSide(color: AppColors.secondaryText.withOpacity(0.12)),
+          ),
+          children: <TableRow>[
+            TableRow(
+              decoration: BoxDecoration(color: AppColors.primary),
+              children: <Widget>[
+                text(ip ? 'Ø (in)' : 'Ø (mm)', head),
+                text(ip ? 'Vel (FPM)' : 'Vel (m/s)', head),
+                text(ip ? 'dP (in.wg/100ft)' : 'dP (Pa/m)', head),
+              ],
+            ),
+            for (final _FlexRow r in rows)
+              TableRow(
+                children: <Widget>[
+                  text(r.diameter, first),
+                  text(fmt(r.velocity, ip ? 0 : 2), cell),
+                  text(fmt(r.pressureDrop, ip ? 3 : 1), cell),
+                ],
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -22,6 +22,7 @@
 /// The UI reads [items] and [active] (Rx) — a download started on a card
 /// shows its ring there and in the Downloads section at the same time.
 
+import 'package:asec/features/video/v1_videos/data/cloud/cloud_lessons.dart';
 import 'dart:async';
 import 'dart:typed_data';
 
@@ -29,6 +30,7 @@ import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 
 import 'package:asec/core/network/app_firebase.dart';
+import 'package:asec/core/settings/app_features.dart';
 import 'package:asec/core/security/content_crypto.dart';
 import 'package:asec/core/security/security_monitor.dart';
 import 'package:asec/features/video/v1_videos/data/download/video_file.dart';
@@ -40,6 +42,42 @@ abstract final class VideoDownloads {
 
   /// False on the web — the download buttons and the section are hidden.
   static bool get supported => videoDownloadsSupported;
+
+  /// Supported here AND on in Control centre → Video lessons → "Download
+  /// inside the app (offline)" (06/11/2026, from ENGX).
+  static bool get enabled =>
+      supported && (!Get.isRegistered<AppFeatures>() || AppFeatures.to.isOn(AppFeature.videoDownloads));
+
+  static Worker? _switchWorker;
+
+  /// Call once at start-up: the super admin switching downloads OFF erases
+  /// the offline lessons on this device (every account). Only an explicit
+  /// `false` in the settings document does — never a missing connection.
+  static void watchSwitch() {
+    if (!supported || _switchWorker != null || !Get.isRegistered<AppFeatures>()) return;
+    void check(Map<String, bool> values) {
+      if (values[AppFeature.videoDownloads.key] == false) unawaited(wipeDevice());
+    }
+    _switchWorker = ever<Map<String, bool>>(AppFeatures.to.values, check);
+    check(AppFeatures.to.values);
+  }
+
+  /// Erases every offline lesson on this device, of every account.
+  static Future<void> wipeDevice() async {
+    for (final String id in active.keys.toList()) {
+      cancel(id);
+    }
+    items.clear();
+    failed.clear();
+    try {
+      for (final String k in _box.getKeys<Iterable<String>>().where((String k) => k.startsWith('video_downloads_')).toList()) {
+        await _box.remove(k);
+      }
+    } catch (_) {}
+    await deleteAllVideoDirs();
+    _dir = '';
+    _loadedFor = '';
+  }
 
   static final GetStorage _box = GetStorage();
 
@@ -141,7 +179,7 @@ abstract final class VideoDownloads {
 
   /// The file to play instead of the internet stream, or null.
   static String? localPath(String id) {
-    if (!supported || _dir.isEmpty || !isDownloaded(id)) return null;
+    if (!enabled || _dir.isEmpty || !isDownloaded(id)) return null;
     final String p = _path(id);
     return videoFileExists(p) ? p : null;
   }
@@ -151,7 +189,7 @@ abstract final class VideoDownloads {
       items.fold<int>(0, (int sum, VideoItem v) => sum + v.sizeBytes);
 
   static Future<void> start(VideoItem video) async {
-    if (!supported || !video.hasFile) return;
+    if (!enabled || !video.hasFile) return;
     await ensureLoaded();
     if (_loadedFor.isEmpty || isDownloaded(video.id) || isDownloading(video.id)) {
       return;
@@ -169,6 +207,7 @@ abstract final class VideoDownloads {
       int size = video.sizeBytes;
       await downloadVideoFile(
         url: VideoLink.playable(video.url),
+        cloud: CloudLessons.signerFor(video.url),
         path: _path(video.id),
         expectedBytes: video.sizeBytes,
         key: ContentCrypto.deviceKey(owner),

@@ -14,6 +14,7 @@ import 'package:get/get.dart';
 import 'package:asec/features/onboarding/o2_authentication/data/repository/auth_repository.dart';
 import 'package:asec/features/onboarding/o2_authentication/domain/base_repository/auth_base_repository.dart';
 import 'package:asec/core/settings/crash_tracker.dart';
+import 'package:asec/core/settings/windows_boot_guard.dart';
 import 'package:asec/core/settings/error_reports.dart';
 import 'package:asec/features/onboarding/o2_authentication/domain/entities/app_user.dart';
 import 'package:asec/features/onboarding/o2_authentication/domain/enums/auth_failure_type.dart';
@@ -69,6 +70,20 @@ class SessionController extends GetxController {
       );
       CrashTracker.clearPending();
     }
+    // Windows (06/11/2026, from ENGX): the step a failed start died in, the
+    // DLL that crashed (native crash recorder) and anything repaired — once.
+    final String boot = WindowsBootGuard.takeReport();
+    if (boot.isNotEmpty) ErrorReports.report(boot, StackTrace.empty, source: 'crash');
+    // Windows: what Windows itself recorded about a crash since the last run
+    // (the module and exception code) — once per crash.
+    unawaited(CrashTracker.windowsCrashReason().then((String why) {
+      if (why.isEmpty) return;
+      ErrorReports.report(
+        'The app crashed on this PC since it was last opened.\n\nWINDOWS SAYS:\n$why',
+        StackTrace.empty,
+        source: 'crash',
+      );
+    }));
     _sub?.cancel();
     _sub = _users.watchUser(signedIn.uid).listen(
       (AppUser? live) {

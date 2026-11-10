@@ -17,8 +17,6 @@ import 'package:asec/core/theme/app_colors.dart';
 import 'package:asec/features/tools/t3_duct_calc/presentation/ui/widgets/duct_fields.dart';
 import 'package:asec/features/tools/t5_plumbing_fire/domain/storm_water.dart';
 
-enum _AreaUnit { m2, ft2 }
-
 enum _GutterMode { byNumber, byDiameter }
 
 class StormWaterTab extends StatefulWidget {
@@ -31,7 +29,6 @@ class StormWaterTab extends StatefulWidget {
 class _StormWaterTabState extends State<StormWaterTab> {
   final TextEditingController _area = TextEditingController(text: '500');
   final TextEditingController _count = TextEditingController(text: '2');
-  _AreaUnit _unit = _AreaUnit.m2;
   int _rate = 2; // 2 in/h
   int _slope = 1; // 1 %
   _GutterMode _mode = _GutterMode.byNumber;
@@ -47,13 +44,25 @@ class _StormWaterTabState extends State<StormWaterTab> {
   double? _areaM2() {
     final double? a = parseNumber(_area.text);
     if (a == null || a <= 0) return null;
-    return _unit == _AreaUnit.m2 ? a : a * StormWater.ft2ToM2;
+    // 09/11/2026: m² only — no ft².
+    return a;
   }
 
-  String _in(double size) => '${_trim(size)}"';
+  /// Sizes are worked out in inches but SHOWN in millimetres (09/11/2026):
+  /// the usual nominal size — 4" → 100 mm.
+  /// (A list, not a const map: a const map cannot have double keys.)
+  static const List<(double, int)> _nominalMm = <(double, int)>[
+    (1.5, 40), (2, 50), (2.5, 65), (3, 80), (4, 100), (5, 125), (6, 150),
+    (7, 175), (8, 200), (10, 250), (12, 300), (15, 375), (18, 450), (24, 600),
+  ];
 
-  static String _trim(double v) =>
-      v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toString();
+  String _in(double size) {
+    for (final (double inch, int mm) in _nominalMm) {
+      if (inch == size) return '$mm mm';
+    }
+    return '${(size * 25.4 / 5).round() * 5} mm';
+  }
+
 
   List<ResultItem> _actualItems(double areaM2) {
     if (_mode == _GutterMode.byNumber) {
@@ -66,7 +75,7 @@ class _StormWaterTabState extends State<StormWaterTab> {
       return <ResultItem>[ResultItem('Actual diameter of gutters required', _in(size))];
     }
     final int n = StormWater.gutterCountForSize(roofAreaM2: areaM2, rateIndex: _rate, diameter: _diameter);
-    return <ResultItem>[ResultItem('Actual number of gutters required', '$n', 'gutters')];
+    return <ResultItem>[ResultItem('Actual number of gutters required', '$n', 'Gutters')];
   }
 
   @override
@@ -83,22 +92,7 @@ class _StormWaterTabState extends State<StormWaterTab> {
       children: <Widget>[
         ResponsiveFields(
           children: <Widget>[
-            NumberField(controller: _area, label: 'Projected roof area', onChanged: changed),
-            SizedBox(
-              width: 140,
-              child: CustomDropdown<_AreaUnit>(
-                fillColor: AppColors.card,
-                label: 'Area Unit',
-                value: _unit,
-                items: const <DropdownItem<_AreaUnit>>[
-                  DropdownItem<_AreaUnit>(value: _AreaUnit.m2, label: 'm²'),
-                  DropdownItem<_AreaUnit>(value: _AreaUnit.ft2, label: 'ft²'),
-                ],
-                onChanged: (_AreaUnit? u) {
-                  if (u != null) setState(() => _unit = u);
-                },
-              ),
-            ),
+            NumberField(controller: _area, label: 'Projected roof area', unit: 'm²', onChanged: changed),
             SizedBox(
               width: 220,
               child: CustomDropdown<int>(
@@ -109,7 +103,7 @@ class _StormWaterTabState extends State<StormWaterTab> {
                   for (int i = 0; i < kRainfallRatesInH.length; i++)
                     DropdownItem<int>(
                       value: i,
-                      label: '${_trim(kRainfallRatesInH[i])} in/h (${(kRainfallRatesInH[i] * 25.4).round()} mm/h)',
+                      label: '${(kRainfallRatesInH[i] * 25.4).round()} mm/h',
                     ),
                 ],
                 onChanged: (int? i) {
@@ -152,7 +146,7 @@ class _StormWaterTabState extends State<StormWaterTab> {
           ResultTable(
             items: <ResultItem>[
               ResultItem('Calculated gutter diameter', _in(r.gutterSize)),
-              ResultItem('Calculated number of gutters', '${r.gutterCount}', 'gutters'),
+              ResultItem('Calculated number of gutters', '${r.gutterCount}', 'Gutters'),
               ResultItem('Area ÷ gutter capacity', fmt(r.gutterRatio, 3)),
             ],
           ),
@@ -197,7 +191,29 @@ class _StormWaterTabState extends State<StormWaterTab> {
             ],
           ),
           const SizedBox(height: 12),
-          ResultTable(items: _actualItems(area)),
+          ResultTable(
+            items: _actualItems(area),
+            exportTitle: 'Storm water',
+            discipline: 'Plumbing',
+            inputs: <ResultItem>[
+              ResultItem('Projected roof area', _area.text.trim(), 'm²'),
+              ResultItem('Rainfall rate', '${(kRainfallRatesInH[_rate] * 25.4).round()}', 'mm/h'),
+              ResultItem('Horizontal pipes slope', kStormSlopes[_slope]),
+              if (_mode == _GutterMode.byNumber)
+                ResultItem('Number of gutters', _count.text.trim())
+              else
+                ResultItem('Gutter diameter', _in(_diameter)),
+            ],
+            method: 'Sizes from the National Standard Plumbing Code (NSPC), tables 13.6.1 and 13.6.2:\n'
+                'roof area and rainfall rate → vertical leader, horizontal conductor (by slope) and gutters',
+            exportResults: <ResultItem>[
+              ResultItem('Vertical conductor (leader)', _in(r.verticalLeader)),
+              ResultItem('Horizontal conductor', _in(r.horizontalLeader)),
+              ResultItem('Calculated gutter diameter', _in(r.gutterSize)),
+              ResultItem('Calculated number of gutters', '${r.gutterCount}', 'Gutters'),
+              ..._actualItems(area),
+            ],
+          ),
           const SizedBox(height: 16),
           Text(FormatHelper.capitalize('As per the National Standard Plumbing Code (NSPC), tables 13.6.1 and 13.6.2.'),
           ),

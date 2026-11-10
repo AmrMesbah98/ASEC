@@ -80,10 +80,18 @@ abstract final class AppFirebase {
 
       // Bounded offline cache — a classroom tablet left on for a term should
       // not grow its cache without limit.
-      db.settings = const Settings(
-        persistenceEnabled: true,
-        cacheSizeBytes: 40 * 1024 * 1024,
-      );
+      // WINDOWS (06/11/2026, from ENGX): the cache is a local database only
+      // ONE process may lock (a second ASEC.exe died on start with 0xe06d7363),
+      // and Firebase's Windows code compresses it with an instruction OLD CPUs
+      // do not have (0xc000001d). No cache on Windows; lessons need the
+      // internet anyway.
+      final bool windows = !kIsWeb && defaultTargetPlatform == TargetPlatform.windows;
+      db.settings = windows
+          ? const Settings(persistenceEnabled: false)
+          : const Settings(
+              persistenceEnabled: true,
+              cacheSizeBytes: 40 * 1024 * 1024,
+            );
 
       _ready = true;
       LoginDiagnostics.log('init: Firestore configured, ready');

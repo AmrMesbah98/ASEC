@@ -20,8 +20,12 @@
 /// inside anything else. On a phone the two columns stack and the sheet keeps
 /// its margins — a CV read on a phone is still a CV.
 ///
-/// Two things sit OUTSIDE the sheet, because they are not part of the
-/// document: the download button and, for the admin, the review chips.
+/// The CV file is downloaded from the app bar icon only — there is no file
+/// section and no big button at the bottom (Eng. Ahmed Shuhayb's review,
+/// 9 Nov 2026). For the admin, the review chips sit outside the sheet.
+///
+/// SECTION ORDER (same review): Contact, Education and Status, Professional
+/// Skills, Soft Skills, Languages, Links.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -125,15 +129,6 @@ class CvDetailPage extends StatelessWidget {
 
               _Sheet(cv: cv, split: split, onOpen: _open),
 
-              if (cv.hasCvFile) ...<Widget>[
-                SizedBox(height: 16.h),
-                AppButton(
-                  label: s.downloadCv,
-                  icon: Icons.download_rounded,
-                  expand: true,
-                  onPressed: () => _open(cv.cvFileUrl),
-                ),
-              ],
               if (cv.updatedAt != null) ...<Widget>[
                 SizedBox(height: 14.h),
                 Text(
@@ -168,41 +163,92 @@ class _Sheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final S s = S.of(context);
 
-    final Widget aside = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        _Section(
-          title: s.contactDetails,
-          child: Column(
+    final Widget? summary = cv.bio.trim().isEmpty
+        ? null
+        : _Section(
+            title: s.cvSummary,
+            child: Text(
+              FormatHelper.capitalize(cv.bio.trim()),
+              style: StyleText.fontSize14Weight400.copyWith(height: 1.6),
+            ),
+          );
+
+    // 1. Contact
+    final Widget contact = _Section(
+      title: s.contactDetails,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          _Line(icon: Icons.alternate_email_rounded, value: cv.email),
+          _Line(icon: Icons.phone_iphone_rounded, value: cv.phone),
+          _Line(icon: Icons.location_on_outlined, value: cv.location),
+        ],
+      ),
+    );
+
+    // 2. Education and status — graduation year and military status share
+    // one row.
+    final Widget education = _Section(
+      title: s.cvEducation,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          _Pair(label: s.cvSpecialization, value: cv.specialization),
+          Row(
             crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              _Line(icon: Icons.alternate_email_rounded, value: cv.email),
-              _Line(icon: Icons.phone_iphone_rounded, value: cv.phone),
-              _Line(icon: Icons.location_on_outlined, value: cv.location),
+              Expanded(
+                child: _Pair(
+                  label: s.graduationYear,
+                  value: cv.graduationYear,
+                ),
+              ),
+              SizedBox(width: 12.w),
+              Expanded(
+                child: _Pair(
+                  label: s.militaryStatus,
+                  value: cv.militaryStatus,
+                ),
+              ),
             ],
           ),
-        ),
-        _Section(
-          title: s.cvEducation,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              _Pair(label: s.cvSpecialization, value: cv.specialization),
-              _Pair(label: s.graduationYear, value: cv.graduationYear),
-              _Pair(label: s.militaryStatus, value: cv.militaryStatus),
-            ],
-          ),
-        ),
-        if (cv.languages.isNotEmpty)
-          _Section(
+        ],
+      ),
+    );
+
+    // 3. Professional skills
+    final Widget? proSkills = cv.proSkills.isEmpty
+        ? null
+        : _Section(
+            title: s.proSkills,
+            child: _Chips(values: cv.proSkills, color: AppColors.primary),
+          );
+
+    // 4. Soft skills
+    final Widget? softSkills = cv.softSkills.isEmpty
+        ? null
+        : _Section(
+            title: s.softSkillsLabel,
+            child: _Chips(
+              values: cv.softSkills,
+              color: AppColors.secondaryPrimary,
+            ),
+          );
+
+    // 5. Languages
+    final Widget? languages = cv.languages.isEmpty
+        ? null
+        : _Section(
             title: s.languagesLabel,
             child: _Chips(values: cv.languages, color: AppColors.green),
-          ),
-        if (cv.hasLinks)
-          _Section(
+          );
+
+    // 6. Links
+    final Widget? links = !cv.hasLinks
+        ? null
+        : _Section(
             title: s.cvLinks,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -228,42 +274,30 @@ class _Sheet extends StatelessWidget {
                   ),
               ],
             ),
-          ),
-      ],
-    );
+          );
 
-    final Widget main = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        if (cv.bio.trim().isNotEmpty)
-          _Section(
-            title: s.cvSummary,
-            child: Text(
-              FormatHelper.capitalize(cv.bio.trim()),
-              style: StyleText.fontSize14Weight400.copyWith(height: 1.6),
-            ),
-          ),
-        if (cv.proSkills.isNotEmpty)
-          _Section(
-            title: s.proSkills,
-            child: _Chips(values: cv.proSkills, color: AppColors.primary),
-          ),
-        if (cv.softSkills.isNotEmpty)
-          _Section(
-            title: s.softSkillsLabel,
-            child: _Chips(
-              values: cv.softSkills,
-              color: AppColors.secondaryPrimary,
-            ),
-          ),
-        if (cv.hasCvFile)
-          _Section(
-            title: s.driveLabel,
-            child: _FileLine(cv: cv, onTap: () => onOpen(cv.cvFileUrl)),
-          ),
-      ],
-    );
+    Widget column(List<Widget?> sections) => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            for (final Widget? section in sections)
+              if (section != null) section,
+          ],
+        );
+
+    // Wide: facts on the left (1, 2, 5, 6), skills on the right (3, 4).
+    // Phone: one column in the review's order.
+    final Widget aside = column(<Widget?>[contact, education, languages, links]);
+    final Widget main = column(<Widget?>[summary, proSkills, softSkills]);
+    final Widget single = column(<Widget?>[
+      summary,
+      contact,
+      education,
+      proSkills,
+      softSkills,
+      languages,
+      links,
+    ]);
 
     return Container(
       clipBehavior: Clip.antiAlias,
@@ -305,11 +339,7 @@ class _Sheet extends StatelessWidget {
                       Expanded(flex: 6, child: main),
                     ],
                   )
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[main, aside],
-                  ),
+                : single,
           ),
         ],
       ),
@@ -366,14 +396,6 @@ class _NameBlock extends StatelessWidget {
                           color: AppColors.primary,
                           letterSpacing: 1.4,
                         ),
-                      ),
-                    ],
-                    if (cv.specialization.isNotEmpty) ...<Widget>[
-                      SizedBox(height: 4.h),
-                      Text(
-                        FormatHelper.capitalize(cv.specialization),
-                        style: StyleText.fontSize13Weight400
-                            .copyWith(color: AppColors.secondaryText),
                       ),
                     ],
                   ],
@@ -553,68 +575,6 @@ class _LinkLine extends StatelessWidget {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-/// The attached document, shown as the file it is — name, size, and a tap
-/// that downloads it.
-class _FileLine extends StatelessWidget {
-  const _FileLine({required this.cv, required this.onTap});
-
-  final CvProfile cv;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final S s = S.of(context);
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: AppRadius.buttonR,
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 11.h),
-        decoration: BoxDecoration(
-          color: AppColors.chip,
-          borderRadius: AppRadius.buttonR,
-        ),
-        child: Row(
-          children: <Widget>[
-            AppIcon(
-              Icons.picture_as_pdf_rounded,
-              size: 20.sp,
-              color: AppColors.primary,
-            ),
-            SizedBox(width: 11.w),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  Text(
-                    FormatHelper.capitalize(cv.cvFileName.isEmpty ? s.driveLabel : cv.cvFileName),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: StyleText.fontSize13Weight600,
-                  ),
-                  Text(
-                    FormatHelper.capitalize(cv.cvFileSizeLabel.isEmpty
-                        ? s.downloadCv
-                        : '${s.downloadCv} · ${cv.cvFileSizeLabel}'),
-                    style: StyleText.fontSize11Weight400
-                        .copyWith(color: AppColors.secondaryText),
-                  ),
-                ],
-              ),
-            ),
-            AppIcon(
-              Icons.download_rounded,
-              size: 18.sp,
-              color: AppColors.primary,
-            ),
-          ],
         ),
       ),
     );

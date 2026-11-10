@@ -2249,6 +2249,13 @@ class SAr extends S {
   String get ctlVideoCourseProgressHint => '\"شاهدت 3 من 10\" في الأعلى.';
 
   @override
+  String get ctlVideoDownloads => 'التحميل داخل التطبيق (بدون إنترنت)';
+
+  @override
+  String get ctlVideoDownloadsHint =>
+      'يحفظ الأعضاء الدروس داخل ASEC — مشفّرة لهذا الجهاز والحساب فقط — ويشاهدونها بدون إنترنت. الإيقاف يمسح الدروس المحفوظة من كل الأجهزة.';
+
+  @override
   String get ctlAnimations => 'الحركات';
 
   @override
@@ -3114,7 +3121,7 @@ class SAr extends S {
   String get engLibraryBestHint => 'أفضل السير الذاتية في التطبيق';
 
   @override
-  String get engLibraryCertificate => 'الشهادة';
+  String get engLibraryCertificate => 'الشهادات';
 
   @override
   String get engLibrarySub => 'ملفات يشاركها معك فريق ASEC.';
@@ -3693,4 +3700,183 @@ class SAr extends S {
 
   @override
   String get onlineAdminTag => 'مشرف';
+
+  @override
+  String get quizTab => 'الاختبار';
+
+  @override
+  String get myCertificatesSub => 'كل الشهادات التي حصلت عليها.';
+
+  @override
+  String get noCertificatesTitle => 'لا توجد شهادات بعد';
+
+  @override
+  String get noCertificatesSub =>
+      'اجتز اختبار أي كورس من الإعدادات ← الاختبار لتحصل على أول شهادة لك.';
+
+  @override
+  String get accessUploadExcel => 'رفع ملف Excel';
+
+  @override
+  String get accessImportTitle => 'منح صلاحية الكورسات من ملف';
+
+  @override
+  String get accessImportMatched => 'الأعضاء في الملف';
+
+  @override
+  String get accessImportNoAccount =>
+      'لا يوجد حساب بهذه الإيميلات — تم تخطيها (يجب أن يسجّلوا أولًا)';
+
+  @override
+  String get accessImportUnknownCourse =>
+      'لا يوجد كورس بهذه الأسماء — راجع الكتابة (تم الحفظ على أي حال)';
+
+  @override
+  String get accessImportSkippedRows =>
+      'صفوف تم تخطيها (ليست إيميل، أو بدون كورس)';
+
+  @override
+  String get accessImportAdd => 'إضافة هذه الكورسات';
+
+  @override
+  String get accessImportAddSub => 'يحتفظ الأعضاء بالكورسات التي لديهم.';
+
+  @override
+  String get accessImportReplace => 'استبدال';
+
+  @override
+  String get accessImportReplaceSub =>
+      'كل عضو يأخذ الكورسات الموجودة في الملف فقط. تظل General Notes و Tips and Tricks مفتوحة.';
+
+  @override
+  String get accessImportSave => 'منح الصلاحية';
+
+  @override
+  String get accessImportSaved => 'تم حفظ الصلاحيات';
+
+  @override
+  String get accessImportNothing =>
+      'لم يتم العثور على صف به إيميل عضو وكورس. العمود A: الإيميل، ثم أسماء الكورسات.';
+
+  @override
+  String get accessImportUnreadable =>
+      'تعذّر قراءة الملف. احفظه بصيغة ‎.xlsx (Excel) أو ‎.csv وحاول مرة أخرى.';
+
+  @override
+  String get mySpaceLearning => 'تعلّمي';
+
+  @override
+  String get mySpaceResources => 'مواردي';
+
+  @override
+  String get mySpaceSaved => 'المحفوظات';
+
+  @override
+  String get mySpaceSavedSub => 'كل ما حفظته، مثل النصائح والحيل';
+
+  @override
+  String get mySpaceQuizzes => 'الاختبارات والنتائج';
+
+  @override
+  String get mySpaceQuizzesSub => 'أدِّ الاختبارات وشاهد درجاتك';
+
+  @override
+  String get mySpaceCertificates => 'شهاداتي';
+
+  @override
+  String get mySpaceCertificatesSub => 'اعرض شهاداتك وحمّلها';
+
+  @override
+  String get mySpaceCv => 'سيرتي الذاتية';
+
+  @override
+  String get mySpaceCvSub => 'أنشئ سيرتك الذاتية وحدّثها';
+
+  @override
+  String get mySpaceCvLocked => 'مقفلة — اطلب من المشرف السماح بسيرتك الذاتية';
+
+  @override
+  String get mySpaceDownloads => 'التنزيلات';
+
+  @override
+  String get mySpaceDownloadsSub => 'الدروس التي نزّلتها';
+
+  @override
+  String get mySpaceTools => 'الأدوات الهندسية';
+
+  @override
+  String get mySpaceToolsSub => 'الحاسبات وأدوات هندسية مفيدة';
+
+  @override
+  String get mySpaceToolsLocked => 'قريبًا';
+
+  @override
+  String get permEngQuestions => 'الرد على الأسئلة';
+
+  @override
+  String get engQuestions => 'الأسئلة';
+
+  @override
+  String get engQuestionsAdminSub =>
+      'أسئلة الأعضاء. اكتب الرد وسيُنشر في الصفحة الرئيسية لكل الأعضاء.';
+
+  @override
+  String get qaTitle => 'أسئلة وأجوبة';
+
+  @override
+  String get qaAsk => 'اسأل سؤالًا';
+
+  @override
+  String get qaAskHint => 'اكتب سؤالك…';
+
+  @override
+  String get qaSend => 'إرسال';
+
+  @override
+  String get qaSent => 'تم إرسال سؤالك — سيظهر الرد هنا.';
+
+  @override
+  String get qaSeeMore => 'عرض المزيد';
+
+  @override
+  String get qaEmpty => 'لا توجد أسئلة مجاب عنها بعد';
+
+  @override
+  String get qaEmptySub => 'كن أول من يسأل — سيرد فريق ASEC.';
+
+  @override
+  String get qaWaiting => 'في انتظار الرد';
+
+  @override
+  String get qaMine => 'أسئلتي';
+
+  @override
+  String get qaAll => 'كل الأسئلة';
+
+  @override
+  String get qaTeam => 'فريق ASEC';
+
+  @override
+  String get qaAnswer => 'الرد';
+
+  @override
+  String get qaEditAnswer => 'تعديل الرد';
+
+  @override
+  String get qaAnswerHint => 'اكتب الرد…';
+
+  @override
+  String get qaPost => 'نشر الرد';
+
+  @override
+  String get qaPosted => 'تم نشر الرد';
+
+  @override
+  String get qaDeleteQuestion => 'حذف هذا السؤال؟';
+
+  @override
+  String get qaNoQuestions => 'لا توجد أسئلة بعد';
+
+  @override
+  String get fvLoadFailed => 'تعذّر تحميل هذا الملف';
 }

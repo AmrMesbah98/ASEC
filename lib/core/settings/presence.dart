@@ -32,6 +32,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/widgets.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import 'package:asec/core/settings/device_specs.dart';
 import 'package:asec/core/network/app_firebase.dart';
 import 'package:asec/core/settings/capture_context.dart';
 import 'package:asec/features/onboarding/o2_authentication/data/device/device_identity.dart';
@@ -133,6 +134,7 @@ abstract final class Presence {
         'device_name': DeviceIdentity.name,
         'app_version': _version,
         'page': CaptureContext.tabLabel,
+        'device_specs': DeviceSpecs.summary,
         'last_seen': FieldValue.serverTimestamp(),
       });
     } catch (_) {
@@ -176,6 +178,7 @@ class PresenceEntry {
     required this.appVersion,
     required this.page,
     required this.lastSeen,
+    this.specs = '',
   });
 
   factory PresenceEntry.fromMap(String id, Map<String, dynamic> d) {
@@ -192,6 +195,7 @@ class PresenceEntry {
       page: '${d['page'] ?? ''}',
       // A beat just written shows null until the server stamps it.
       lastSeen: seen is Timestamp ? seen.toDate() : DateTime.now(),
+      specs: '${d['device_specs'] ?? ''}',
     );
   }
 
@@ -205,6 +209,9 @@ class PresenceEntry {
   final String appVersion;
   final String page;
   final DateTime lastSeen;
+
+  /// The PC (DeviceSpecs.summary): Windows, CPU, RAM, graphics.
+  final String specs;
 
   bool get isAdmin => role == 'admin';
 

@@ -87,3 +87,8 @@ tool/videos_default_backup.json
 /node_modules/
 /package.json
 /package-lock.json
+*.mp4
+.fuse_hidden*
+members_courses_backup.json
+asec_course_access_example.xlsx
+*.mp4

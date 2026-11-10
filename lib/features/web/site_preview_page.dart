@@ -26,6 +26,7 @@ import 'package:asec/features/web/core/theme.dart';
 import 'package:asec/features/web/core/widgets.dart';
 import 'package:asec/features/web/site/site_nav.dart';
 import 'package:asec/features/web/site/site_shell.dart';
+import 'package:asec/core/helper/main_helper/format_helper.dart';
 
 class SitePreviewPage extends StatefulWidget {
   const SitePreviewPage({
@@ -138,7 +139,7 @@ class _SitePreviewPageState extends State<SitePreviewPage> {
                     const SizedBox(width: 8),
                     Flexible(
                       child: Text(
-                        widget.title ?? '${const L('معاينة الموقع', 'Site preview').t}  ·  ${_uri.path}',
+                        FormatHelper.capitalize(widget.title ?? '${const L('معاينة الموقع', 'Site preview').t}  ·  ${_uri.path}'),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: WebColors.white),
@@ -151,9 +152,9 @@ class _SitePreviewPageState extends State<SitePreviewPage> {
                     style: TextButton.styleFrom(foregroundColor: WebColors.white),
                     onPressed: () => openLink('$kWebsiteUrl${_uri.path}'),
                     icon: const AppIcon(Icons.open_in_new_rounded, size: 18, color: WebColors.white),
-                    label: Text(widget.title != null
+                    label: Text(FormatHelper.capitalize(widget.title != null
                         ? const L('فتح في المتصفح', 'Open in browser').t
-                        : const L('فتح الرابط المنشور', 'Open live link').t),
+                        : const L('فتح الرابط المنشور', 'Open live link').t)),
                   ),
                   const SizedBox(width: 8),
                 ],

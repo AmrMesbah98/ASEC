@@ -46,6 +46,12 @@ class _NovecTabState extends AgentTabState<NovecTab> {
 
   @override
   Widget build(BuildContext context) {
+    // 06/11/2026: the fields are created FIRST, so their default values
+    // count on the very first build — before, the table only appeared
+    // after a field was changed.
+    final List<Widget> enclosure = enclosureFields();
+    final Widget temperature =
+        number('t', Novec.minTempC, 'Min. Design Temperature', '°C');
     final double? v = netVolumeFromFields();
     final double? t = value('t');
     // Atmospheric factor 1, no allowance; k₁ / k₂ fixed (Novec defaults).
@@ -58,7 +64,7 @@ class _NovecTabState extends AgentTabState<NovecTab> {
       padding: const EdgeInsets.symmetric(vertical: 16),
       children: <Widget>[
         const AgentHeading('Enclosure'),
-        ResponsiveFields(children: enclosureFields()),
+        ResponsiveFields(children: enclosure),
         const SizedBox(height: 8),
         const AgentHeading('Design Parameters'),
         ResponsiveFields(
@@ -78,7 +84,7 @@ class _NovecTabState extends AgentTabState<NovecTab> {
                 },
               ),
             ),
-            number('t', Novec.minTempC, 'Min. Design Temperature', '°C'),
+            temperature,
           ],
         ),
         const SizedBox(height: 16),
@@ -86,6 +92,15 @@ class _NovecTabState extends AgentTabState<NovecTab> {
           Text(FormatHelper.capitalize('Enter the room length, width, height and the temperature.'))
         else
           ResultTable(
+            exportTitle: 'Novec 1230',
+            discipline: 'Fire fighting',
+            inputs: <ResultItem>[
+              ...inputItems(),
+              ResultItem('Design Concentration', '${fmt(_class.concentration, _class == NovecClass.b ? 2 : 1)} % — ${_class.label}'),
+            ],
+            method: 'V = L × W × H\n'
+                'S = ${Novec.k1} + ${Novec.k2} × T\n'
+                'W = V ÷ S × C ÷ (100 − C)',
             items: <ResultItem>[
               ResultItem('Net Protected Volume', fmt(r.volume, 2), 'm³'),
               ResultItem('Specific Vapour Volume S', fmt(r.specificVolume, 4), 'm³/kg'),

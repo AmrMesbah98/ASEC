@@ -1,5 +1,6 @@
 import Flutter
 import MachO
+import Security
 import UIKit
 
 @main
@@ -29,6 +30,11 @@ import UIKit
           let on = (call.arguments as? Bool) ?? true
           DispatchQueue.main.async { AsecScreenProtection.setEnabled(on) }
           result(nil)
+        } else if call.method == "stableId" {
+          // lib/.../device_identity.dart — the device id lives in the
+          // Keychain, which iOS keeps when the app is deleted, so a
+          // reinstall is not "another device".
+          result(AsecDeviceId.get(seed: call.arguments as? String))
         } else if call.method == "integrity" {
           // lib/core/settings/app_integrity.dart
           result(AsecIntegrity.issues())
@@ -39,6 +45,35 @@ import UIKit
       screenChannel = channel
       AsecScreenProtection.channel = channel
     }
+  }
+}
+
+/// The app's device id in the Keychain (this device only, not synced to
+/// other devices). The first call stores [seed] — the id the app already
+/// had — so members who update keep their device; later calls, also after a
+/// reinstall, return the stored one.
+enum AsecDeviceId {
+  private static let query: [String: Any] = [
+    kSecClass as String: kSecClassGenericPassword,
+    kSecAttrService as String: "com.asec.app.device",
+    kSecAttrAccount as String: "device_id",
+  ]
+
+  static func get(seed: String?) -> String? {
+    var read = query
+    read[kSecReturnData as String] = true
+    read[kSecMatchLimit as String] = kSecMatchLimitOne
+    var item: CFTypeRef?
+    if SecItemCopyMatching(read as CFDictionary, &item) == errSecSuccess,
+       let data = item as? Data, let id = String(data: data, encoding: .utf8), id.count >= 16 {
+      return id
+    }
+    guard let id = seed, id.count >= 16 else { return nil }
+    var add = query
+    add[kSecValueData as String] = Data(id.utf8)
+    add[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+    SecItemDelete(query as CFDictionary)
+    return SecItemAdd(add as CFDictionary, nil) == errSecSuccess ? id : nil
   }
 }
 

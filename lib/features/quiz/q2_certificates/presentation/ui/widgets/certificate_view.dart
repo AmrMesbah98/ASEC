@@ -31,7 +31,7 @@ class CertificateView extends StatelessWidget {
       FormatHelper.capitalize(text),
       textAlign: TextAlign.center,
       textDirection: CertificateData.isArabic(text) ? TextDirection.rtl : TextDirection.ltr,
-      maxLines: 2,
+      maxLines: 3,
       overflow: TextOverflow.ellipsis,
       style: TextStyle(
         fontFamily: 'Cairo',
@@ -44,14 +44,49 @@ class CertificateView extends StatelessWidget {
     );
   }
 
-  Widget _footer(String label, String labelAr, String value) => Column(
+  /// ——— ◆ ——— under the title.
+  Widget _ornament() => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Container(width: 90, height: 1.2, color: _red),
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 8),
+            width: 8,
+            height: 8,
+            transform: Matrix4.rotationZ(0.785398),
+            transformAlignment: Alignment.center,
+            color: _red,
+          ),
+          Container(width: 90, height: 1.2, color: _red),
+        ],
+      );
+
+  Widget _footer(String label, String value) => Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           _line(value, 13, color: _navy, bold: true),
           Container(width: 160, height: 1, color: _muted, margin: const EdgeInsets.symmetric(vertical: 4)),
           _line(label, 10, color: _muted),
-          _line(labelAr, 10, color: _muted),
+          // 03/11/2026: English only — no Arabic line.
         ],
+      );
+
+  /// One box of the quiz data row: value over label.
+  Widget _stat(String label, String value) => Container(
+        width: 112,
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        margin: const EdgeInsets.symmetric(horizontal: 5),
+        decoration: BoxDecoration(
+          color: _navy.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            _line(value, 15, color: _navy, bold: true),
+            _line(label, 10, color: _muted),
+          ],
+        ),
       );
 
   @override
@@ -73,50 +108,78 @@ class CertificateView extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 20),
                 child: Column(
                   children: <Widget>[
-                    Image.asset('assets/certificate/asec_logo.png', width: 40, height: 43),
-                    _line('ASEC', 13, color: _navy, bold: true, spacing: 6),
-                    const SizedBox(height: 4),
-                    _line('CERTIFICATE OF COMPLETION', 26, color: _navy, bold: true, spacing: 2),
-                    _line('شهادة إتمام', 16, color: _red, bold: true),
+                    // 03/11/2026: bigger text, spread down the page, with a
+                    // divider, a recognition paragraph, a signature line and
+                    // a verify line — no empty middle.
+                    Image.asset('assets/certificate/asec_logo.png', width: 52, height: 56),
+                    _line('ASEC', 14, color: _navy, bold: true, spacing: 6),
                     const SizedBox(height: 6),
-                    _line('This is to certify that', 12, color: _muted),
-                    _line('نشهد بأن', 11, color: _muted),
-                    _line(data.name, 28, color: _blue, bold: true),
-                    Container(width: 380, height: 1.2, color: _red, margin: const EdgeInsets.only(bottom: 6)),
-                    _line('has successfully completed the course', 12, color: _muted),
-                    _line('قد أتمّ بنجاح كورس', 11, color: _muted),
-                    _line(data.course, 19, color: _red, bold: true),
+                    _line('CERTIFICATE OF COMPLETION', 32, color: _navy, bold: true, spacing: 2),
+                    const SizedBox(height: 4),
+                    _ornament(),
+                    const Spacer(),
+                    _line('This is to certify that', 15, color: _muted),
                     const SizedBox(height: 2),
+                    _line(data.name, 36, color: _blue, bold: true),
+                    Container(width: 420, height: 1.4, color: _red, margin: const EdgeInsets.only(top: 2, bottom: 8)),
+                    _line(data.completedLine, 15, color: _muted),
+                    const SizedBox(height: 2),
+                    _line(data.course, 26, color: _red, bold: true),
                     // Issued by the admin (no exam) → no score line.
                     if (data.percent != null) ...<Widget>[
-                      _line('and passed the final exam with a score of ${data.percent}%', 12),
-                      _line('واجتاز الاختبار النهائي بنسبة ${data.percent}%', 12),
+                      const SizedBox(height: 4),
+                      _line(data.scoreLine, 15),
+                    ],
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: 560,
+                      child: _line(
+                        'in recognition of the dedication, effort and engineering skills shown '
+                        'throughout the program, delivered by ASEC Engineering Consultants.',
+                        12,
+                        color: _muted,
+                      ),
+                    ),
+                    // The quiz's data (10/11/2026): score, correct answers,
+                    // points, time taken and attempt.
+                    if (data.hasDetails) ...<Widget>[
+                      const SizedBox(height: 10),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          for (final (String label, String value) in data.details) _stat(label, value),
+                        ],
+                      ),
                     ],
                     const Spacer(),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: <Widget>[
-                        _footer('Date', 'التاريخ', data.dateLabel),
-                        Container(
-                          width: 72,
-                          height: 72,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: _red, width: 2.5),
-                          ),
-                          alignment: Alignment.center,
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: <Widget>[
-                              _line('ASEC', 14, color: _red, bold: true, spacing: 2),
-                              _line('CERTIFIED', 7, color: _red, spacing: 1.5),
-                            ],
+                        _footer('Date', data.dateLabel),
+                        // The office stamp (03/11/2026), tilted a little like
+                        // a real one.
+                        Transform.rotate(
+                          angle: -0.12,
+                          child: Opacity(
+                            opacity: 0.92,
+                            child: Image.asset('assets/certificate/certificate_stamp.png', width: 104, height: 104),
                           ),
                         ),
-                        _footer('Certificate No.', 'رقم الشهادة', data.number),
+                        // Eng. Ahmed Shuhayb's signature above the line.
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: <Widget>[
+                            Image.asset('assets/certificate/certificate_signature.png', height: 50),
+                            Container(width: 160, height: 1, color: _muted, margin: const EdgeInsets.symmetric(vertical: 4)),
+                            _line('Eng. Ahmed Shuhayb', 12, color: _navy, bold: true),
+                            _line('Authorized Signature', 10, color: _muted),
+                          ],
+                        ),
                       ],
                     ),
+                    const SizedBox(height: 10),
+                    _line('Certificate No. ${data.number} · verify at asecbim.com', 10, color: _muted),
                   ],
                 ),
               ),

@@ -1,0 +1,755 @@
+rules_version = '2';
+
+// ASEC — one super admin, admins with permissions, many members.
+//
+// THE ADMIN IS AN EMAIL, NOT A FLAG.
+// `amrmesbah33@gmail.com` is the admin, and that is decided by the Auth token,
+// not by a field in a document. A `role: "admin"` written by anybody else is
+// refused below, so nobody can promote themselves by editing their own
+// profile — and no rule has to spend a document read to find out who is
+// asking.
+//
+// Deploy:  firebase deploy --only firestore:rules
+//
+// The website's collections (site_*) are at the bottom.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function callerEmail() {
+      return request.auth.token.email.lower();
+    }
+
+    // THE SUPER ADMIN — the owner email. Every permission, and the only
+    // account that may create admins, change their permissions, write the
+    // control centre (settings/app) or use the demo data.
+    function isSuper() {
+      return signedIn()
+        && request.auth.token.email != null
+        && callerEmail() == 'amrmesbah33@gmail.com';
+    }
+
+    // ADMINS CREATED BY THE SUPER ADMIN: role 'admin' + switched on, with a
+    // `permissions` list. Costs one document read, only when the caller is
+    // not the super admin.
+    function me() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isStaff() {
+      return isSuper()
+        || (signedIn()
+            && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+            && me().role == 'admin'
+            && me().active == true);
+    }
+
+    // ── PERMISSIONS ─────────────────────────────────────────────────────────
+    //
+    // `permissions` holds tabs ('videos'), actions inside them
+    // ('videos.delete') and the marker 'v2'. Same logic as AdminPerms in
+    // lib/features/onboarding/o2_authentication/domain/enums/admin_permission.dart.
+    //
+    // LEGACY admins (no 'v2' — saved before sub-permissions) keep every
+    // action of their tabs, and Engagement follows their Videos permission
+    // (its Partners follow Website), exactly as before.
+    function perms() {
+      return me().get('permissions', []);
+    }
+
+    function hasPerm(k) {
+      return perms().hasAny([k]);
+    }
+
+    function legacy() {
+      return !hasPerm('v2');
+    }
+
+    // May open tab [p].
+    function can(p) {
+      return isSuper()
+        || (isStaff()
+            && (hasPerm(p)
+                || (p == 'engagement' && legacy()
+                    && (hasPerm('videos') || hasPerm('website')))));
+    }
+
+    // May do action [a] inside tab [p].
+    function canDo(p, a) {
+      return isSuper()
+        || (isStaff()
+            && (legacy()
+                ? (p == 'engagement'
+                    ? hasPerm(a == 'partners' ? 'website' : 'videos')
+                    : hasPerm(p))
+                : (hasPerm(p) && hasPerm(p + '.' + a))));
+    }
+
+    function changed(k) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasAny([k]);
+    }
+
+    function onlyChanged(keys) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
+    }
+
+    // Kept for readability below: "any admin at all".
+    function isAdmin() {
+      return isStaff();
+    }
+
+    // Exactly one new platform key in `video_devices`, nothing else touched.
+    function claimsVideoSlot() {
+      let d = request.resource.data.get('video_devices', {})
+        .diff(resource.data.get('video_devices', {}));
+      return onlyChanged(['video_devices'])
+        && d.removedKeys().size() == 0
+        && d.changedKeys().size() == 0
+        && d.addedKeys().size() == 1
+        && d.addedKeys().hasOnly(['android', 'ios', 'windows', 'macos', 'web']);
+    }
+
+    function isSelf(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    // ── ACCOUNTS LOCKED TO A MINIMUM BUILD ─────────────────────────────────
+    //
+    // These accounts may only use the app from build 24 (1.0.7+24) on. Every
+    // build from 24 writes its number into `users/{uid}.app_build` before it
+    // reads anything (BuildGate.stamp); older builds never do, so for these
+    // emails they are refused everything — even the profile, so they cannot
+    // sign in at all. KEEP IN STEP WITH lib/core/settings/build_gate.dart.
+    function buildLocked() {
+      return signedIn()
+        && request.auth.token.email != null
+        && callerEmail() in [
+             'mmasba1988@gmail.com',
+             'bassam.edunners@gmail.com',
+             'alrmadymr0@gmail.com',
+             'hamada6663389@gmail.com',
+             'mahmoud5.edunners@gmail.com',
+             'abdallahhassan.eduneers@gmail.com'
+           ];
+    }
+
+    // [profile] = the caller's own users/{uid} data.
+    function buildOk(profile) {
+      return !buildLocked() || profile.get('app_build', 0) >= 24;
+    }
+
+    // ── A MEMBER IN GOOD STANDING ───────────────────────────────────────────
+    //
+    // Signed in is not enough: the member's own profile must exist, be
+    // switched on, not paused, and inside the access period the admin set.
+    // A paused, expired or switched-off account reads NOTHING — even with a
+    // valid sign-in token and a hand-written request outside the app.
+    // Admins always pass.
+    function memberOk() {
+      return isStaff()
+        || (signedIn()
+            && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+            && me().get('active', true) == true
+            && me().get('paused_at', null) == null
+            && (me().get('access_from', null) == null
+                || me().access_from <= request.time)
+            && (me().get('access_until', null) == null
+                || me().access_until > request.time)
+            && buildOk(me()));
+    }
+
+    // May this member open [course]? "Every course" if the admin turned it
+    // on, or the course is in the list the admin ticked on the Members page.
+    // The default courses are open to everyone unless switched off —
+    // keep this list the same as MemberAccess.defaultCourses in the app.
+    function hasCourse(course) {
+      return isStaff()
+        || ((me().get('courses_all', false) == true
+              || course in me().get('courses', [])
+              // General Notes and Tips and Tricks are open to every member
+              // until the admin switches one off for them.
+              || (course in ['General Notes', 'Tips and Tricks', 'GENERAL NOTES', 'Reals']
+                  && !(course in me().get('closed_courses', []))))
+            && courseWindowOpen(course));
+    }
+
+    // The course's own dates (Members → Edit access, under each course
+    // ticked). No dates = no extra limit. The platforms there are checked
+    // by the app — a request does not say which device it came from.
+    function courseWindowOpen(course) {
+      let a = me().get('course_access', {}).get(course, {});
+      return (a.get('from', null) == null || a.get('from', null) <= request.time)
+        && (a.get('until', null) == null || a.get('until', null) > request.time);
+    }
+
+    // ── The demo-data button ────────────────────────────────────────────────
+    //
+    // The admin may write a MEMBER's profile, attempt or CV — documents that
+    // otherwise only their owner may write — but ONLY while the document being
+    // written carries `demo: true`. So the sample data can be created, and the
+    // same power cannot be used to forge a real member, a real score or a real
+    // CV: drop the flag and the write is refused like anybody else's.
+    function isDemoWrite() {
+      return isSuper() && request.resource.data.demo == true;
+    }
+
+    // The role a SELF-registration may claim: only the owner email becomes
+    // admin by registering; every other admin is created by the super admin.
+    function entitledRole() {
+      return isSuper() ? 'admin' : 'user';
+    }
+
+    // ── users ───────────────────────────────────────────────────────────────
+    //
+    // A member reads only their own profile; the admin reads everybody's
+    // (the members list queries role == 'user', which this allows).
+    match /users/{uid} {
+      // Own profile: a build-locked account only from build 24 on (a missing
+      // profile may still be checked, so it can be created).
+      allow read: if (isSelf(uid) && (resource == null || buildOk(resource.data))) || isSuper()
+        || ((can('members') || can('dashboard') || can('results') || can('cvs'))
+            && resource.data.role == 'user');
+
+      // Registration writes the profile from the app. The role has to match
+      // the email, the email has to be the caller's own, and the document may
+      // hold nothing else.
+      allow create: if isSelf(uid)
+        && request.resource.data.role == entitledRole()
+        && request.resource.data.email == callerEmail()
+        && request.resource.data.active == true
+        && request.resource.data.keys().hasOnly([
+             'full_name', 'email', 'phone', 'role', 'active', 'can_create_cv',
+             'created_at', 'updated_at'
+           ])
+        // A member cannot register themselves CV rights; the admin grants
+        // them afterwards.
+        && request.resource.data.can_create_cv == false;
+
+      // A member may change their name and phone — not their role, not their
+      // email, and not the switch that lets them in.
+      allow update: if isSelf(uid)
+        && request.resource.data.diff(resource.data)
+             .affectedKeys().hasOnly(['full_name', 'phone', 'updated_at']);
+
+      // ONE DEVICE PER MEMBER: the app locks the account to the device it
+      // is first used on — only while no device is set. Moving to a new
+      // device needs the admin to clear it (rule below).
+      allow update: if isSelf(uid)
+        && resource.data.get('device_id', '') == ''
+        && request.resource.data.device_id is string
+        && request.resource.data.device_id.size() >= 16
+        && request.resource.data.diff(resource.data)
+             .affectedKeys().hasOnly(['device_id', 'device_name', 'device_bound_at']);
+
+      // ONE VIDEO DEVICE PER PLATFORM: signing in works on any device, but
+      // videos play on one device per platform. The app ADDS this
+      // platform's slot the first time Videos opens on a platform that has
+      // none — it can never change or remove a slot that is set. Freeing
+      // one is the admin's (Members → Reset device, rule below).
+      allow update: if isSelf(uid) && claimsVideoSlot();
+
+      // The app writes its own build number on every sign-in (BuildGate).
+      allow update: if isSelf(uid)
+        && onlyChanged(['app_build'])
+        && request.resource.data.app_build is int
+        && request.resource.data.app_build > 0;
+
+      // An admin may change these fields of a MEMBER — each group needs its
+      // own action. Nothing else: not the role, not the email, and never
+      // another admin.
+      //   active                         Members → Activate / block
+      //   can_create_cv                  CVs → Give CV rights
+      //   courses, period, pause, calcs  Members → Edit access
+      //   device_*, video_devices        Members → Reset device
+      allow update: if (can('members') || can('cvs'))
+        && resource.data.role == 'user'
+        && onlyChanged([
+               'active', 'can_create_cv', 'can_use_calcs', 'updated_at',
+               'courses_all', 'courses', 'closed_courses', 'platforms', 'course_access',
+               'access_from', 'access_until', 'paused_at',
+               'device_id', 'device_name', 'device_bound_at', 'video_devices'
+             ])
+        && (!changed('active') || canDo('members', 'block'))
+        && (!changed('can_create_cv') || canDo('cvs', 'grant'))
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny([
+               'can_use_calcs', 'courses_all', 'courses', 'closed_courses', 'platforms', 'course_access',
+               'access_from', 'access_until', 'paused_at'])
+            || canDo('members', 'access'))
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny([
+               'device_id', 'device_name', 'device_bound_at', 'video_devices'])
+            || canDo('members', 'device'));
+
+      // The super admin creates admins and manages them: role 'admin',
+      // a permissions list, switched on or off.
+      allow create: if isSuper()
+        && request.resource.data.role == 'admin'
+        && request.resource.data.permissions is list
+        && request.resource.data.keys().hasOnly([
+             'full_name', 'email', 'phone', 'role', 'active', 'can_create_cv',
+             'permissions', 'created_at', 'updated_at'
+           ]);
+      allow update: if isSuper()
+        && resource.data.role == 'admin'
+        && request.resource.data.role == 'admin'
+        && request.resource.data.diff(resource.data)
+             .affectedKeys().hasOnly(['permissions', 'active', 'updated_at']);
+
+      // The demo button writes whole member profiles. Flagged only — see
+      // isDemoWrite() above.
+      allow create, update: if isDemoWrite();
+
+      // A member may delete their OWN account from Settings; the admin may
+      // delete anybody's.
+      allow delete: if isSelf(uid) || isSuper()
+        || (can('members') && resource.data.role == 'user');
+    }
+
+    // ── blocked_devices ─────────────────────────────────────────────────────
+    //
+    // Doc id = a device id the admin blocked (Members → Edit access → Block
+    // device). Each app reads ITS OWN id only (get), so it can show "This
+    // device is blocked"; ids are random, so a member cannot list or guess
+    // others. Admins with Members → Reset device manage the list.
+    match /blocked_devices/{deviceId} {
+      allow get: if signedIn();
+      allow list: if can('members');
+      allow create, update, delete: if canDo('members', 'device');
+    }
+
+    // ── presence (Settings → Online now) ────────────────────────────────────
+    //
+    // Each open app writes its own document once a minute (Presence in
+    // lib/core/settings/presence.dart). Fixed shape, the server's own time,
+    // and only about the caller. Admins with Members read the list.
+    match /presence/{uid} {
+      allow create, update: if isSelf(uid)
+        && request.resource.data.uid == uid
+        && request.resource.data.online is bool
+        && request.resource.data.last_seen == request.time
+        && request.resource.data.keys().hasOnly([
+             'uid', 'name', 'email', 'role', 'online', 'platform',
+             'device_name', 'app_version', 'page', 'last_seen'
+           ]);
+      allow read: if can('members');
+      allow delete: if isSelf(uid) || isSuper();
+    }
+
+    // ── security_events (screen capture alerts) ─────────────────────────────
+    //
+    // The app adds one when a member takes a screenshot or records the
+    // screen. A member may only add an event about themself and never read
+    // one back; admins with Members read and clear them.
+    match /security_events/{id} {
+      // A member adds a capture alert about themself, or a content-protection
+      // alert ('attack' — a download tool, an HTTPS sniffer, a download burst;
+      // see SecurityMonitor). Both keep to a fixed, bounded shape.
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && (
+             (request.resource.data.type in ['screenshot', 'recording']
+               && request.resource.data.keys().hasOnly([
+                    'type', 'uid', 'member_name', 'email', 'platform',
+                    'device_name', 'device_id', 'page', 'course', 'detail', 'at'
+                  ]))
+             || (request.resource.data.type == 'attack'
+               && request.resource.data.kind is string
+               && request.resource.data.kind.size() <= 40
+               && request.resource.data.detail is string
+               && request.resource.data.detail.size() <= 1000
+               && request.resource.data.keys().hasOnly([
+                    'type', 'kind', 'detail', 'uid', 'member_name', 'email',
+                    'role', 'platform', 'device_name', 'device_id',
+                    'page', 'course', 'at'
+                  ]))
+           );
+      // Read by any admin with Members (the card that shows attack alerts is
+      // itself super-admin only).
+      allow read, delete: if can('members');
+    }
+
+    // ── error_reports (super admin only) ────────────────────────────────────
+    //
+    // The app adds one whenever any user hits an error (ErrorReports): who,
+    // where, the error and its stack trace. Anyone signed in may ADD a report
+    // about themself — even a member the other rules refuse, since that is
+    // exactly when a report matters. Only the super admin reads or deletes.
+    match /error_reports/{id} {
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.keys().hasOnly([
+             'uid', 'user_name', 'email', 'role', 'platform', 'device_name',
+             'device_id', 'app_version', 'source', 'page', 'course', 'detail',
+             'error_type', 'code', 'message', 'stack', 'at'
+           ])
+        && request.resource.data.message is string
+        && request.resource.data.message.size() <= 4000
+        && request.resource.data.stack is string
+        && request.resource.data.stack.size() <= 8000;
+      allow read, delete: if isSuper();
+    }
+
+    // ── admin_config (admins only) ──────────────────────────────────────────
+    //
+    // Things members must never see, e.g. `drive` → `folder_id`: the Google
+    // Drive folder the lessons come from. Kept here, not in the app, so it
+    // cannot be pulled out of the app file.
+    match /admin_config/{doc} {
+      allow read, write: if can('videos');
+    }
+
+    // ── settings (control centre) ───────────────────────────────────────────
+    //
+    // Readable by everybody — the sign-in screen needs the registration
+    // switch before anybody signs in, and nothing in it is secret.
+    match /settings/{doc} {
+      allow read: if true;
+      allow write: if isSuper();
+    }
+
+    // ── videos ──────────────────────────────────────────────────────────────
+    //
+    // Members see published lessons only. The client's query filters on
+    // `published == true`, which is what makes the list legal here.
+    // A member reads a published video only of a course the admin opened
+    // for them — or a "default" (free) video, which everybody sees. The app
+    // asks with matching queries (MemberVideos), so nothing else can be read
+    // even by hand: the video links of other courses stay hidden.
+    match /videos/{videoId} {
+      allow read: if isAdmin()
+        || (memberOk()
+            && resource.data.published == true
+            && (resource.data.get('free', false) == true
+                || hasCourse(resource.data.get('category', ''))));
+      allow create: if canDo('videos', 'add');
+      allow delete: if canDo('videos', 'delete');
+      // Edit changes the details; publishing and default / custom each
+      // need their own action, and can be done without Edit.
+      allow update: if can('videos')
+        && (canDo('videos', 'edit') || onlyChanged(['published', 'free', 'updated_at']))
+        && (!changed('published') || canDo('videos', 'publish'))
+        && (!changed('free') || canDo('videos', 'access'));
+    }
+
+    // Every published lesson's title and course, WITHOUT its file link, so
+    // a member sees the courses they were not given — locked. Written only
+    // by the admin app (VideoCatalog), from the videos above.
+    match /video_catalog/{videoId} {
+      allow read: if memberOk();
+      allow write: if can('videos');
+    }
+
+    // Certificates the admin gives a member by hand (no exam). The member
+    // reads their own.
+    match /certificates/{id} {
+      allow read: if isAdmin()
+        || (signedIn() && resource.data.user_id == request.auth.uid);
+      allow create, update, delete: if canDo('quizzes', 'certificates');
+    }
+
+    // ── quizzes ─────────────────────────────────────────────────────────────
+    //
+    // Same shape. A published quiz carries its correct answers, because the
+    // app marks on the device — so an unpublished draft stays admin-only, and
+    // a quiz outside its window is still readable (the app, not the rules,
+    // decides what "open" means for the UI).
+    match /quizzes/{quizId} {
+      allow read: if isAdmin() || (memberOk() && resource.data.published == true);
+      allow create: if canDo('quizzes', 'create')
+        && (request.resource.data.get('certificate', false) != true
+            || canDo('quizzes', 'certificates'));
+      allow delete: if canDo('quizzes', 'delete');
+      // Open / close = the `published` switch, possible without Edit.
+      allow update: if can('quizzes')
+        && (canDo('quizzes', 'edit') || onlyChanged(['published', 'updated_at']))
+        && (!changed('published') || canDo('quizzes', 'open'));
+    }
+
+    // ── cvs ─────────────────────────────────────────────────────────────────
+    //
+    // The document id IS the owner's uid, so ownership is provable from the
+    // path — no lookup, one CV per account, and no way to write somebody
+    // else's.
+    match /cvs/{uid} {
+      // A DIRECTORY: every member in good standing reads every CV. That is
+      // the feature, not an oversight.
+      allow read: if memberOk();
+
+      // Writing one needs the admin's switch on your OWN user document, which
+      // is the only place this rule set spends a read.
+      allow create, update: if isSelf(uid)
+        && (isAdmin() ||
+            get(/databases/$(database)/documents/users/$(uid))
+              .data.can_create_cv == true)
+        // The owner never sets their own review state. On create the field
+        // must be 'Pending'; on update it must not change at all.
+        && (
+             (request.method == 'create'
+               && request.resource.data.status == 'Pending')
+             || (request.method == 'update'
+               && request.resource.data.status == resource.data.status)
+           );
+
+      // Only the admin marks a CV reviewed / shortlisted / rejected.
+      allow update: if canDo('cvs', 'review')
+        && request.resource.data.diff(resource.data)
+             .affectedKeys().hasOnly(['status', 'updated_at']);
+
+      // The demo button writes CVs for the demo members. Flagged only.
+      allow create, update: if isDemoWrite();
+
+      allow delete: if isSelf(uid) || canDo('cvs', 'delete');
+    }
+
+    // ── attempts ────────────────────────────────────────────────────────────
+    //
+    // The document id IS `{quizId}_{uid}`, so ownership is provable from the
+    // path and one member can hold exactly one attempt per quiz.
+    match /attempts/{attemptId} {
+      allow read: if can('results') || can('quizzes') || can('dashboard')
+        || (signedIn() && resource.data.user_id == request.auth.uid);
+
+      // ONE SITTING. Create is allowed, update is not: a second submission
+      // would overwrite the first, which is how a member would retake a quiz
+      // they have already been marked on. Only the admin can clear one.
+      allow create: if signedIn()
+        && attemptId == request.resource.data.quiz_id + '_' + request.auth.uid
+        && request.resource.data.user_id == request.auth.uid
+        && request.resource.data.score is int
+        && request.resource.data.total_points is int;
+
+      // CERTIFICATE QUIZZES MAY BE RETAKEN until passed: the member may
+      // overwrite their OWN attempt while it is not a pass, and only when the
+      // quiz is a certificate quiz. A passed attempt is the certificate and
+      // can no longer be replaced by the member.
+      allow update: if signedIn()
+        && resource.data.user_id == request.auth.uid
+        && request.resource.data.user_id == request.auth.uid
+        && request.resource.data.quiz_id == resource.data.quiz_id
+        && resource.data.get('passed', false) != true
+        && get(/databases/$(database)/documents/quizzes/$(resource.data.quiz_id))
+             .data.get('certificate', false) == true
+        && request.resource.data.score is int
+        && request.resource.data.total_points is int;
+
+      // The demo button writes attempts in other members' names, which the
+      // rule above forbids on purpose. Flagged only, and the id still has to
+      // be the {quizId}_{uid} pair so the demo cannot create a second attempt
+      // for somebody who already has one.
+      allow create: if isDemoWrite()
+        && attemptId == request.resource.data.quiz_id + '_'
+             + request.resource.data.user_id;
+
+      allow update, delete: if can('results');
+      // Deleting a quiz deletes its attempts with it.
+      allow delete: if canDo('quizzes', 'delete');
+    }
+
+    // ── Engagement (lib/features/engagement) ────────────────────────────────
+    //
+    // Written by admins with the 'videos' permission; read by every
+    // signed-in account.
+
+    // The bell: texts the admin sends to every member.
+    match /notifications/{id} {
+      allow read: if memberOk();
+      allow create, update, delete: if canDo('engagement', 'notifications');
+    }
+
+    // Tips & tricks. A member may only add or remove THEIR OWN uid in
+    // `saved_by` (the "Save" button) — nothing else on the tip.
+    function onlyOwnSave() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['saved_by'])
+        && request.resource.data.saved_by is list
+        && request.resource.data.saved_by.toSet()
+             .difference(resource.data.get('saved_by', []).toSet())
+             .hasOnly([request.auth.uid])
+        && resource.data.get('saved_by', []).toSet()
+             .difference(request.resource.data.saved_by.toSet())
+             .hasOnly([request.auth.uid]);
+    }
+
+    // A member marks a tip as already shown to them: only adds their own uid
+    // to `seen_by`, nothing else.
+    function onlyOwnSeen() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['seen_by'])
+        && request.resource.data.seen_by is list
+        && request.resource.data.seen_by.toSet()
+             .difference(resource.data.get('seen_by', []).toSet())
+             .hasOnly([request.auth.uid])
+        && resource.data.get('seen_by', []).toSet()
+             .difference(request.resource.data.seen_by.toSet())
+             .size() == 0;
+    }
+
+    match /tips/{id} {
+      allow read: if memberOk();
+      allow create, update, delete: if canDo('engagement', 'tips');
+      allow update: if signedIn() && (onlyOwnSave() || onlyOwnSeen());
+    }
+
+    // The member Library and each course's folders / files.
+    match /library/{id} {
+      allow read: if memberOk();
+      allow create, update, delete: if canDo('engagement', 'library');
+    }
+    // A course's files: only for members who have that course. The Library
+    // ('__library__') is for every member.
+    match /course_files/{id} {
+      allow read: if memberOk()
+        && (resource.data.course == '__library__'
+            || hasCourse(resource.data.course));
+      // The Library ('__library__') follows Engagement → Library; a
+      // course's files follow Videos → Add / Edit / Delete.
+      allow create: if request.resource.data.course == '__library__'
+        ? canDo('engagement', 'library') : canDo('videos', 'add');
+      allow update: if resource.data.course == '__library__'
+        ? canDo('engagement', 'library') : canDo('videos', 'edit');
+      allow delete: if resource.data.course == '__library__'
+        ? canDo('engagement', 'library') : canDo('videos', 'delete');
+    }
+
+    // Per-course switches (watch in order). Nothing secret in them.
+    match /course_settings/{id} {
+      allow read: if signedIn();
+      allow create, update, delete: if canDo('videos', 'access');
+    }
+
+    // Each member's watch progress — the stars. Only its owner writes it;
+    // every signed-in account reads it (the leaderboard, the admin).
+    match /progress/{uid} {
+      allow read: if isSelf(uid) || memberOk();
+      allow create, update: if isSelf(uid)
+        && request.resource.data.keys().hasOnly(['name', 'videos', 'updated_at'])
+        && request.resource.data.videos is map;
+      allow delete: if isSelf(uid) || can('members');
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // THE WEBSITE (asec_web — the Flutter copy of asecbim.com + its /admin).
+    //
+    // Content is public to read once published; the panel writes it. The
+    // panel is open to the super admin and to admins whose `permissions`
+    // hold 'website' (set in the app: Settings → Admins, or in the panel).
+    // Visitors can only CREATE inbox items, never read them back.
+    // ════════════════════════════════════════════════════════════════════════
+
+    function canWeb() {
+      return can('website');
+    }
+
+    // Website → Content / Inbox / Settings.
+    function webContent() {
+      return canDo('website', 'content');
+    }
+
+    function webInbox() {
+      return canDo('website', 'inbox');
+    }
+
+    match /site_settings/{doc} {
+      allow read: if true;
+      allow write: if canDo('website', 'settings');
+    }
+
+    // Published content. The site's queries filter `published == true`,
+    // which is what makes a public list legal here.
+    match /site_services/{id} {
+      allow read: if canWeb() || resource.data.published == true;
+      allow write: if webContent();
+    }
+    match /site_features/{id} {
+      allow read: if canWeb() || resource.data.published == true;
+      allow write: if webContent();
+    }
+    match /site_projects/{id} {
+      allow read: if canWeb() || resource.data.published == true;
+      allow write: if webContent();
+    }
+    match /site_articles/{id} {
+      allow read: if canWeb() || resource.data.published == true;
+      allow write: if webContent();
+    }
+    // Also edited from the app's Engagement → Partners tab.
+    match /site_partners/{id} {
+      allow read: if canWeb() || can('engagement') || resource.data.published == true;
+      allow write: if webContent() || canDo('engagement', 'partners');
+    }
+    match /site_testimonials/{id} {
+      allow read: if canWeb() || resource.data.published == true;
+      allow write: if webContent();
+    }
+
+    // ── The three public forms ──────────────────────────────────────────────
+    //
+    // Anybody may create ONE document with exactly the form's fields,
+    // status 'new' and the server's time. Short strings only.
+    function inboxCreate(keys) {
+      return request.resource.data.keys().hasOnly(keys)
+        && request.resource.data.status == 'new'
+        && request.resource.data.created_at == request.time;
+    }
+
+    function maxLen(field, max) {
+      return !(field in request.resource.data)
+        || (request.resource.data[field] is string
+            && request.resource.data[field].size() <= max);
+    }
+
+    match /site_messages/{id} {
+      // The demo button's sample entries (flagged — see isDemoWrite()).
+      allow create, update: if isDemoWrite();
+      allow create: if inboxCreate(['name', 'phone', 'email', 'subject', 'message', 'status', 'created_at'])
+        && maxLen('name', 200) && maxLen('phone', 40) && maxLen('email', 200)
+        && maxLen('subject', 300) && maxLen('message', 5000);
+      allow read, update, delete: if webInbox();
+    }
+
+    match /site_service_requests/{id} {
+      // The demo button's sample entries (flagged — see isDemoWrite()).
+      allow create, update: if isDemoWrite();
+      allow create: if inboxCreate(['client_name', 'company', 'phone', 'project_name', 'email',
+                                    'floors', 'land_area', 'location', 'files_link',
+                                    'project_type', 'services', 'status', 'created_at'])
+        && maxLen('client_name', 200) && maxLen('company', 200) && maxLen('phone', 40)
+        && maxLen('project_name', 300) && maxLen('email', 200) && maxLen('floors', 100)
+        && maxLen('land_area', 100) && maxLen('location', 300) && maxLen('files_link', 1000)
+        && maxLen('project_type', 50)
+        && (!('services' in request.resource.data)
+            || (request.resource.data.services is list && request.resource.data.services.size() <= 5));
+      allow read, update, delete: if webInbox();
+    }
+
+    // E-mails sent by the "Trigger Email from Firestore" extension. The
+    // public service request form may queue ONE kind only: to info@asecbim.com
+    // (keep in line with SiteRepo.requestsEmail), so it cannot mail anybody
+    // else. Nobody reads them from the app.
+    match /mail/{id} {
+      allow create: if request.resource.data.keys().hasOnly(['to', 'replyTo', 'message', 'created_at'])
+        && request.resource.data.to == ['info@asecbim.com']
+        && request.resource.data.message.keys().hasOnly(['subject', 'html'])
+        && request.resource.data.message.subject is string
+        && request.resource.data.message.subject.size() <= 300
+        && request.resource.data.message.html is string
+        && request.resource.data.message.html.size() <= 20000;
+      allow read, update, delete: if false;
+    }
+
+    match /site_job_applications/{id} {
+      // The demo button's sample entries (flagged — see isDemoWrite()).
+      allow create, update: if isDemoWrite();
+      allow create: if inboxCreate(['name', 'university', 'faculty', 'residence', 'email', 'phone',
+                                    'skills', 'company', 'projects_link', 'graduation_date', 'grade',
+                                    'request_type', 'skill_level', 'experience_role', 'from', 'to',
+                                    'status', 'created_at'])
+        && maxLen('name', 200) && maxLen('university', 200) && maxLen('faculty', 200)
+        && maxLen('residence', 200) && maxLen('email', 200) && maxLen('phone', 40)
+        && maxLen('skills', 1000) && maxLen('company', 200) && maxLen('projects_link', 1000);
+      allow read, update, delete: if webInbox();
+    }
+
+  }
+}

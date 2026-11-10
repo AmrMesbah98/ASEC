@@ -30,6 +30,7 @@
 /// Created: 2/10/2026
 
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io' show Platform;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -38,6 +39,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:http/http.dart' as http;
 import 'package:in_app_update/in_app_update.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shorebird_code_push/shorebird_code_push.dart';
@@ -49,6 +51,7 @@ import 'package:asec/core/network/app_firebase.dart';
 import 'package:asec/core/theme/app_colors.dart';
 import 'package:asec/core/theme/app_theme.dart';
 import 'package:asec/generated/l10n.dart';
+import 'package:asec/core/settings/windows_auto_update.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
 
 abstract final class AppUpdate {
@@ -57,6 +60,8 @@ abstract final class AppUpdate {
   static bool _started = false;
 
   static bool get _isAndroid => !kIsWeb && Platform.isAndroid;
+
+  static bool get _isMacOS => !kIsWeb && Platform.isMacOS;
 
   /// Shorebird code push works on iOS too (App Store builds made with
   /// `shorebird release ios`). Before 25/10/2026 only Android checked for
@@ -69,14 +74,199 @@ abstract final class AppUpdate {
   /// NOT from `main`: the splash replaces the whole route stack when it
   /// leaves, and a dialog opened before that would be swept away with it.
   static void checkSoon() {
-    if (_started || !(_isAndroid || _isIOS)) return;
+    if (_started) return;
+    // WINDOWS (07/11/2026): the newest published installer is required.
+    if (!kIsWeb && Platform.isWindows) {
+      _started = true;
+      Future<void>.delayed(const Duration(milliseconds: 1500), _checkWindows);
+      return;
+    }
+    if (!(_isAndroid || _isIOS || _isMacOS)) return;
     _started = true;
     Future<void>.delayed(const Duration(milliseconds: 1500), () async {
-      // The store check is Google Play only; iOS goes straight to patches.
-      final bool storeDialogShown = _isAndroid && await _checkStore();
+      // 10/11/2026 (from ENGX): EVERY platform gets the "new version" dialog —
+      // Android from Google Play, iPhone and Mac from the App Store.
+      final bool storeDialogShown =
+          _isAndroid ? await _checkStore() : await _checkApple();
       // A store update replaces the app anyway — no need to talk patches.
-      if (!storeDialogShown) await _checkPatch();
+      if (!storeDialogShown && !_isMacOS) await _checkPatch();
     });
+  }
+
+  // ── Per-platform rules (10/11/2026, from ENGX) ─────────────────────────────
+  //
+  // Firestore `settings/app_update.platforms` — each platform on its own, by
+  // VERSION NAME: { android: {min: '1.0.30', latest: '1.0.31'}, ios: {…},
+  // macos: {…}, windows: {…} }. Below `min` → forced; below `latest` → asked.
+  // Set from Settings → App update → Per platform.
+
+  /// 'android', 'ios', 'macos', 'windows' — '' elsewhere.
+  static String get platformKey {
+    if (kIsWeb) return '';
+    if (Platform.isAndroid) return 'android';
+    if (Platform.isIOS) return 'ios';
+    if (Platform.isMacOS) return 'macos';
+    if (Platform.isWindows) return 'windows';
+    return '';
+  }
+
+  /// (forced, asked) for [version] by this platform's own rule in [data].
+  static (bool, bool) _platformRule(Map<String, dynamic> data, String version) {
+    final Object? all = data['platforms'];
+    if (all is! Map || version.isEmpty) return (false, false);
+    final Object? own = all[platformKey];
+    if (own is! Map) return (false, false);
+    final String min = '${own['min'] ?? ''}'.trim();
+    final String latest = '${own['latest'] ?? ''}'.trim();
+    return (
+      min.isNotEmpty && _compare(version, min) < 0,
+      latest.isNotEmpty && _compare(version, latest) < 0,
+    );
+  }
+
+  static Future<Map<String, dynamic>> _settings() async {
+    try {
+      final DocumentSnapshot<Map<String, dynamic>> snap = await AppFirebase.db
+          .collection('settings')
+          .doc('app_update')
+          .get()
+          .timeout(const Duration(seconds: 8));
+      return snap.data() ?? <String, dynamic>{};
+    } catch (_) {
+      return <String, dynamic>{};
+    }
+  }
+
+  // ── iPhone / Mac: the App Store (10/11/2026) ───────────────────────────────
+
+  /// The App Store's own record of this app, looked up by bundle id:
+  /// (store version, store page). Null when it is not on the store yet.
+  static Future<(String, String)?> _appStore(String bundleId) async {
+    for (final String country in <String>['', 'eg', 'sa', 'ae']) {
+      try {
+        final String c = country.isEmpty ? '' : '&country=$country';
+        final http.Response r = await http
+            .get(Uri.parse('https://itunes.apple.com/lookup?bundleId=$bundleId$c&t=${DateTime.now().millisecondsSinceEpoch}'))
+            .timeout(const Duration(seconds: 10));
+        if (r.statusCode != 200) continue;
+        final Object? data = jsonDecode(r.body);
+        if (data is! Map || data['resultCount'] is! num || (data['resultCount'] as num) < 1) continue;
+        final Object? first = (data['results'] as List).first;
+        if (first is! Map) continue;
+        final String version = '${first['version'] ?? ''}'.trim();
+        final String url = '${first['trackViewUrl'] ?? ''}'.trim();
+        if (version.isNotEmpty) return (version, url);
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  /// Returns true when the update dialog was shown.
+  static Future<bool> _checkApple() async {
+    try {
+      final PackageInfo package = await PackageInfo.fromPlatform();
+      final String version = package.version;
+      final int build = int.tryParse(package.buildNumber) ?? 0;
+      final Map<String, dynamic> data = await _settings();
+      final (bool ownForced, bool ownAsked) = _platformRule(data, version);
+      final int minBuild = (data['min_build'] as num?)?.toInt() ?? 0;
+
+      final (String, String)? store = await _appStore(package.packageName);
+      final bool storeNewer = store != null && _compare(version, store.$1) < 0;
+
+      final bool forced = ownForced || (build > 0 && build < minBuild);
+      if (!forced && !ownAsked && !storeNewer) return false;
+
+      // Where "Update now" goes: the link saved by the admin, else the App
+      // Store page the lookup found.
+      final String saved = '${data[_isMacOS ? 'macos_url' : 'ios_url'] ?? ''}'.trim();
+      // Last fallback: ASEC's App Store record (Apple ID 6814102551 — the same
+      // record serves iPhone, iPad and Mac).
+      final String link = saved.isNotEmpty
+          ? saved
+          : ((store?.$2 ?? '').isNotEmpty ? store!.$2 : 'https://apps.apple.com/app/id6814102551');
+
+      final BuildContext? context = Get.overlayContext ?? Get.context;
+      if (context == null || !context.mounted) return false;
+      final String lang = Localizations.localeOf(context).languageCode;
+      final String? notes = (data['notes_$lang'] ?? data['notes_en']) as String?;
+      final S s = S.of(context);
+
+      await _UpdateDialog.show(
+        context,
+        forced: forced,
+        icon: Icons.system_update_rounded,
+        title: forced ? s.updateRequiredTitle : s.updateTitle,
+        message: forced ? s.updateRequiredMessage : s.updateMessage,
+        version: s.updateCurrentVersion(version),
+        notes: (notes == null || notes.trim().isEmpty) ? null : notes.trim(),
+        primaryLabel: s.updateNow,
+        primaryIcon: Icons.download_rounded,
+        onPrimary: () async {
+          if (link.isEmpty) return;
+          try {
+            await launchUrl(Uri.parse(link), mode: LaunchMode.externalApplication);
+          } catch (_) {}
+        },
+        secondaryLabel: s.updateLater,
+      );
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // ── 0. Windows: the newest published installer (07/11/2026) ───────────────
+
+  /// Off: Firestore `settings/app_update.windows_auto_force = false`.
+  static Future<void> _checkWindows() async {
+    try {
+      final PackageInfo package = await PackageInfo.fromPlatform();
+      final String version = package.version;
+      if (version.isEmpty) return;
+      try {
+        final DocumentSnapshot<Map<String, dynamic>> snap = await AppFirebase.db
+            .collection('settings')
+            .doc('app_update')
+            .get()
+            .timeout(const Duration(seconds: 8));
+        if (snap.data()?['windows_auto_force'] == false) return;
+      } catch (_) {}
+      final (String, String, String)? newest = await WindowsAutoUpdate.latest();
+      if (newest == null || _compare(version, newest.$1) >= 0) return;
+      final BuildContext? context = Get.overlayContext ?? Get.context;
+      if (context == null || !context.mounted) return;
+      final S s = S.of(context);
+      await _UpdateDialog.show(
+        context,
+        forced: true,
+        icon: Icons.system_update_rounded,
+        title: s.updateRequiredTitle,
+        message: 'A new version of ASEC (${newest.$1}) is ready. Install it to keep using the app — '
+            'it downloads and installs here, then ASEC opens again.',
+        version: s.updateCurrentVersion(version),
+        primaryLabel: 'Update now',
+        primaryIcon: Icons.download_rounded,
+        onPrimary: () async {
+          final BuildContext? c = Get.overlayContext ?? Get.context;
+          if (c != null && c.mounted) await WindowsAutoUpdate.installInApp(c, newest.$2);
+        },
+        secondaryLabel: '',
+      );
+    } catch (_) {}
+  }
+
+  /// -1 / 0 / 1 for "1.0.9" vs "1.0.15" (numbers; a missing part = 0).
+  static int _compare(String a, String b) {
+    List<int> parts(String v) => v.split(RegExp(r'[.+\-]')).map((String p) => int.tryParse(p.trim()) ?? 0).toList();
+    final List<int> x = parts(a);
+    final List<int> y = parts(b);
+    for (int i = 0; i < (x.length > y.length ? x.length : y.length); i++) {
+      final int p = i < x.length ? x[i] : 0;
+      final int q = i < y.length ? y[i] : 0;
+      if (p != q) return p < q ? -1 : 1;
+    }
+    return 0;
   }
 
   // ── 1. Google Play ───────────────────────────────────────────────────────
@@ -114,8 +304,10 @@ abstract final class AppUpdate {
       final bool playHasUpdate =
           play?.updateAvailability == UpdateAvailability.updateAvailable;
 
-      final bool forced = build < minBuild;
-      if (!forced && !playHasUpdate && build >= latestBuild) return false;
+      // Android's own version rule (Settings → App update → Per platform).
+      final (bool ownForced, bool ownAsked) = _platformRule(data, package.version);
+      final bool forced = build < minBuild || ownForced;
+      if (!forced && !playHasUpdate && !ownAsked && build >= latestBuild) return false;
 
       final BuildContext? context = Get.overlayContext ?? Get.context;
       if (context == null || !context.mounted) return false;

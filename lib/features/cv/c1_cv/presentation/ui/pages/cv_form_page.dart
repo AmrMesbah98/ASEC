@@ -104,9 +104,9 @@ class _CvFormView extends StatelessWidget {
             SizedBox(height: 16.h),
             _SkillsCard(state: state),
             SizedBox(height: 16.h),
-            _CvFileCard(state: state),
-            SizedBox(height: 16.h),
             _LinksCard(state: state),
+            SizedBox(height: 16.h),
+            _CvFileCard(state: state),
           ],
         );
 
@@ -374,15 +374,6 @@ class _ProfessionCard extends StatefulWidget {
 }
 
 class _ProfessionCardState extends State<_ProfessionCard> {
-  late final TextEditingController _bio =
-      TextEditingController(text: widget.state.cv.bio);
-
-  @override
-  void dispose() {
-    _bio.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     final S s = S.of(context);
@@ -421,14 +412,7 @@ class _ProfessionCardState extends State<_ProfessionCard> {
                 DropdownItem<String>(value: v, label: v),
             ],
           ),
-          SizedBox(height: 12.h),
-          CustomTextField(
-            controller: _bio,
-            label: s.bioLabel,
-            hint: s.bioHint,
-            maxLines: 4,
-            onChanged: cubit.setBio,
-          ),
+          // 09/11/2026: the "About you" field is removed from the form.
         ],
       ),
     );

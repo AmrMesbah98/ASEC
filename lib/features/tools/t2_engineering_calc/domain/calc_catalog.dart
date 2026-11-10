@@ -14,6 +14,7 @@
 
 import 'package:flutter/material.dart';
 
+import 'package:asec/features/tools/t2_engineering_calc/domain/calc_load_estimation.dart';
 import 'package:asec/features/tools/t2_engineering_calc/domain/calc_model.dart';
 import 'package:asec/features/tools/t2_engineering_calc/domain/calc_units.dart';
 import 'package:asec/features/tools/t2_engineering_calc/domain/calcs_fire.dart';
@@ -77,6 +78,17 @@ const EngCalc cylinderBank = EngCalc(
 const List<EngCalc> medicalGasCalcs = <EngCalc>[gasDemand, cylinderBank];
 
 abstract final class CalcCatalog {
+  /// 09/11/2026: what the HVAC menu item shows — the load estimation only.
+  static const List<CalcDiscipline> hvacOnly = <CalcDiscipline>[
+    CalcDiscipline(
+      id: 'hvac',
+      en: 'HVAC',
+      ar: 'التكييف والتهوية',
+      icon: Icons.ac_unit_rounded,
+      calcs: <EngCalc>[loadEstimation],
+    ),
+  ];
+
   static const List<CalcDiscipline> all = <CalcDiscipline>[
     CalcDiscipline(
       id: 'hvac',

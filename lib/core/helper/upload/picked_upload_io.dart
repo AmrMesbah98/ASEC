@@ -26,3 +26,12 @@ UploadTask startUpload(
   }
   return ref.putData(file.bytes!, metadata);
 }
+
+/// The picked file as a byte stream — read from disk, or the in-memory
+/// bytes when the picker gave no path. Used for uploads that do not go
+/// through Firebase Storage (Cloudflare R2).
+Stream<List<int>> pickedBytes(PlatformFile file) {
+  final String? path = file.path;
+  if (path != null) return File(path).openRead();
+  return Stream<List<int>>.value(file.bytes!);
+}

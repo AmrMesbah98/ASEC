@@ -33,7 +33,8 @@ class StormStep {
 const List<double> kRainfallRatesInH = <double>[1, 1.5, 2, 4, 5, 6];
 
 /// Horizontal leader slopes (index = table index).
-const List<String> kStormSlopes = <String>['0.5 % (1/16" per ft)', '1 % (1/8" per ft)', '2 % (1/4" per ft)', '4 % (1/2" per ft)'];
+/// 09/11/2026: shown in % only — no "per ft".
+const List<String> kStormSlopes = <String>['0.5 %', '1 %', '2 %', '4 %'];
 
 /// Gutter sizes matching [kGutterCapacities] columns, in.
 const List<double> kGutterSizes = <double>[3, 4, 5, 6, 7, 8, 10];

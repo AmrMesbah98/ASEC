@@ -14,6 +14,7 @@
 /// `video_pos_<id>`, and the next open seeks there — unless the lesson was
 /// almost finished, in which case it starts again from the top.
 
+import 'package:asec/features/video/v1_videos/data/cloud/cloud_lessons.dart';
 import 'dart:async';
 
 import 'package:chewie/chewie.dart';
@@ -24,8 +25,10 @@ import 'package:asec/core/security/secure_video_server.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart' show RxInterface, Worker, everAll;
-import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
+import 'package:asec/core/settings/error_reports.dart';
+import 'package:get_storage/get_storage.dart';
+import 'package:asec/core/settings/desktop_video.dart';
 
 import 'package:asec/core/settings/capture_context.dart';
 import 'package:asec/core/custom/101-custom_surface.dart';
@@ -42,7 +45,7 @@ import 'package:asec/features/video/v1_videos/presentation/ui/widgets/video_card
 import 'package:asec/features/video/v1_videos/presentation/ui/widgets/video_device_gate.dart';
 import 'package:asec/features/video/v1_videos/presentation/ui/widgets/video_loading_view.dart';
 import 'package:asec/features/video/v1_videos/presentation/ui/widgets/video_watch_store.dart';
-import 'package:asec/features/onboarding/o2_authentication/presentation/controller/session_controller.dart';
+import 'package:asec/features/video/v1_videos/presentation/ui/widgets/video_watermark.dart';
 import 'package:asec/generated/l10n.dart';
 import 'package:asec/core/animation/app_animations.dart';
 import 'package:asec/core/settings/app_connectivity.dart';
@@ -196,12 +199,15 @@ class _VideoPlayerPageState extends State<_VideoPlayerView>
               VideoLink.playable(widget.video.url),
               sizeBytes: widget.video.sizeBytes,
               label: widget.video.title,
+              // Cloudflare only, when the admin switched it on (07/11/2026).
+              cloud: CloudLessons.signerFor(widget.video.url),
             );
       _stream = stream;
       if (_closed || !mounted) {
         SecureVideoServer.revoke(stream);
         return;
       }
+      _useSoftwarePlayerIfNeeded();
       final VideoPlayerController video = VideoPlayerController.networkUrl(stream);
       _pending = video; // dispose() stops it if the page closes meanwhile
       await video.initialize();
@@ -247,6 +253,8 @@ class _VideoPlayerPageState extends State<_VideoPlayerView>
         // Mid-lesson stalls get the same rippling button as the first load,
         // not Chewie's spinning circle.
         bufferingBuilder: (BuildContext context) => const VideoBufferingBadge(),
+        // Who is watching, drifting over the picture (also in full screen).
+        overlay: const VideoWatermark(),
       );
 
       _saveTimer = Timer.periodic(const Duration(seconds: 3), (_) => _savePosition());
@@ -259,6 +267,25 @@ class _VideoPlayerPageState extends State<_VideoPlayerView>
       _pending = null; // owned by _video from here on
       _focus.requestFocus();
     } catch (error) {
+      // ANDROID: this phone's video chip refused the lesson → play it with
+      // the software player instead (and on this phone from now on).
+      if (mounted && !_closed && _isDecoderError(error) && !_softwarePlayerOn && enableSoftwareVideoPlayer()) {
+        _softwarePlayerOn = true;
+        try {
+          GetStorage().write(_softwarePlayerKey, true);
+        } catch (_) {}
+        ErrorReports.report('Switched this phone to the software video player after: $error', StackTrace.empty,
+            source: 'video');
+        final VideoPlayerController? stale = _pending;
+        _pending = null;
+        try {
+          await stale?.dispose();
+        } catch (_) {}
+        SecureVideoServer.revoke(_stream);
+        _stream = null;
+        unawaited(_open());
+        return;
+      }
       if (mounted) {
         setState(() {
           _failed = true;
@@ -266,6 +293,31 @@ class _VideoPlayerPageState extends State<_VideoPlayerView>
         });
       }
     }
+  }
+
+  // ── Android: software player for phones whose video chip fails ────────────
+
+  static const String _softwarePlayerKey = 'android_software_player';
+  static bool _softwarePlayerOn = false;
+
+  bool get _isAndroid => !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+
+  /// ExoPlayer could not DECODE the lesson on this phone's hardware (never a
+  /// network / link error).
+  bool _isDecoderError(Object e) {
+    if (!_isAndroid) return false;
+    final String t = '$e';
+    return t.contains('MediaCodec') || t.contains('Decoder') || t.contains('decoder');
+  }
+
+  /// A phone that needed the software player before uses it from the start.
+  void _useSoftwarePlayerIfNeeded() {
+    if (!_isAndroid || _softwarePlayerOn) return;
+    try {
+      if (GetStorage().read<bool>(_softwarePlayerKey) == true) {
+        _softwarePlayerOn = enableSoftwareVideoPlayer();
+      }
+    } catch (_) {}
   }
 
   void _savePosition() {
@@ -406,11 +458,6 @@ class _VideoPlayerPageState extends State<_VideoPlayerView>
 
   void _fullScreen() => _chewie?.enterFullScreen();
 
-  Future<void> _openExternally() async {
-    final Uri uri = Uri.parse(widget.video.url);
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
-  }
-
   /// The app went to the background, was minimised/hidden, or is closing —
   /// stop the lesson so it never plays on with no screen.
   @override
@@ -443,8 +490,23 @@ class _VideoPlayerPageState extends State<_VideoPlayerView>
     _video?.removeListener(_onTick);
     _saveTimer?.cancel();
     _guard?.dispose();
-    _chewie?.dispose();
-    _video?.dispose();
+    // FIX (06/11/2026, from ENGX): "VideoPlayer for textureId … is not found,
+    // Check if its disposed" — the controllers were freed while Chewie's
+    // full-screen page (or the closing page) was still showing them. Close
+    // full screen, then free them once the screens are gone.
+    final ChewieController? chewie = _chewie;
+    final VideoPlayerController? video = _video;
+    try {
+      if (chewie?.isFullScreen ?? false) chewie!.exitFullScreen();
+    } catch (_) {}
+    Future<void>.delayed(const Duration(milliseconds: 800), () {
+      try {
+        chewie?.dispose();
+      } catch (_) {}
+      try {
+        video?.dispose();
+      } catch (_) {}
+    });
     _focus.dispose();
     super.dispose();
   }
@@ -627,17 +689,8 @@ class _VideoPlayerPageState extends State<_VideoPlayerView>
                   .copyWith(color: AppColors.red),
             ),
           ],
-          // Opening the video outside the app hands over its link, so only
-          // amrmesbah33@gmail.com gets this button.
-          if (SessionController.to.current.isSuperAdmin) ...<Widget>[
-            SizedBox(height: 12.h),
-            AppButton(
-              label: s.openExternally,
-              icon: Icons.open_in_new_rounded,
-              kind: AppButtonKind.subtle,
-              onPressed: _openExternally,
-            ),
-          ],
+          // NO "open outside the app" (06/11/2026, as ENGX): a lesson plays
+          // INSIDE ASEC only — for every account, the super admin too.
         ],
       );
     }

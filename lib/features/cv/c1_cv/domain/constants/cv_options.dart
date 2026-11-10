@@ -40,80 +40,54 @@ abstract final class CvOptions {
     ];
   }
 
+  /// ASEC is a mechanical academy, so Mechanical Engineering is the only
+  /// specialization and every new CV starts with it already picked.
+  static const String defaultSpecialization = 'Mechanical Engineering';
+
   static const List<String> specializations = <String>[
-    'Civil Engineering',
-    'Mechanical Engineering',
-    'Electrical Engineering',
-    'Chemical Engineering',
-    'Industrial Engineering',
-    'Computer Engineering',
-    'Electronics Engineering',
-    'Architecture Engineering',
+    defaultSpecialization,
   ];
 
+  /// The three positions the CV directory is split into, in the order its
+  /// tabs show them (Eng. Ahmed Shuhayb's review, 9 Nov 2026).
   static const List<String> roles = <String>[
     'Site Engineer',
     'Technical Office Engineer',
-    'Procurement Engineer',
-    'Sales Engineer',
-    'Tendering Engineer',
+    'Design Engineer',
   ];
 
   static const List<String> languages = <String>[
     'Arabic',
     'English',
     'French',
-    'Other',
   ];
 
+  /// 09/11/2026: these six.
   static const List<String> softSkills = <String>[
     'Communication Skills',
     'Teamwork',
     'Time Management',
     'Problem Solving',
-    'Attention to Detail',
-    'Adaptability',
-    'Work Under Pressure',
-    'Self-Learning',
-    'Responsibility',
+    'Leadership',
+    'Critical Thinking',
   ];
 
-  /// The professional skills offered depend on the ROLE, not the
-  /// specialization: a site engineer and a tendering engineer in the same
-  /// discipline reach for different tools.
-  static const Map<String, List<String>> skillsByRole = <String, List<String>>{
-    'Site Engineer': <String>[
-      'AutoCAD', 'Site Supervision', 'Quality Control',
-      'Construction Management', 'BOQ', 'Shop Drawings', 'As-Built Drawings',
-      'Daily Reports', 'Material Inspection', 'Safety Management',
-      'Setting Out', 'Subcontractor Management',
-    ],
-    'Technical Office Engineer': <String>[
-      'AutoCAD', 'Revit', 'Shop Drawings', 'As-Built Drawings', 'BOQ',
-      'Quantity Surveying', 'Technical Submittals', 'RFI Management',
-      'Material Approvals', 'Cost Estimation', 'MS Office', 'Coordination',
-    ],
-    'Procurement Engineer': <String>[
-      'Procurement Management', 'Supply Chain', 'Vendor Management',
-      'Contract Management', 'Cost Estimation', 'BOQ', 'Tendering',
-      'Material Sourcing', 'Negotiation', 'ERP Systems', 'MS Office',
-      'Market Analysis',
-    ],
-    'Sales Engineer': <String>[
-      'Technical Sales', 'Client Relationship Management', 'Product Knowledge',
-      'Presentations', 'Negotiation', 'CRM Software', 'Market Analysis',
-      'Proposal Writing', 'After-Sales Support', 'MS Office',
-      'Communication Skills', 'Business Development',
-    ],
-    'Tendering Engineer': <String>[
-      'Tendering', 'BOQ', 'Cost Estimation', 'Quantity Surveying',
-      'Contract Management', 'Primavera P6', 'MS Project', 'AutoCAD',
-      'Proposal Writing', 'Value Engineering', 'Risk Analysis', 'MS Office',
-    ],
-  };
+  /// 09/11/2026: ONE list of professional skills for every role — only
+  /// these.
+  static const List<String> proSkills = <String>[
+    'AutoCAD',
+    'Revit',
+    'Shop Drawings',
+    'BOQ',
+    'MS Office',
+    'HVAC Design',
+    'Plumbing Design',
+    'Fire Fighting Design',
+    'Navisworks',
+    'Coordination',
+  ];
 
-  /// The skills to offer for [role]. An unknown or empty role offers nothing —
-  /// the form says "pick a role first" rather than showing a random list.
-  static List<String> skillsFor(String role) =>
-      skillsByRole[role] ?? const <String>[];
+  /// The skills to offer — the same for every role (kept as a function so
+  /// the form and the cubit need no change).
+  static List<String> skillsFor(String role) => proSkills;
 }

@@ -48,6 +48,27 @@ class _AppUpdateCardState extends State<AppUpdateCard> {
   final TextEditingController _notesEn = TextEditingController();
   final TextEditingController _notesAr = TextEditingController();
 
+  /// 10/11/2026 (from ENGX): each platform's own versions, by version name
+  /// (1.0.31): below "min" → forced, below "latest" → asked. Saved to
+  /// `platforms.{android|ios|macos|windows}.{min|latest}`.
+  static const List<(String, String)> _platforms = <(String, String)>[
+    ('android', 'Android'),
+    ('ios', 'iPhone / iPad'),
+    ('macos', 'Mac'),
+    ('windows', 'Windows'),
+  ];
+  final Map<String, TextEditingController> _pMin = <String, TextEditingController>{
+    for (final (String key, String _) in _platforms) key: TextEditingController(),
+  };
+  final Map<String, TextEditingController> _pLatest = <String, TextEditingController>{
+    for (final (String key, String _) in _platforms) key: TextEditingController(),
+  };
+
+  /// Where "Update now" goes on iPhone / Mac (App Store pages). Empty = the
+  /// App Store page the app finds for itself.
+  final TextEditingController _iosUrl = TextEditingController();
+  final TextEditingController _macUrl = TextEditingController();
+
   bool _loading = true;
   bool _saving = false;
   int _savedMin = 0;
@@ -67,6 +88,14 @@ class _AppUpdateCardState extends State<AppUpdateCard> {
     _min.dispose();
     _notesEn.dispose();
     _notesAr.dispose();
+    for (final TextEditingController c in <TextEditingController>[
+      ..._pMin.values,
+      ..._pLatest.values,
+      _iosUrl,
+      _macUrl,
+    ]) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -85,6 +114,17 @@ class _AppUpdateCardState extends State<AppUpdateCard> {
       _min.text = _savedMin > 0 ? '$_savedMin' : '';
       _notesEn.text = (d['notes_en'] as String?) ?? '';
       _notesAr.text = (d['notes_ar'] as String?) ?? '';
+      final Object? p = d['platforms'];
+      if (p is Map) {
+        for (final (String key, String _) in _platforms) {
+          final Object? own = p[key];
+          if (own is! Map) continue;
+          _pMin[key]!.text = '${own['min'] ?? ''}';
+          _pLatest[key]!.text = '${own['latest'] ?? ''}';
+        }
+      }
+      _iosUrl.text = (d['ios_url'] as String?) ?? '';
+      _macUrl.text = (d['macos_url'] as String?) ?? '';
     } catch (_) {}
     if (mounted) setState(() => _loading = false);
   }
@@ -103,6 +143,15 @@ class _AppUpdateCardState extends State<AppUpdateCard> {
         'min_build': min,
         'notes_en': _notesEn.text.trim(),
         'notes_ar': _notesAr.text.trim(),
+        'platforms': <String, dynamic>{
+          for (final (String key, String _) in _platforms)
+            key: <String, String>{
+              'min': _pMin[key]!.text.trim(),
+              'latest': _pLatest[key]!.text.trim(),
+            },
+        },
+        'ios_url': _iosUrl.text.trim(),
+        'macos_url': _macUrl.text.trim(),
         'updated_at': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
       _savedMin = min;
@@ -205,6 +254,66 @@ class _AppUpdateCardState extends State<AppUpdateCard> {
                   maxLines: 4,
                   minLines: 2,
                   textDirection: TextDirection.rtl,
+                ),
+                SizedBox(height: 18.h),
+                // ── Each platform on its own (10/11/2026) ──
+                Text(
+                  FormatHelper.capitalize('Per platform (version name, e.g. 1.0.31)'),
+                  style: StyleText.fontSize14Weight600,
+                ),
+                SizedBox(height: 4.h),
+                Text(
+                  FormatHelper.capitalize(
+                      'Below "Min" the update is required; below "Latest" the user is asked. '
+                      'Empty = not used. iPhone and Mac also check the App Store by themselves.'),
+                  style: StyleText.fontSize12Weight400
+                      .copyWith(color: AppColors.secondaryText, height: 1.5),
+                ),
+                SizedBox(height: 10.h),
+                for (final (String key, String label) in _platforms) ...<Widget>[
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: <Widget>[
+                      SizedBox(
+                        width: 110.w,
+                        child: Padding(
+                          padding: EdgeInsets.only(bottom: 14.h),
+                          child: Text(FormatHelper.capitalize(label), style: StyleText.fontSize13Weight600),
+                        ),
+                      ),
+                      Expanded(
+                        child: CustomTextField(
+                          controller: _pMin[key]!,
+                          label: 'Min',
+                          hint: '1.0.0',
+                          textDirection: TextDirection.ltr,
+                        ),
+                      ),
+                      SizedBox(width: 10.w),
+                      Expanded(
+                        child: CustomTextField(
+                          controller: _pLatest[key]!,
+                          label: 'Latest',
+                          hint: '1.0.0',
+                          textDirection: TextDirection.ltr,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 10.h),
+                ],
+                CustomTextField(
+                  controller: _iosUrl,
+                  label: 'App Store link (iPhone / iPad)',
+                  hint: 'https://apps.apple.com/app/id…',
+                  textDirection: TextDirection.ltr,
+                ),
+                SizedBox(height: 10.h),
+                CustomTextField(
+                  controller: _macUrl,
+                  label: 'App Store link (Mac)',
+                  hint: 'https://apps.apple.com/app/id…',
+                  textDirection: TextDirection.ltr,
                 ),
                 SizedBox(height: 10.h),
                 Text(

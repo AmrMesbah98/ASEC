@@ -25,7 +25,13 @@ class MainFlutterWindow: NSWindow {
     // 25/10/2026: one minimum for debug and release, big enough for the
     // home page to show everything without scrolling. Fits a 1366 x 768
     // laptop screen.
+    // 03/11/2026: DEBUG runs may be dragged down to phone size (360 x 600)
+    // to test the mobile layouts; the release build keeps 1100 x 700.
+    #if DEBUG
+    let minimumContentSize = NSSize(width: 360, height: 600)
+    #else
     let minimumContentSize = NSSize(width: 1100, height: 700)
+    #endif
 
     var windowFrame = self.frame
     windowFrame.size = defaultSize

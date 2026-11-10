@@ -116,8 +116,8 @@ class _UnitConverterPageState extends State<UnitConverterPage> {
     return double.tryParse(b.toString());
   }
 
-  /// ROUNDED FOR READING, not for a lab: the answer shows 2 decimals and the
-  /// "all conversions" list 3. A value so small it would round to 0 keeps 3
+  /// ROUNDED FOR READING, not for a lab: everything shows at most 2 decimals
+  /// (03/11/2026). A value so small it would round to 0 keeps 3
   /// significant digits instead (1 W = 0.000284 TR, not 0), and huge ones go
   /// to scientific notation. Trailing zeros are dropped (2.50 → 2.5).
   static String format(double v, {int decimals = 2}) {
@@ -275,7 +275,7 @@ class _ConverterCard extends StatelessWidget {
     final UnitDef f = category.units[from];
     final UnitDef t = category.units[to];
     final String oneText =
-        _UnitConverterPageState.format(UnitCategory.convert(1, f, t), decimals: 3);
+        _UnitConverterPageState.format(UnitCategory.convert(1, f, t), decimals: 2);
 
     return Container(
       padding: EdgeInsets.all(16.r),
@@ -334,7 +334,7 @@ class _ConverterCard extends StatelessWidget {
           _UnitDropdown(units: category.units, arabic: arabic, value: to, onChanged: onTo),
           SizedBox(height: 14.h),
           Text(
-            FormatHelper.capitalize('1 ${f.symbol} ${_UnitConverterPageState.relation(f, t)} $oneText ${t.symbol}'),
+            FormatHelper.capitalize('1 ${f.shown} ${_UnitConverterPageState.relation(f, t)} $oneText ${t.shown}'),
             textDirection: TextDirection.ltr,
             textAlign: TextAlign.center,
             style: StyleText.fontSize13Weight500.copyWith(color: AppColors.secondaryText),
@@ -367,7 +367,7 @@ class _UnitDropdown extends StatelessWidget {
         for (int i = 0; i < units.length; i++)
           DropdownItem<int>(
             value: i,
-            label: '${units[i].name(arabic)}  (${units[i].symbol})',
+            label: '${units[i].name(arabic)}  (${units[i].shown})',
           ),
       ],
       onChanged: onChanged,
@@ -414,7 +414,7 @@ class _AllConversions extends StatelessWidget {
           Padding(
             padding: EdgeInsets.fromLTRB(4.w, 4.h, 4.w, 8.h),
             child: Text(
-              FormatHelper.capitalize('${s.allConversions} · ${v == null ? '—' : _UnitConverterPageState.format(v, decimals: 3)} ${f.symbol}'),
+              FormatHelper.capitalize('${s.allConversions} · ${v == null ? '—' : _UnitConverterPageState.format(v, decimals: 2)} ${f.shown}'),
               style: StyleText.fontSize15Weight600.copyWith(color: AppColors.text),
             ),
           ),
@@ -430,7 +430,7 @@ class _AllConversions extends StatelessWidget {
         ? '—'
         : _UnitConverterPageState.format(
             UnitCategory.convert(v, category.units[from], u),
-            decimals: 3,
+            decimals: 2,
           );
     final bool isTo = i == to;
     final bool isFrom = i == from;
@@ -458,7 +458,7 @@ class _AllConversions extends StatelessWidget {
               ),
               SizedBox(width: 8.w),
               Text(
-                FormatHelper.capitalize('${i != from && (u.approx || category.units[from].approx) ? '≈ ' : ''}$text ${u.symbol}'),
+                FormatHelper.capitalize('${i != from && (u.approx || category.units[from].approx) ? '≈ ' : ''}$text ${u.shown}'),
                 textDirection: TextDirection.ltr,
                 style: StyleText.fontSize13Weight600.copyWith(
                   color: isTo ? AppColors.primary : AppColors.text,

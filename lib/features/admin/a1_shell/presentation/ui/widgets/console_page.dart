@@ -107,12 +107,12 @@ class ConsolePage extends StatelessWidget {
                       spacing: 10.w,
                       runSpacing: 10.h,
                       children: <Widget>[
+                        // Width only (09/11/2026): on a narrow window the
+                        // scaled-down height cap was smaller than the search
+                        // field and it overflowed by a few pixels.
                         for (final Widget a in actions)
                           ConstrainedBox(
-                            constraints: BoxConstraints(
-                              maxHeight: kConsoleControlHeight.h,
-                              maxWidth: 420.w,
-                            ),
+                            constraints: BoxConstraints(maxWidth: 420.w),
                             child: a,
                           ),
                       ],
@@ -215,17 +215,22 @@ class ConsoleFilters extends StatelessWidget {
     required this.items,
     required this.selectedKey,
     required this.onSelected,
+    this.compact = false,
   });
 
   final List<StatusChipItem> items;
   final String selectedKey;
   final ValueChanged<String> onSelected;
 
+  /// Small round counts and smaller text (StatusChipFilter.compact).
+  final bool compact;
+
   @override
   Widget build(BuildContext context) => StatusChipFilter(
         items: items,
         selectedKey: selectedKey,
         onSelected: onSelected,
+        compact: compact,
       );
 }
 

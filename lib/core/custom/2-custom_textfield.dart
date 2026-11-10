@@ -898,8 +898,15 @@ class _CapitalizeTextFormatter extends TextInputFormatter {
   ) {
     if (newValue.text.isEmpty) return newValue;
 
-    final capitalizedText = newValue.text.split(' ').map((word) {
+    final List<String> words = newValue.text.split(' ');
+    int i = -1;
+    final capitalizedText = words.map((word) {
+      i++;
       if (word.isEmpty) return word;
+      // Small joining words stay small: "Tips and Tricks".
+      if (word.length > 1 && isSmallWord(word) && !startsPart(words, i)) {
+        return word.toLowerCase();
+      }
       if (word.length == 1) return word.toUpperCase();
       return word[0].toUpperCase() + word.substring(1).toLowerCase();
     }).join(' ');

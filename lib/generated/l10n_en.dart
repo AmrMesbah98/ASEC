@@ -2296,6 +2296,13 @@ class SEn extends S {
       '\"3 of 10 lessons watched\" at the top.';
 
   @override
+  String get ctlVideoDownloads => 'Download inside the app (offline)';
+
+  @override
+  String get ctlVideoDownloadsHint =>
+      'Members save lessons INSIDE ASEC — encrypted for that device and account — and watch them without internet. Off also erases saved lessons on every device.';
+
+  @override
   String get ctlAnimations => 'Animations';
 
   @override
@@ -3169,7 +3176,7 @@ class SEn extends S {
   String get engLibraryBestHint => 'The best CVs in the app';
 
   @override
-  String get engLibraryCertificate => 'Certificate';
+  String get engLibraryCertificate => 'Certificates';
 
   @override
   String get engLibrarySub => 'Files the ASEC team shares with you.';
@@ -3756,4 +3763,184 @@ class SEn extends S {
 
   @override
   String get onlineAdminTag => 'Admin';
+
+  @override
+  String get quizTab => 'Quiz';
+
+  @override
+  String get myCertificatesSub => 'Every certificate you have earned.';
+
+  @override
+  String get noCertificatesTitle => 'No certificates yet';
+
+  @override
+  String get noCertificatesSub =>
+      'Pass a course\'s quiz in Settings → Quiz to earn your first certificate.';
+
+  @override
+  String get accessUploadExcel => 'Upload Excel';
+
+  @override
+  String get accessImportTitle => 'Give course access from a sheet';
+
+  @override
+  String get accessImportMatched => 'Members in the sheet';
+
+  @override
+  String get accessImportNoAccount =>
+      'No account with these emails — skipped (they must register first)';
+
+  @override
+  String get accessImportUnknownCourse =>
+      'No course has these names — check the spelling (saved anyway)';
+
+  @override
+  String get accessImportSkippedRows =>
+      'Skipped rows (not an email, or no course)';
+
+  @override
+  String get accessImportAdd => 'Add these courses';
+
+  @override
+  String get accessImportAddSub =>
+      'Members keep the courses they already have.';
+
+  @override
+  String get accessImportReplace => 'Replace';
+
+  @override
+  String get accessImportReplaceSub =>
+      'Each member gets exactly the courses in the sheet. General Notes and Tips and Tricks stay open.';
+
+  @override
+  String get accessImportSave => 'Give access';
+
+  @override
+  String get accessImportSaved => 'Access saved';
+
+  @override
+  String get accessImportNothing =>
+      'No row with a member\'s email and a course was found. Column A: email, then the course names.';
+
+  @override
+  String get accessImportUnreadable =>
+      'Could not read the file. Save it as .xlsx (Excel) or .csv and try again.';
+
+  @override
+  String get mySpaceLearning => 'My Learning';
+
+  @override
+  String get mySpaceResources => 'My Resources';
+
+  @override
+  String get mySpaceSaved => 'Saved';
+
+  @override
+  String get mySpaceSavedSub => 'Everything you saved, like tips and tricks';
+
+  @override
+  String get mySpaceQuizzes => 'Quizzes & Results';
+
+  @override
+  String get mySpaceQuizzesSub => 'Take quizzes and view your scores';
+
+  @override
+  String get mySpaceCertificates => 'My Certificates';
+
+  @override
+  String get mySpaceCertificatesSub => 'View and download your certificates';
+
+  @override
+  String get mySpaceCv => 'My CV';
+
+  @override
+  String get mySpaceCvSub => 'Build and update your CV';
+
+  @override
+  String get mySpaceCvLocked => 'Locked — ask the admin to allow your CV';
+
+  @override
+  String get mySpaceDownloads => 'Downloads';
+
+  @override
+  String get mySpaceDownloadsSub => 'Your downloaded lessons';
+
+  @override
+  String get mySpaceTools => 'Engineering Tools';
+
+  @override
+  String get mySpaceToolsSub => 'Calculators and useful engineering tools';
+
+  @override
+  String get mySpaceToolsLocked => 'Coming soon';
+
+  @override
+  String get permEngQuestions => 'Answer questions';
+
+  @override
+  String get engQuestions => 'Questions';
+
+  @override
+  String get engQuestionsAdminSub =>
+      'Members\' questions. Write an answer and it is posted on every member\'s home page.';
+
+  @override
+  String get qaTitle => 'Questions & Answers';
+
+  @override
+  String get qaAsk => 'Ask a question';
+
+  @override
+  String get qaAskHint => 'Write your question…';
+
+  @override
+  String get qaSend => 'Send';
+
+  @override
+  String get qaSent => 'Question sent — the answer will appear here.';
+
+  @override
+  String get qaSeeMore => 'See more';
+
+  @override
+  String get qaEmpty => 'No answered questions yet';
+
+  @override
+  String get qaEmptySub => 'Ask the first one — the ASEC team will answer.';
+
+  @override
+  String get qaWaiting => 'Waiting for an answer';
+
+  @override
+  String get qaMine => 'My questions';
+
+  @override
+  String get qaAll => 'All questions';
+
+  @override
+  String get qaTeam => 'ASEC Team';
+
+  @override
+  String get qaAnswer => 'Answer';
+
+  @override
+  String get qaEditAnswer => 'Edit answer';
+
+  @override
+  String get qaAnswerHint => 'Write the answer…';
+
+  @override
+  String get qaPost => 'Post answer';
+
+  @override
+  String get qaPosted => 'Answer posted';
+
+  @override
+  String get qaDeleteQuestion => 'Delete this question?';
+
+  @override
+  String get qaNoQuestions => 'No questions yet';
+
+  @override
+  String get fvLoadFailed => 'Couldn\'t load this file';
 }

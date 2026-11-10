@@ -73,6 +73,12 @@ class _FlowConversionTabState extends State<FlowConversionTab> {
           Text(FormatHelper.capitalize('Enter a volume flow.'))
         else
           ResultTable(
+            exportTitle: 'Flow conversion',
+            discipline: 'Ducts',
+            inputs: <ResultItem>[
+              ResultItem('Volume flow', _value.text.trim(), _from.label),
+            ],
+            method: 'Each unit = the value × its exact conversion factor',
             items: <ResultItem>[
               for (final FlowUnit u in FlowUnit.values)
                 ResultItem(u.label, fmt(out[u], 2)),

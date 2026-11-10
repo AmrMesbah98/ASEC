@@ -20,6 +20,7 @@ import 'package:asec/features/web/data/site_repo.dart';
 import 'package:asec/features/web/site/site_nav.dart';
 import 'package:asec/features/web/site/widgets/download_button.dart';
 import 'package:asec/features/web/site/widgets/motion.dart';
+import 'package:asec/core/helper/main_helper/format_helper.dart';
 
 class NavItem {
   const NavItem(this.label, this.path, [this.children = const <NavItem>[]]);
@@ -68,7 +69,7 @@ class LangTab extends StatelessWidget {
               borderRadius: BorderRadius.circular(6),
             ),
             child: Text(
-              label,
+              FormatHelper.capitalize(label),
               style: TextStyle(
                 fontFamily: 'Cairo',
                 fontSize: 14,
@@ -207,7 +208,7 @@ class _Header extends StatelessWidget {
               if (!context.isMobile || desktop)
                 ElevatedButton(
                   onPressed: () => openLink(telLink(settings.s('phone', '+201093460618'))),
-                  child: Text(const L('اتصل الآن', 'Call now').t),
+                  child: Text(FormatHelper.capitalize(const L('اتصل الآن', 'Call now').t)),
                 ),
               if (!desktop) ...<Widget>[
                 const SizedBox(width: 12),
@@ -313,7 +314,7 @@ class _NavLinkState extends State<_NavLink> {
             fontWeight: FontWeight.w700,
             color: on ? WebColors.redBright : WebColors.ink,
           ),
-          child: Text(item.label.t),
+          child: Text(FormatHelper.capitalize(item.label.t)),
         ),
         const SizedBox(height: 4),
         AnimatedContainer(
@@ -441,7 +442,7 @@ class _HoverMenuRowState extends State<_HoverMenuRow> {
             color: _h ? WebColors.redBright.withValues(alpha: 0.07) : Colors.transparent,
             padding: EdgeInsetsDirectional.fromSTEB(_h ? 26 : 20, 11, 20, 11),
             child: Text(
-              widget.item.label.t,
+              FormatHelper.capitalize(widget.item.label.t),
               style: TextStyle(
                 fontFamily: 'Cairo',
                 fontSize: 15,
@@ -484,20 +485,20 @@ class _MobileMenu extends StatelessWidget {
             for (final NavItem n in kNav)
               if (n.children.isEmpty)
                 ListTile(
-                  title: Text(n.label.t, style: const TextStyle(fontWeight: FontWeight.w700)),
+                  title: Text(FormatHelper.capitalize(n.label.t), style: const TextStyle(fontWeight: FontWeight.w700)),
                   selected: location == n.path,
                   onTap: () => go(n.path),
                 )
               else
                 ExpansionTile(
-                  title: Text(n.label.t, style: const TextStyle(fontWeight: FontWeight.w700)),
+                  title: Text(FormatHelper.capitalize(n.label.t), style: const TextStyle(fontWeight: FontWeight.w700)),
                   trailing: const AppIcon(Icons.keyboard_arrow_down_rounded),
                   children: <Widget>[
-                    ListTile(title: Text(n.label.t), onTap: () => go(n.path)),
+                    ListTile(title: Text(FormatHelper.capitalize(n.label.t)), onTap: () => go(n.path)),
                     for (final NavItem c in n.children)
                       ListTile(
                         contentPadding: const EdgeInsetsDirectional.only(start: 32),
-                        title: Text(c.label.t),
+                        title: Text(FormatHelper.capitalize(c.label.t)),
                         onTap: () => go(c.path),
                       ),
                   ],
@@ -541,7 +542,7 @@ class _ContactBubble extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              Text(const L('تواصل معانا', 'Chat with us').t, style: const TextStyle(fontWeight: FontWeight.w700)),
+              Text(FormatHelper.capitalize(const L('تواصل معانا', 'Chat with us').t), style: const TextStyle(fontWeight: FontWeight.w700)),
               const SizedBox(width: 10),
               Container(
                 width: 44,
@@ -572,7 +573,7 @@ class _Maintenance extends StatelessWidget {
               children: <Widget>[
                 const _Logo(size: 110),
                 const SizedBox(height: 24),
-                Text(text,
+                Text(FormatHelper.capitalize(text),
                     textAlign: TextAlign.center,
                     style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
               ],
@@ -718,7 +719,7 @@ class PageHeader extends StatelessWidget {
       child: Contained(
         child: Column(
           children: <Widget>[
-            Text(title,
+            Text(FormatHelper.capitalize(title),
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: context.isMobile ? 28 : 40,
@@ -727,7 +728,7 @@ class PageHeader extends StatelessWidget {
                 )),
             if (subtitle.isNotEmpty) ...<Widget>[
               const SizedBox(height: 10),
-              Text(subtitle,
+              Text(FormatHelper.capitalize(subtitle),
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 16, color: WebColors.white.withValues(alpha: 0.8))),
             ],
@@ -752,15 +753,15 @@ class CtaBand extends StatelessWidget {
       child: Contained(
         child: Column(
           children: <Widget>[
-            Text(s.txt('cta_title', const L('ابدأ رحلتك نحو الابتكار', 'Start your journey to innovation')),
+            Text(FormatHelper.capitalize(s.txt('cta_title', const L('ابدأ رحلتك نحو الابتكار', 'Start your journey to innovation'))),
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: WebColors.navy)),
             const SizedBox(height: 12),
             Text(
-                s.txt(
+                FormatHelper.capitalize(s.txt(
                     'cta_text',
                     const L('ماذا تنتظر إذا!؟ لا تتردد في التواصل معنا والحصول على استشارة والتواصل معنا مباشرة',
-                        "What are you waiting for? Don't hesitate to get in touch with us for a consultation.")),
+                        "What are you waiting for? Don't hesitate to get in touch with us for a consultation."))),
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 16, height: 1.8, color: WebColors.muted)),
             const SizedBox(height: 22),
@@ -770,10 +771,10 @@ class CtaBand extends StatelessWidget {
               alignment: WrapAlignment.center,
               children: <Widget>[
                 ElevatedButton(
-                    onPressed: () => siteGo(context, '/contact'), child: Text(const L('اتصل بنا', 'Contact us').t)),
+                    onPressed: () => siteGo(context, '/contact'), child: Text(FormatHelper.capitalize(const L('اتصل بنا', 'Contact us').t))),
                 OutlinedButton(
                     onPressed: () => siteGo(context, '/request-service'),
-                    child: Text(const L('طلب خدمة', 'Request a service').t)),
+                    child: Text(FormatHelper.capitalize(const L('طلب خدمة', 'Request a service').t))),
               ],
             ),
           ],
@@ -832,46 +833,46 @@ class SiteFooter extends StatelessWidget {
           onTap: () => siteGo(context, path),
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 5),
-            child: Text(label.t, style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w600)),
+            child: Text(FormatHelper.capitalize(label.t), style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w600)),
           ),
         );
     final List<Widget> columns = <Widget>[
       Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[
-        Text(const L('خدماتنا', 'Services').t, style: head),
+        Text(FormatHelper.capitalize(const L('خدماتنا', 'Services').t), style: head),
         const SizedBox(height: 12),
         link(const L('تصميم متكامل', 'Integrated Design'), '/services/integrated-design'),
         link(const L('لوحات تنفيذية', 'Shop Drawings'), '/services/shop-drawings'),
         link(const L('اشراف على التنفيذ', 'Site Supervision'), '/services/supervision'),
       ]),
       Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[
-        Text(const L('الرئيسية', 'Home').t, style: head),
+        Text(FormatHelper.capitalize(const L('الرئيسية', 'Home').t), style: head),
         const SizedBox(height: 12),
         link(const L('من نحن', 'About'), '/about'),
         link(const L('المقالات', 'Articles'), '/articles'),
         link(const L('أعمالنا', 'Projects'), '/projects'),
       ]),
       Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[
-        Text(const L('تواصل معانا', 'Get in touch').t, style: head),
+        Text(FormatHelper.capitalize(const L('تواصل معانا', 'Get in touch').t), style: head),
         const SizedBox(height: 12),
         link(const L('طلب خدمة', 'Request a Service'), '/request-service'),
         link(const L('تواصل معنا', 'Contact'), '/contact'),
       ]),
       Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[
-        Text(const L('بيانات التواصل', 'Contact details').t, style: head),
+        Text(FormatHelper.capitalize(const L('بيانات التواصل', 'Contact details').t), style: head),
         const SizedBox(height: 12),
         if (s.s('address').isNotEmpty)
-          Text(s.s('address'), style: const TextStyle(color: Colors.white70)),
+          Text(FormatHelper.capitalize(s.s('address')), style: const TextStyle(color: Colors.white70)),
         for (final String e in s.l('emails'))
           InkWell(
             onTap: () => openLink('mailto:$e'),
-            child: Text(e, style: const TextStyle(color: Colors.white70)),
+            child: Text(FormatHelper.capitalize(e), style: const TextStyle(color: Colors.white70)),
           ),
         for (final String phone in sitePhones(s.raw('phone')))
           InkWell(
             onTap: () => openLink(telLink(phone)),
             child: Directionality(
               textDirection: TextDirection.ltr,
-              child: Text(phone, style: const TextStyle(color: Colors.white70)),
+              child: Text(FormatHelper.capitalize(phone), style: const TextStyle(color: Colors.white70)),
             ),
           ),
       ]),
@@ -911,9 +912,9 @@ class SiteFooter extends StatelessWidget {
                 SocialIcons(settings: s),
                 TextButton(
                   onPressed: () => siteGo(context, '/privacy'),
-                  child: Text(const L('سياسة الخصوصية', 'Privacy policy').t, style: const TextStyle(color: Colors.white70)),
+                  child: Text(FormatHelper.capitalize(const L('سياسة الخصوصية', 'Privacy policy').t), style: const TextStyle(color: Colors.white70)),
                 ),
-                Text(s.s('footer_text', 'Copyright © 2026. All rights reserved to ASEC'),
+                Text(FormatHelper.capitalize(s.s('footer_text', 'Copyright © 2026. All rights reserved to ASEC')),
                     style: const TextStyle(color: Colors.white38, fontSize: 12)),
               ],
             ),

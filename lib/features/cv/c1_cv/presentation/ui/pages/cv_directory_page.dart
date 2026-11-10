@@ -15,16 +15,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import 'package:asec/core/custom/110-app_widgets.dart';
+import 'package:asec/core/custom/8-custom_filter_app.dart';
 import 'package:asec/core/theme/app_colors.dart';
-import 'package:asec/core/theme/app_theme.dart';
 import 'package:asec/features/admin/a1_shell/presentation/ui/widgets/console_page.dart';
 import 'package:asec/features/cv/c1_cv/data/repository/cv_repository.dart';
 import 'package:asec/features/cv/c1_cv/domain/base_repository/cv_base_repository.dart';
+import 'package:asec/features/cv/c1_cv/domain/constants/cv_options.dart';
 import 'package:asec/features/cv/c1_cv/domain/entities/cv_profile.dart';
 import 'package:asec/features/cv/c1_cv/presentation/ui/pages/cv_detail_page.dart';
 import 'package:asec/features/cv/c1_cv/presentation/ui/widgets/cv_card.dart';
 import 'package:asec/generated/l10n.dart';
-import 'package:asec/core/helper/main_helper/format_helper.dart';
 import 'package:asec/core/network/shared_stream.dart';
 
 class CvDirectoryPage extends StatefulWidget {
@@ -100,23 +100,36 @@ class _CvDirectoryPageState extends State<CvDirectoryPage> {
 
           final List<CvProfile> rows = _visible(all);
 
-          // The roles are taken from the CVs that exist, not from the full
-          // role list: a choice that filters to nothing is a dead end.
-          final Map<String, int> roleCounts = <String, int>{};
+          // The three positions are always shown, in a fixed order, each
+          // with how many CVs it holds — even when that is zero, so a reader
+          // sees at a glance which positions have members.
+          final Map<String, int> roleCounts = <String, int>{
+            for (final String role in CvOptions.roles) role: 0,
+          };
           for (final CvProfile cv in all) {
-            if (cv.role.isEmpty) continue;
-            roleCounts[cv.role] = (roleCounts[cv.role] ?? 0) + 1;
+            if (!roleCounts.containsKey(cv.role)) continue;
+            roleCounts[cv.role] = roleCounts[cv.role]! + 1;
           }
 
+          // 09/11/2026: search and filters the same as Members (admin):
+          // the search field in the header, the status chips under it.
           return ConsolePage(
             title: s.cvs,
             subtitle: widget.isAdmin ? s.cvAdminSub : s.cvDirectorySub,
+            actions: <Widget>[
+              ConsoleSearchField(
+                hint: s.searchCv,
+                onChanged: (String value) => setState(() {
+                  _search.text = value;
+                }),
+              ),
+            ],
             child: LayoutBuilder(
               builder: (BuildContext context, BoxConstraints constraints) {
                 // Cards sit in rows of equal height, as many per row as fit at
                 // 300+ wide. No fixed cell height — a card is as tall as what
                 // it holds, so short CVs no longer leave an empty box.
-                const double gap = 14;
+                const double gap = 10;
                 final int perRow = ((constraints.maxWidth + gap) / (300 + gap))
                     .floor()
                     .clamp(1, 4);
@@ -129,46 +142,24 @@ class _CvDirectoryPageState extends State<CvDirectoryPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: <Widget>[
-                          Align(
-                            alignment: AlignmentDirectional.centerStart,
-                            child: ConstrainedBox(
-                              constraints:
-                                  const BoxConstraints(maxWidth: 560),
-                              child: ConsoleSearchField(
-                                hint: s.searchCv,
-                                width: double.infinity,
-                                onChanged: (String value) => setState(() {
-                                  _search.text = value;
-                                }),
+                          ConsoleFilters(
+                            compact: true,
+                            selectedKey: _roleFilter,
+                            onSelected: (String key) =>
+                                setState(() => _roleFilter = key),
+                            items: <StatusChipItem>[
+                              StatusChipItem(
+                                key: _allRoles,
+                                label: s.all,
+                                count: all.length,
                               ),
-                            ),
-                          ),
-                          SizedBox(height: 12.h),
-                          // Chips scroll sideways, so many roles never run
-                          // off a phone screen.
-                          SizedBox(
-                            height: 36.h,
-                            child: ListView(
-                              scrollDirection: Axis.horizontal,
-                              children: <Widget>[
-                                _RoleChip(
-                                  label: s.all,
-                                  count: all.length,
-                                  selected: _roleFilter == _allRoles,
-                                  onTap: () =>
-                                      setState(() => _roleFilter = _allRoles),
+                              for (final MapEntry<String, int> e in roleCounts.entries)
+                                StatusChipItem(
+                                  key: e.key,
+                                  label: e.key,
+                                  count: e.value,
                                 ),
-                                for (final MapEntry<String, int> e
-                                    in roleCounts.entries)
-                                  _RoleChip(
-                                    label: e.key,
-                                    count: e.value,
-                                    selected: _roleFilter == e.key,
-                                    onTap: () =>
-                                        setState(() => _roleFilter = e.key),
-                                  ),
-                              ],
-                            ),
+                            ],
                           ),
                           SizedBox(height: 16.h),
                         ],
@@ -226,74 +217,6 @@ class _CvDirectoryPageState extends State<CvDirectoryPage> {
             ),
           );
         },
-      ),
-    );
-  }
-}
-
-/// One role filter: name + how many CVs it has. Filled when selected.
-class _RoleChip extends StatelessWidget {
-  const _RoleChip({
-    required this.label,
-    required this.count,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final int count;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final Color fg = selected ? AppColors.textButton : AppColors.text;
-    return Padding(
-      padding: EdgeInsetsDirectional.only(end: 8.w),
-      child: Material(
-        color: selected ? AppColors.primary : AppColors.card,
-        borderRadius: BorderRadius.circular(20.r),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(20.r),
-          child: Container(
-            padding: EdgeInsets.symmetric(horizontal: 14.w),
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20.r),
-              border: Border.all(
-                color: selected
-                    ? AppColors.primary
-                    : AppColors.secondaryText.withOpacity(0.18),
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                Text(
-                  FormatHelper.capitalize(label),
-                  style: StyleText.fontSize12Weight600.copyWith(color: fg),
-                ),
-                SizedBox(width: 6.w),
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 1.h),
-                  decoration: BoxDecoration(
-                    color: selected
-                        ? AppColors.textButton.withOpacity(0.22)
-                        : AppColors.chip,
-                    borderRadius: BorderRadius.circular(10.r),
-                  ),
-                  child: Text(
-                    FormatHelper.capitalize('$count'),
-                    style: StyleText.fontSize10Weight600.copyWith(
-                      color: selected ? AppColors.textButton : AppColors.onChip,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }

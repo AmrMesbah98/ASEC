@@ -2,7 +2,7 @@ name: asec
 description: "ASEC — videos and timed quizzes for members, run by one admin."
 publish_to: 'none'
 
-version: 1.0.31+51
+version: 1.0.33+54
 
 environment:
   sdk: ^3.12.2
@@ -51,8 +51,13 @@ dependencies:
   chewie: ^1.8.5                     # player UI: scrubbing, speed, volume, full screen
   url_launcher: ^6.3.1               # "open externally" fallback
   path_provider: ^2.1.4              # the app's private folder for offline lessons
+  pdfrx: ">=2.4.6 <2.5.0"                 # course PDFs open inside the app (file_viewer_page.dart)
   crypto: ^3.0.6                     # hashed ids (core/security/content_crypto.dart)
   pointycastle: ^3.9.1               # AES for downloaded lessons
+  desktop_drop: ">=0.4.4 <0.7.0"     # Upload lessons: drag videos onto the page (Mac, Windows)
+  cross_file: ^0.3.4                 # the dropped files (XFile)
+  googleapis: ">=13.0.0 <16.0.0"     # Upload lessons: Drive API, into the lessons folder
+  googleapis_auth: ^1.6.0            # Google sign-in for that upload (desktop installed-app flow)
 
   # ── Updates (lib/core/settings/app_update.dart) ────────────────────────────
   shorebird_code_push: ^2.0.4        # over-the-air Dart patches (shorebird patch android)
@@ -66,6 +71,7 @@ dependencies:
   pdf: ^3.11.3                             # the ASEC certificate as a PDF
   printing: ^5.14.2                        # save / share / print that PDF
   archive: ^4.3.0                          # engineering calculators: writes the .xlsx (a zip of XML)
+  xml: ">=6.5.0 <8.0.0"                      # course files: reads .xlsx / .docx / .pptx for the in-app preview
   web: ^1.1.0                              # engineering calculators: browser download of the PDF / Excel
 
 dev_dependencies:

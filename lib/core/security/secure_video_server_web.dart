@@ -9,7 +9,7 @@ import 'dart:typed_data';
 abstract final class SecureVideoServer {
   const SecureVideoServer._();
 
-  static Future<Uri> remote(String url, {int sizeBytes = 0, String label = ''}) async =>
+  static Future<Uri> remote(String url, {int sizeBytes = 0, String label = '', String Function()? cloud}) async =>
       Uri.parse(url);
 
   static Future<Uri> localEncrypted(String path, Uint8List key, {String label = ''}) async =>

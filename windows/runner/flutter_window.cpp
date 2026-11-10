@@ -1,5 +1,9 @@
 #include "flutter_window.h"
 
+#include <intrin.h>
+
+#include <cstring>
+
 #include <optional>
 #include <string>
 #include <variant>
@@ -59,6 +63,50 @@ bool FlutterWindow::OnCreate() {
             issues.push_back(flutter::EncodableValue(std::string("debugger")));
           }
           result->Success(flutter::EncodableValue(issues));
+        } else if (call.method_name() == "cpuInfo") {
+          // lib/core/settings/device_specs.dart (06/11/2026). Old CPUs without
+          // BMI2 crash in Firebase's Firestore code (0xc000001d) — this says
+          // which PCs those are.
+          flutter::EncodableMap info;
+          int r[4] = {0, 0, 0, 0};
+          char brand[49] = {0};
+          __cpuid(r, static_cast<int>(0x80000000u));
+          if (static_cast<unsigned int>(r[0]) >= 0x80000004u) {
+            for (int i = 0; i < 3; i++) {
+              __cpuid(r, static_cast<int>(0x80000002u + static_cast<unsigned int>(i)));
+              memcpy(brand + i * 16, r, 16);
+            }
+          }
+          __cpuid(r, 0);
+          const int max_leaf = r[0];
+          __cpuid(r, 1);
+          const bool avx = (r[2] & (1 << 28)) != 0;
+          bool avx2 = false;
+          bool bmi1 = false;
+          bool bmi2 = false;
+          if (max_leaf >= 7) {
+            __cpuidex(r, 7, 0);
+            bmi1 = (r[1] & (1 << 3)) != 0;
+            avx2 = (r[1] & (1 << 5)) != 0;
+            bmi2 = (r[1] & (1 << 8)) != 0;
+          }
+          SYSTEM_INFO si;
+          ::GetNativeSystemInfo(&si);
+          MEMORYSTATUSEX mem;
+          mem.dwLength = sizeof(mem);
+          double ram_gb = 0;
+          if (::GlobalMemoryStatusEx(&mem)) {
+            ram_gb = static_cast<double>(mem.ullTotalPhys) / (1024.0 * 1024.0 * 1024.0);
+          }
+          info[flutter::EncodableValue("cpu")] = flutter::EncodableValue(std::string(brand));
+          info[flutter::EncodableValue("avx")] = flutter::EncodableValue(avx);
+          info[flutter::EncodableValue("avx2")] = flutter::EncodableValue(avx2);
+          info[flutter::EncodableValue("bmi1")] = flutter::EncodableValue(bmi1);
+          info[flutter::EncodableValue("bmi2")] = flutter::EncodableValue(bmi2);
+          info[flutter::EncodableValue("cores")] =
+              flutter::EncodableValue(static_cast<int32_t>(si.dwNumberOfProcessors));
+          info[flutter::EncodableValue("ram_gb")] = flutter::EncodableValue(ram_gb);
+          result->Success(flutter::EncodableValue(info));
         } else {
           result->NotImplemented();
         }

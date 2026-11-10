@@ -15,6 +15,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import 'package:asec/core/settings/device_specs.dart';
 import 'package:asec/core/custom/101-custom_surface.dart';
 import 'package:asec/core/custom/110-app_widgets.dart';
 import 'package:asec/core/custom/114-app_messenger.dart';
@@ -74,8 +75,7 @@ class OnlineUsersPage extends StatefulWidget {
 }
 
 class _OnlineUsersPageState extends State<OnlineUsersPage> {
-  late final Stream<List<PresenceEntry>> _people =
-      shared(() => Presence.watchRecent());
+  late final Stream<List<PresenceEntry>> _people = shared(() => Presence.watchRecent());
 
   /// "Online" and "x min ago" change with time, not only with data.
   Timer? _tick;
@@ -266,6 +266,14 @@ class PresenceRow extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: StyleText.fontSize12Weight400.copyWith(color: AppColors.secondaryText),
                   ),
+                  // LOW / OK / GOOD device (DeviceSpecs) — which PCs may have trouble.
+                  if (PcRating.of(e.specs).isKnown)
+                    Text(
+                      PcRating.of(e.specs).text,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: StyleText.fontSize12Weight600.copyWith(color: pcRatingColor(PcRating.of(e.specs).level)),
+                    ),
                 ],
               ),
             ),

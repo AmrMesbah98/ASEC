@@ -62,7 +62,27 @@ class CalcReport {
     required this.formula,
     required this.note,
     required this.labels,
+    this.extraTitle = '',
+    this.extraHeaders = const <String>[],
+    this.extraRows = const <List<String>>[],
+    this.imageAsset,
+    this.imageCaption = '',
+    this.subtitle = '',
   });
+
+  /// A line under the title (e.g. "Using rule of thumb method").
+  final String subtitle;
+
+  /// 09/11/2026: a second table (e.g. FM-200 pipe limits, one column per
+  /// section) printed after the results. Empty = none.
+  final String extraTitle;
+  final List<String> extraHeaders;
+  final List<List<String>> extraRows;
+
+  /// A drawing from the app's assets (e.g. the FM-200 nozzle layout),
+  /// printed in the PDF with [imageCaption] under it. Not in the Excel file.
+  final String? imageAsset;
+  final String imageCaption;
 
   final String id;
   final String title;
@@ -153,6 +173,14 @@ abstract final class CalcExport {
     final pw.MemoryImage logo = pw.MemoryImage(
         (await rootBundle.load('assets/certificate/asec_logo.png')).buffer.asUint8List());
     final List<pw.Font> fallback = await _fallbackFonts();
+    pw.MemoryImage? figure;
+    if (r.imageAsset != null) {
+      try {
+        figure = pw.MemoryImage((await rootBundle.load(r.imageAsset!)).buffer.asUint8List());
+      } catch (_) {
+        figure = null;
+      }
+    }
 
     final pw.TextDirection dir = r.arabic ? pw.TextDirection.rtl : pw.TextDirection.ltr;
     final pw.Document doc = pw.Document(
@@ -256,6 +284,7 @@ abstract final class CalcExport {
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: <pw.Widget>[
                     text(r.title, size: 18, color: _navy, isBold: true),
+                    if (r.subtitle.isNotEmpty) text(r.subtitle, size: 11, color: _blue),
                     text('${r.discipline}  ·  ${r.labels.date}: ${r._date}',
                         size: 10, color: _muted),
                   ],
@@ -268,10 +297,50 @@ abstract final class CalcExport {
             color: _blue,
             margin: const pw.EdgeInsets.only(top: 10, bottom: 4),
           ),
-          sectionTitle(r.labels.inputs),
-          table(r.inputs),
-          sectionTitle(r.labels.results),
-          table(r.results),
+          // A report that is only a table (e.g. quiz results) has no
+          // inputs / results rows: those sections are left out.
+          if (r.inputs.isNotEmpty) ...<pw.Widget>[
+            sectionTitle(r.labels.inputs),
+            table(r.inputs),
+          ],
+          if (r.results.isNotEmpty) ...<pw.Widget>[
+            sectionTitle(r.labels.results),
+            table(r.results),
+          ],
+          if (r.extraRows.isNotEmpty) ...<pw.Widget>[
+            sectionTitle(r.extraTitle),
+            pw.Table(
+              border: const pw.TableBorder(
+                horizontalInside: pw.BorderSide(color: PdfColor.fromInt(0xFFE2E6EF), width: 0.5),
+                top: pw.BorderSide(color: PdfColor.fromInt(0xFFE2E6EF), width: 0.5),
+                bottom: pw.BorderSide(color: PdfColor.fromInt(0xFFE2E6EF), width: 0.5),
+              ),
+              children: <pw.TableRow>[
+                pw.TableRow(
+                  decoration: const pw.BoxDecoration(color: _navy),
+                  children: <pw.Widget>[
+                    for (final String h in (r.arabic ? r.extraHeaders.reversed : r.extraHeaders))
+                      cell(text(h, isBold: true, color: PdfColors.white)),
+                  ],
+                ),
+                for (int i = 0; i < r.extraRows.length; i++)
+                  pw.TableRow(
+                    decoration: i.isOdd ? const pw.BoxDecoration(color: _zebra) : null,
+                    children: <pw.Widget>[
+                      for (final String v in (r.arabic ? r.extraRows[i].reversed : r.extraRows[i]))
+                        cell(text(v, direction: pw.TextDirection.ltr)),
+                    ],
+                  ),
+              ],
+            ),
+          ],
+          if (figure != null) ...<pw.Widget>[
+            pw.SizedBox(height: 14),
+            pw.Center(child: pw.Image(figure, height: 260, fit: pw.BoxFit.contain)),
+            if (r.imageCaption.isNotEmpty)
+              pw.Center(child: text(r.imageCaption, size: 9, color: _muted)),
+          ],
+          if (r.formula.isNotEmpty) ...<pw.Widget>[
           sectionTitle(r.labels.method),
           pw.Container(
             width: double.infinity,
@@ -282,6 +351,7 @@ abstract final class CalcExport {
             ),
             child: text(r.formula, size: 10, color: _navy, direction: pw.TextDirection.ltr),
           ),
+          ],
           if (r.note.isNotEmpty) ...<pw.Widget>[
             pw.SizedBox(height: 8),
             text(r.note, size: 10),
@@ -377,17 +447,44 @@ abstract final class CalcExport {
     }
 
     textRow('ASEC — ${r.title}', _sTitle, merge: true, height: 24);
+    if (r.subtitle.isNotEmpty) textRow(r.subtitle, _sBold, merge: true);
     textRow('${r.discipline}  ·  ${r.labels.date}: ${r._date}', _sMuted, merge: true);
-    blank();
-    textRow(r.labels.inputs, _sBold);
-    tableRows(r.inputs);
-    blank();
-    textRow(r.labels.results, _sBold);
-    tableRows(r.results);
-    blank();
-    textRow(r.labels.method, _sBold);
-    for (final String line in r.formula.split('\n')) {
-      textRow(line, _sNormal, merge: true);
+    if (r.inputs.isNotEmpty) {
+      blank();
+      textRow(r.labels.inputs, _sBold);
+      tableRows(r.inputs);
+    }
+    if (r.results.isNotEmpty) {
+      blank();
+      textRow(r.labels.results, _sBold);
+      tableRows(r.results);
+    }
+    if (r.extraRows.isNotEmpty) {
+      blank();
+      textRow(r.extraTitle, _sBold);
+      const String cols = 'ABCDEFGHIJ';
+      n++;
+      rows.write('<row r="$n">');
+      for (int i = 0; i < r.extraHeaders.length && i < cols.length; i++) {
+        rows.write(strCell(cols[i], r.extraHeaders[i], _sHeader));
+      }
+      rows.write('</row>');
+      for (final List<String> line in r.extraRows) {
+        n++;
+        rows.write('<row r="$n">');
+        for (int i = 0; i < line.length && i < cols.length; i++) {
+          final double? v = double.tryParse(line[i]);
+          rows.write(v != null && i > 0 ? numCell(cols[i], v, _sNormal) : strCell(cols[i], line[i], _sNormal));
+        }
+        rows.write('</row>');
+      }
+    }
+    if (r.formula.isNotEmpty) {
+      blank();
+      textRow(r.labels.method, _sBold);
+      for (final String line in r.formula.split('\n')) {
+        textRow(line, _sNormal, merge: true);
+      }
     }
     if (r.note.isNotEmpty) {
       blank();

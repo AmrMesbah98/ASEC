@@ -30,7 +30,6 @@ import 'package:asec/features/video/v1_videos/presentation/ui/pages/user_videos_
 import 'package:asec/features/tools/t1_unit_converter/presentation/ui/pages/unit_converter_page.dart';
 import 'package:asec/features/tools/t2_engineering_calc/data/calc_access.dart';
 import 'package:asec/features/tools/t2_engineering_calc/presentation/ui/pages/engineering_calc_page.dart';
-import 'package:asec/features/tools/t2_engineering_calc/presentation/ui/pages/hvac_locked_page.dart';
 import 'package:asec/features/tools/t3_duct_calc/presentation/ui/pages/duct_calc_page.dart';
 import 'package:asec/features/tools/t4_pipe_calc/presentation/ui/pages/pipe_calc_page.dart';
 import 'package:asec/features/tools/t5_plumbing_fire/presentation/ui/pages/plumbing_fire_page.dart';
@@ -78,17 +77,15 @@ class UserShell extends StatelessWidget {
             page: const PipeCalcPage(),
           ),
         // 26/10/2026: the menu reads Units, Ducts, Pipes, HVAC, Plumbing,
-        // Fire. HVAC is always in it, LOCKED (HvacLockedPage) unless the
-        // Control centre switch is on and the admin unlocked the
-        // calculators for this member — it comes with the subscriptions.
+        // Fire. 09/11/2026: HVAC opens the load estimation (rule of thumb)
+        // only, for every member — the full engineering calculators and
+        // their lock are gone from the menu.
         ShellSection(
           id: 'engineeringCalc',
           icon: CalcIcons.hvac,
-          label: s.engineeringCalc,
+          label: 'HVAC',
           shortLabel: 'HVAC',
-          page: f.calcOn(AppFeature.calcEngineering) && user.mayUseCalcs
-              ? const EngineeringCalcPage()
-              : const HvacLockedPage(),
+          page: const EngineeringCalcPage.hvac(),
         ),
         if (f.calcOn(AppFeature.calcPlumbing))
           ShellSection(

@@ -38,11 +38,11 @@ class SizerLabels {
     final bool ip = u == SizerUnits.ip;
     switch (f) {
       case SizerField.flow:
-        return ip ? 'cfm' : 'L/s';
+        return ip ? 'CFM' : 'l/s';
       case SizerField.headLoss:
-        return ip ? 'inwg/100ft' : 'Pa/m';
+        return ip ? 'inwg/100 ft' : 'Pa/m';
       case SizerField.velocity:
-        return ip ? 'fpm' : 'm/s';
+        return ip ? 'FPM' : 'm/s';
       case SizerField.diameter:
         return ip ? 'in' : 'mm';
     }
@@ -51,7 +51,8 @@ class SizerLabels {
   static String name(SizerField f) {
     switch (f) {
       case SizerField.flow:
-        return 'Flow rate';
+        // 09/11/2026: "Air Volume Flow (l/s)", as on the reference sheet.
+        return 'Air volume flow';
       case SizerField.headLoss:
         return 'Head loss';
       case SizerField.velocity:
@@ -152,7 +153,7 @@ class FluidProperties {
       densityUnit: 'kg/m³',
       viscosityUnit: 'Pa·s',
       specificHeatUnit: 'kJ/kg·K',
-      energyFactorUnit: 'W/(L/s)·K',
+      energyFactorUnit: 'W/(l/s)·K',
     );
   }
 }

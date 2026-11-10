@@ -35,7 +35,17 @@ class VideoDevice {
   final String name;
   final DateTime? at;
 
-  bool get isThisDevice => id == DeviceIdentity.id;
+  /// THIS device (07/11/2026, from ENGX): its current id, this PC's
+  /// MachineGuid id (an install made before it was used), or — a slot saved
+  /// by an older install on this very computer — the same computer name
+  /// ("Windows · DESKTOP-4KQ2"), which an uninstall / reinstall never changes.
+  bool get isThisDevice {
+    if (id == DeviceIdentity.id) return true;
+    final String? machine = DeviceIdentity.machineId;
+    if (machine != null && id == machine) return true;
+    final String me = DeviceIdentity.name;
+    return me.contains(' · ') && name == me;
+  }
 }
 
 abstract final class VideoDeviceLock {

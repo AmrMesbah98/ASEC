@@ -19,6 +19,7 @@ import 'package:asec/features/web/core/widgets.dart';
 import 'package:asec/features/web/data/site_repo.dart';
 import 'package:asec/features/web/site/site_shell.dart';
 import 'package:asec/features/web/site/widgets/cards.dart';
+import 'package:asec/core/helper/main_helper/format_helper.dart';
 
 // ── A tiny form kit ──────────────────────────────────────────────────────
 
@@ -106,7 +107,7 @@ class _Select extends StatelessWidget {
           initialValue: value,
           icon: const AppIcon(Icons.keyboard_arrow_down_rounded),
           items: <DropdownMenuItem<String>>[
-            for (final L o in options) DropdownMenuItem<String>(value: o.ar, child: Text(o.t)),
+            for (final L o in options) DropdownMenuItem<String>(value: o.ar, child: Text(FormatHelper.capitalize(o.t))),
           ],
           onChanged: onChanged,
           validator: (String? v) => v == null ? const L('اختر من القائمة', 'Choose from the list').t : null,
@@ -133,7 +134,7 @@ class _Checks extends StatelessWidget {
           children: <Widget>[
             for (final L o in options)
               FilterChip(
-                label: Text(o.t),
+                label: Text(FormatHelper.capitalize(o.t)),
                 selected: selected.contains(o.ar),
                 onSelected: (bool on) {
                   final Set<String> next = Set<String>.of(selected);
@@ -176,7 +177,7 @@ class _DateField extends StatelessWidget {
                 errorText: st.errorText,
                 suffixIcon: const AppIcon(Icons.calendar_month_rounded),
               ),
-              child: Text(value == null ? const L('اختر', 'Pick').t : '${value!.year}/${value!.month}/${value!.day}'),
+              child: Text(FormatHelper.capitalize(value == null ? const L('اختر', 'Pick').t : '${value!.year}/${value!.month}/${value!.day}')),
             ),
           ),
         ),
@@ -256,15 +257,15 @@ class _FormPageState extends State<_FormPage> {
                         children: <Widget>[
                           const AppIcon(Icons.check_circle_rounded, color: WebColors.success, size: 64),
                           const SizedBox(height: 12),
-                          Text(const L('تم الإرسال بنجاح', 'Sent successfully').t,
+                          Text(FormatHelper.capitalize(const L('تم الإرسال بنجاح', 'Sent successfully').t),
                               style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
                           const SizedBox(height: 6),
-                          Text(const L('شكرًا لك، سنتواصل معك قريبًا.', 'Thank you — we will get back to you soon.').t,
+                          Text(FormatHelper.capitalize(const L('شكرًا لك، سنتواصل معك قريبًا.', 'Thank you — we will get back to you soon.').t),
                               style: TextStyle(color: WebColors.muted)),
                           const SizedBox(height: 18),
                           OutlinedButton(
                             onPressed: () => setState(() => _sent = false),
-                            child: Text(const L('إرسال طلب آخر', 'Send another').t),
+                            child: Text(FormatHelper.capitalize(const L('إرسال طلب آخر', 'Send another').t)),
                           ),
                         ],
                       )
@@ -278,7 +279,7 @@ class _FormPageState extends State<_FormPage> {
                             if (_error != null)
                               Padding(
                                 padding: const EdgeInsets.only(bottom: 12),
-                                child: Text(_error!, style: const TextStyle(color: WebColors.red)),
+                                child: Text(FormatHelper.capitalize(_error!), style: const TextStyle(color: WebColors.red)),
                               ),
                             ElevatedButton(
                               onPressed: _sending ? null : _send,
@@ -287,7 +288,7 @@ class _FormPageState extends State<_FormPage> {
                                       width: 20,
                                       height: 20,
                                       child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                                  : Text(const L('ارسال الطلب', 'Submit').t),
+                                  : Text(FormatHelper.capitalize(const L('ارسال الطلب', 'Submit').t)),
                             ),
                           ],
                         ),
@@ -306,7 +307,7 @@ class _FormPageState extends State<_FormPage> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
                     if (widget.intro.isNotEmpty) ...<Widget>[
-                      Text(widget.intro,
+                      Text(FormatHelper.capitalize(widget.intro),
                           textAlign: TextAlign.center,
                           style: TextStyle(fontSize: 15, height: 1.9, color: WebColors.muted)),
                       const SizedBox(height: 28),
@@ -325,9 +326,9 @@ class _FormPageState extends State<_FormPage> {
                       ),
                     const SizedBox(height: 16),
                     Text(
-                        const L('يجب عليك قبل ارسال الطلب قراءة سياسة الخصوصية الخاصة بموقعنا الالكتروني',
+                        FormatHelper.capitalize(const L('يجب عليك قبل ارسال الطلب قراءة سياسة الخصوصية الخاصة بموقعنا الالكتروني',
                                 'Please read our privacy policy before submitting.')
-                            .t,
+                            .t),
                         textAlign: TextAlign.center, style: TextStyle(color: WebColors.muted, fontSize: 13)),
                   ],
                 ),
@@ -379,11 +380,11 @@ class _ContactPageState extends State<ContactPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
+                    Text(FormatHelper.capitalize(title), style: const TextStyle(fontWeight: FontWeight.w800)),
                     for (final String l in lines)
                       InkWell(
                         onTap: link == null ? null : () => openLink(link(l)),
-                        child: Text(l, style: TextStyle(color: WebColors.muted, height: 1.8)),
+                        child: Text(FormatHelper.capitalize(l), style: TextStyle(color: WebColors.muted, height: 1.8)),
                       ),
                   ],
                 ),
@@ -417,7 +418,7 @@ class _ContactPageState extends State<ContactPage> {
       fields: (BuildContext c, VoidCallback refresh) => Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Text(const L('أرسل لنا رسالة', 'Send us a message').t,
+          Text(FormatHelper.capitalize(const L('أرسل لنا رسالة', 'Send us a message').t),
               style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
           const SizedBox(height: 18),
           _Row(<Widget>[
@@ -513,7 +514,7 @@ class _ServiceRequestPageState extends State<ServiceRequestPage> {
             _Text(const L('البريد الالكتروني', 'E-mail').t, _c['email']!, email: true),
           ]),
           const SizedBox(height: 26),
-          Text(const L('بيانات عامة عن المشروع', 'Project overview').t,
+          Text(FormatHelper.capitalize(const L('بيانات عامة عن المشروع', 'Project overview').t),
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
           const SizedBox(height: 14),
           _Row(<Widget>[
@@ -650,7 +651,7 @@ class _JobRequestPageState extends State<JobRequestPage> {
           _Text(const L('ابرز المهارات', 'Key skills').t, _c['skills']!,
               hint: const L('مثال ( اتوكاد- ريفت- تصميم .....الخ )', 'e.g. AutoCAD, Revit, design…').t),
           const SizedBox(height: 26),
-          Text(const L('الخبرة السابقة', 'Previous experience').t,
+          Text(FormatHelper.capitalize(const L('الخبرة السابقة', 'Previous experience').t),
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
           const SizedBox(height: 14),
           _Row(<Widget>[

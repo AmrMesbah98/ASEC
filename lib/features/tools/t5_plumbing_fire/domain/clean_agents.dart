@@ -166,11 +166,18 @@ abstract final class Aerosol {
 
 // ── CO₂ (concept only) ────────────────────────────────────────────────────
 
+/// 09/11/2026 (Eng. Ahmed Shuhayb): the WHOLE volume takes ONE factor — not
+/// a first band plus an excess band.
+///   volume ≤ 56.6 m³ → volume × 1.6 kg/m³
+///   volume > 56.6 m³ → volume × 1.33 kg/m³, but never less than 91 kg
+/// The 91 kg floor is 56.6 × 1.6 rounded up: without it a room just over
+/// 56.6 m³ (60 m³ × 1.33 ≈ 80 kg) would get LESS CO₂ than a smaller room
+/// at 1.6 (56.6 × 1.6 ≈ 91 kg).
 class Co2BandResult {
   const Co2BandResult({
     required this.volume,
-    required this.firstBandVolume,
-    required this.excessVolume,
+    required this.coefficient,
+    required this.minimumApplied,
     required this.weight,
     required this.cylinders,
   });
@@ -178,11 +185,12 @@ class Co2BandResult {
   /// m³
   final double volume;
 
-  /// m³ charged at the first-band coefficient
-  final double firstBandVolume;
+  /// kg/m³ used for the whole volume (1.6 or 1.33)
+  final double coefficient;
 
-  /// m³ charged at the excess-band coefficient
-  final double excessVolume;
+  /// True when volume × 1.33 came out under [Co2Band.minimumKg] and the
+  /// minimum was used instead.
+  final bool minimumApplied;
 
   /// kg
   final double weight;
@@ -192,28 +200,32 @@ class Co2BandResult {
 }
 
 abstract final class Co2Band {
-  static const double firstBandM3 = 56.5;
-  static const double firstCoefficient = 1.6; // kg/m³
-  static const double excessCoefficient = 1.33; // kg/m³
+  static const double limitM3 = 56.6;
+  static const double smallCoefficient = 1.6; // kg/m³, volume ≤ limit
+  static const double largeCoefficient = 1.33; // kg/m³, volume > limit
+  static const double minimumKg = 91; // floor for volume > limit
   static const double allowancePct = 0;
   static const double cylinderKg = 45;
 
   static Co2BandResult? calculate({
     required double volume,
-    double firstBandM3 = Co2Band.firstBandM3,
-    double firstCoefficient = Co2Band.firstCoefficient,
-    double excessCoefficient = Co2Band.excessCoefficient,
     double allowancePct = Co2Band.allowancePct,
     double cylinderKg = Co2Band.cylinderKg,
   }) {
     if (volume <= 0) return null;
-    final double first = math.min(volume, firstBandM3);
-    final double excess = math.max(0, volume - firstBandM3);
-    final double w = (first * firstCoefficient + excess * excessCoefficient) * (1 + allowancePct / 100);
+    final bool small = volume <= limitM3;
+    final double coefficient = small ? smallCoefficient : largeCoefficient;
+    double w = volume * coefficient;
+    bool minimumApplied = false;
+    if (!small && w < minimumKg) {
+      w = minimumKg;
+      minimumApplied = true;
+    }
+    w *= 1 + allowancePct / 100;
     return Co2BandResult(
       volume: volume,
-      firstBandVolume: first,
-      excessVolume: excess,
+      coefficient: coefficient,
+      minimumApplied: minimumApplied,
       weight: w,
       cylinders: cylinderKg <= 0 ? 0 : (w / cylinderKg).ceil(),
     );

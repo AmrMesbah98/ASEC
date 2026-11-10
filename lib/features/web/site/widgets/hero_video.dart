@@ -20,6 +20,7 @@ import 'package:asec/features/web/core/i18n.dart';
 import 'package:asec/features/web/core/theme.dart';
 import 'package:asec/features/web/core/widgets.dart';
 import 'package:asec/features/web/site/site_nav.dart';
+import 'package:asec/core/helper/main_helper/format_helper.dart';
 
 class HeroVideo extends StatefulWidget {
   const HeroVideo({super.key, required this.url, required this.poster, required this.buttonText});
@@ -138,9 +139,9 @@ class _HeroVideoState extends State<HeroVideo> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
             ),
             onPressed: () => siteGo(context, '/contact'),
-            child: Text(widget.buttonText.isEmpty
+            child: Text(FormatHelper.capitalize(widget.buttonText.isEmpty
                 ? const L('ابدا رحلتك نحو الابتكار', 'Start your journey to innovation').t
-                : widget.buttonText),
+                : widget.buttonText)),
           ),
         ],
       ),
@@ -366,7 +367,7 @@ class _Bar extends StatelessWidget {
                   ),
                   SizedBox(width: small ? 4 : 10),
                   Text(
-                    '${_fmt(value.position)} / ${_fmt(value.duration)}',
+                    FormatHelper.capitalize('${_fmt(value.position)} / ${_fmt(value.duration)}'),
                     style: TextStyle(
                       color: WebColors.white,
                       fontSize: small ? 12 : 14,
@@ -399,7 +400,7 @@ class _Bar extends StatelessWidget {
                           children: <Widget>[
                             const AppIcon(Icons.speed_rounded, size: 18, color: Colors.white70),
                             const SizedBox(width: 8),
-                            Text(const L('سرعة التشغيل', 'Playback speed').t,
+                            Text(FormatHelper.capitalize(const L('سرعة التشغيل', 'Playback speed').t),
                                 style: const TextStyle(color: Colors.white70, fontSize: 13)),
                           ],
                         ),
@@ -417,7 +418,7 @@ class _Bar extends StatelessWidget {
                                     : null,
                               ),
                               const SizedBox(width: 6),
-                              Text(s == 1 ? const L('عادي', 'Normal').t : '${s}x', style: const TextStyle(color: WebColors.white)),
+                              Text(FormatHelper.capitalize(s == 1 ? const L('عادي', 'Normal').t : '${s}x'), style: const TextStyle(color: WebColors.white)),
                             ],
                           ),
                         ),

@@ -112,6 +112,8 @@ enum AdminAction {
   engagementLibrary(AdminPermission.engagement, 'library'),
   engagementStars(AdminPermission.engagement, 'stars'),
   engagementPartners(AdminPermission.engagement, 'partners'),
+  // 03/11/2026: answer members' questions (home page Q&A).
+  engagementQuestions(AdminPermission.engagement, 'questions'),
 
   websiteContent(AdminPermission.website, 'content'),
   websiteInbox(AdminPermission.website, 'inbox'),
@@ -173,6 +175,8 @@ enum AdminAction {
         return s.permEngStars;
       case AdminAction.engagementPartners:
         return s.permEngPartners;
+      case AdminAction.engagementQuestions:
+        return s.permEngQuestions;
       case AdminAction.websiteContent:
         return s.permWebContent;
       case AdminAction.websiteInbox:

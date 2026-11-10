@@ -160,11 +160,20 @@ class EngCalc {
     required this.formula,
     this.noteEn = '',
     this.noteAr = '',
+    this.subtitleEn = '',
+    this.subtitleAr = '',
   });
 
   final String id;
   final String en;
   final String ar;
+
+  /// A line under the calculator's title, on screen and in the exported
+  /// files (09/11/2026), e.g. "Using rule of thumb method". Empty = none.
+  final String subtitleEn;
+  final String subtitleAr;
+
+  String subtitle(bool arabic) => arabic ? subtitleAr : subtitleEn;
   final List<CalcField> fields;
   final List<CalcResult> results;
 
@@ -207,10 +216,14 @@ String formatCalc(double v, {int digits = 4}) {
   if (a >= 1e12 || a < 1e-6) {
     return v.toStringAsExponential(3).replaceFirst(RegExp(r'\.?0+e'), 'e');
   }
-  String s = double.parse(v.toStringAsPrecision(digits)).toString();
+  // 03/11/2026: at most 2 digits after the point, trailing zeros dropped.
+  // A value that would round to 0 keeps 2 significant digits (0.0042).
+  String s = a < 0.005
+      ? double.parse(v.toStringAsPrecision(2)).toString()
+      : v.toStringAsFixed(2);
   if (s.contains('e')) return s;
   if (s.contains('.')) {
     s = s.replaceFirst(RegExp(r'0+$'), '').replaceFirst(RegExp(r'\.$'), '');
   }
-  return s;
+  return s == '-0' ? '0' : s;
 }

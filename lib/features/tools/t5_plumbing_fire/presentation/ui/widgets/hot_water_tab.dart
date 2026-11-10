@@ -174,13 +174,26 @@ class _HotWaterTabState extends State<HotWaterTab> {
           Text(FormatHelper.capitalize(error))
         else if (r != null)
           ResultTable(
+            exportTitle: 'Hot water',
+            discipline: 'Plumbing',
+            inputs: <ResultItem>[
+              ResultItem('Building type', _b.label),
+              ResultItem('Inlet temperature', _inlet.text.trim(), '°C'),
+              ResultItem('Outlet temperature', _outlet.text.trim(), '°C'),
+              for (final MapEntry<HotWaterFixture, int> e in _lines.entries)
+                ResultItem('${e.key.label} × ${e.value}', fmt(_b.demandOf(e.key) * e.value, 1), 'L/h'),
+            ],
+            method: 'Total demand = Σ (fixtures × L/h per fixture)\n'
+                'Probable max demand = total × demand factor\n'
+                'Tank capacity = probable demand × storage factor\n'
+                'Q = tank × 4.184 × (outlet − inlet) ÷ 3600, rounded up (kW)',
             items: <ResultItem>[
               ResultItem('Total possible max demand', fmt(r.totalDemand, 1), 'L/h'),
               ResultItem('Demand factor', fmt(r.demandFactor, 2)),
               ResultItem('Probable max demand', fmt(r.probableDemand, 1), 'L/h'),
               ResultItem('Storage factor', fmt(r.storageFactor, 2)),
               ResultItem('Storage heater tank capacity', fmt(r.tankCapacity, 0), 'L'),
-              ResultItem('Power consumption (Q)', fmt(r.power, 0), 'kW'),
+              ResultItem('Power consumption (Q)', fmt(r.power, 0), 'KW'),
             ],
           ),
       ],

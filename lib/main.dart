@@ -34,14 +34,31 @@ import 'package:asec/core/settings/crash_tracker.dart';
 import 'package:asec/core/settings/desktop_video.dart';
 import 'package:asec/core/settings/error_reports.dart';
 import 'package:asec/core/settings/screen_protection.dart';
+import 'package:asec/features/onboarding/o2_authentication/data/device/device_identity.dart';
 import 'package:asec/core/settings/super_admin_bootstrap.dart';
+import 'package:asec/core/settings/windows_boot_guard.dart';
+import 'package:asec/core/settings/device_specs.dart';
+import 'package:asec/features/video/v1_videos/data/download/video_downloads.dart';
 
 Future<void> main() async {
+  // WINDOWS (06/11/2026, from ENGX): notes each start step and repairs what a
+  // crash / power cut can leave broken — core/settings/windows_boot_guard.dart.
+  WindowsBootGuard.begin();
   WidgetsFlutterBinding.ensureInitialized();
 
   // Storage first — the theme controller reads it during construction, and
   // the crash tracker writes its breadcrumb to it.
+  WindowsBootGuard.step('storage');
+  // Windows: this app's OWN settings file (not the Documents one shared with
+  // the other ASEC-family apps). The first GetStorage() made fixes the path.
+  final String? storageDir = await WindowsBootGuard.storagePath();
+  await WindowsBootGuard.repairStorage();
+  if (storageDir != null) GetStorage('GetStorage', storageDir);
   await GetStorage.init();
+
+  // The device id, kept across an uninstall / reinstall (Keychain on iPhone,
+  // ANDROID_ID on Android) — before anything reads it.
+  await DeviceIdentity.init();
 
   // Did the LAST run finish, or did it vanish (crash to desktop, force-close)?
   // Read now; a crash is reported to the super admin once a session is up.
@@ -49,7 +66,7 @@ Future<void> main() async {
 
   CrashTracker.stage('video_init');
   // Give video_player a Windows / Linux backend (media_kit). Without this,
-  // playing a lesson on Windows throws "init() has not been implemented".
+  // playing a lesson on Windos throws "init() has not been implemented".
   // Must run before any VideoPlayerController is created. No-op on phones/web.
   // Wrapped so a video-backend failure can NEVER stop the app from opening.
   try {
@@ -65,7 +82,10 @@ Future<void> main() async {
   CrashTracker.stage('firebase');
   // Never throws: a Firebase that will not start sets `notConfigured`, and the
   // sign-in screen says so instead of spinning forever.
+  await WindowsBootGuard.repairFirebase();
   await AppFirebase.initialize();
+  // What kind of PC this is (CPU, RAM, graphics) — for reports and Online now.
+  unawaited(DeviceSpecs.load());
 
   // Every error any user hits is saved for the super admin
   // (Settings → Error reports). See lib/core/settings/error_reports.dart.
@@ -97,6 +117,8 @@ Future<void> main() async {
   // No internet (phone, tablet, Mac, Windows) → the app closes to the unit converter
   // until the connection is back (lib/core/settings/app_connectivity.dart).
   AppConnectivity.start();
+  // Offline lessons follow the Control centre switch (off = erased here).
+  VideoDownloads.watchSwitch();
 
   CrashTracker.stage('running');
   // The breadcrumb is cleared only once the first frame is actually on screen,
@@ -107,6 +129,8 @@ Future<void> main() async {
   // (ErrorReports.installGlobalHandlers), which is zone-safe — no
   // runZonedGuarded, which would clash with the binding above.
   runApp(const AsecApp());
+  // On screen: this start worked (and the settings file is backed up).
+  WidgetsBinding.instance.waitUntilFirstFrameRasterized.then((_) => WindowsBootGuard.up());
 }
 
 class AsecApp extends StatelessWidget {

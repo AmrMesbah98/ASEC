@@ -15,6 +15,7 @@
 
 import 'dart:typed_data';
 
+import 'package:asec/core/helper/main_helper/format_helper.dart';
 import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -37,6 +38,10 @@ abstract final class CertificatePdf {
         await rootBundle.load('assets/fonts/fonts_english/Cairo/Cairo-Bold.ttf'));
     final pw.MemoryImage logo = pw.MemoryImage(
         (await rootBundle.load('assets/certificate/asec_logo.png')).buffer.asUint8List());
+    final pw.MemoryImage stamp = pw.MemoryImage(
+        (await rootBundle.load('assets/certificate/certificate_stamp.png')).buffer.asUint8List());
+    final pw.MemoryImage signature = pw.MemoryImage(
+        (await rootBundle.load('assets/certificate/certificate_signature.png')).buffer.asUint8List());
 
     final pw.Document doc = pw.Document(
       title: 'ASEC Certificate — ${d.course}',
@@ -47,8 +52,10 @@ abstract final class CertificatePdf {
     pw.Widget line(String text, double size,
         {PdfColor color = _ink, bool isBold = false, double spacing = 0}) {
       final bool ar = CertificateData.isArabic(text);
+      // Same wording rule as the app (03/11/2026): Title Case, with small
+      // words (of, in, for, on…) kept small — the PDF matches the screen.
       return pw.Text(
-        text,
+        FormatHelper.capitalize(text),
         textAlign: pw.TextAlign.center,
         textDirection: ar ? pw.TextDirection.rtl : pw.TextDirection.ltr,
         style: pw.TextStyle(
@@ -60,14 +67,31 @@ abstract final class CertificatePdf {
       );
     }
 
-    pw.Widget footerItem(String label, String labelAr, String value) => pw.Column(
+    pw.Widget footerItem(String label, String value) => pw.Column(
           mainAxisSize: pw.MainAxisSize.min,
           children: <pw.Widget>[
             line(value, 12, color: _navy, isBold: true),
             pw.Container(width: 150, height: 0.8, color: _muted, margin: const pw.EdgeInsets.symmetric(vertical: 4)),
             line(label, 9, color: _muted),
-            line(labelAr, 9, color: _muted),
+            // 03/11/2026: English only — no Arabic line.
           ],
+        );
+
+    pw.Widget stat(String label, String value) => pw.Container(
+          width: 108,
+          padding: const pw.EdgeInsets.symmetric(vertical: 5),
+          margin: const pw.EdgeInsets.symmetric(horizontal: 5),
+          decoration: pw.BoxDecoration(
+            color: const PdfColor.fromInt(0xFFF0F1F7),
+            borderRadius: pw.BorderRadius.circular(8),
+          ),
+          child: pw.Column(
+            mainAxisSize: pw.MainAxisSize.min,
+            children: <pw.Widget>[
+              line(value, 14, color: _navy, isBold: true),
+              line(label, 9, color: _muted),
+            ],
+          ),
         );
 
     doc.addPage(
@@ -85,50 +109,86 @@ abstract final class CertificatePdf {
               padding: const pw.EdgeInsets.symmetric(horizontal: 48, vertical: 22),
               child: pw.Column(
                 children: <pw.Widget>[
-                  pw.Image(logo, width: 40, height: 43),
+                  // 03/11/2026: same layout as the screen — no empty middle.
+                  pw.Image(logo, width: 52, height: 56),
                   pw.SizedBox(height: 4),
-                  line('ASEC', 12, color: _navy, isBold: true, spacing: 6),
+                  line('ASEC', 13, color: _navy, isBold: true, spacing: 6),
                   pw.SizedBox(height: 6),
-                  line('CERTIFICATE OF COMPLETION', 24, color: _navy, isBold: true, spacing: 2),
-                  line('شهادة إتمام', 15, color: _red, isBold: true),
-                  pw.SizedBox(height: 8),
-                  line('This is to certify that', 11, color: _muted),
-                  line('نشهد بأن', 10, color: _muted),
-                  line(d.name, 26, color: _blue, isBold: true),
-                  pw.Container(width: 360, height: 1, color: _red, margin: const pw.EdgeInsets.only(top: 2, bottom: 10)),
-                  line('has successfully completed the course', 11, color: _muted),
-                  line('قد أتمّ بنجاح كورس', 10, color: _muted),
-                  line(d.course, 18, color: _red, isBold: true),
+                  line('CERTIFICATE OF COMPLETION', 30, color: _navy, isBold: true, spacing: 2),
                   pw.SizedBox(height: 6),
+                  pw.Row(
+                    mainAxisSize: pw.MainAxisSize.min,
+                    children: <pw.Widget>[
+                      pw.Container(width: 90, height: 1.2, color: _red),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.symmetric(horizontal: 8),
+                        child: pw.Transform.rotateBox(
+                          angle: 0.785398,
+                          child: pw.Container(width: 7, height: 7, color: _red),
+                        ),
+                      ),
+                      pw.Container(width: 90, height: 1.2, color: _red),
+                    ],
+                  ),
+                  pw.Spacer(),
+                  line('This is to certify that', 14, color: _muted),
+                  pw.SizedBox(height: 2),
+                  line(d.name, 34, color: _blue, isBold: true),
+                  pw.Container(width: 420, height: 1.2, color: _red, margin: const pw.EdgeInsets.only(top: 2, bottom: 8)),
+                  line(d.completedLine, 14, color: _muted),
+                  pw.SizedBox(height: 2),
+                  line(d.course, 24, color: _red, isBold: true),
                   if (d.percent != null) ...<pw.Widget>[
-                    line('and passed the final exam with a score of ${d.percent}%', 11, color: _ink),
-                    line('واجتاز الاختبار النهائي بنسبة ${d.percent}%', 11, color: _ink),
+                    pw.SizedBox(height: 4),
+                    line(d.scoreLine, 14, color: _ink),
+                  ],
+                  pw.SizedBox(height: 12),
+                  pw.SizedBox(
+                    width: 560,
+                    child: line(
+                      'in recognition of the dedication, effort and engineering skills shown '
+                      'throughout the program, delivered by ASEC Engineering Consultants.',
+                      11,
+                      color: _muted,
+                    ),
+                  ),
+                  if (d.hasDetails) ...<pw.Widget>[
+                    pw.SizedBox(height: 10),
+                    pw.Row(
+                      mainAxisSize: pw.MainAxisSize.min,
+                      children: <pw.Widget>[
+                        for (final (String label, String value) in d.details) stat(label, value),
+                      ],
+                    ),
                   ],
                   pw.Spacer(),
                   pw.Row(
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: pw.CrossAxisAlignment.end,
                     children: <pw.Widget>[
-                      footerItem('Date', 'التاريخ', d.dateLabel),
-                      pw.Container(
-                        width: 70,
-                        height: 70,
-                        decoration: pw.BoxDecoration(
-                          shape: pw.BoxShape.circle,
-                          border: pw.Border.all(color: _red, width: 2.5),
-                        ),
-                        alignment: pw.Alignment.center,
-                        child: pw.Column(
-                          mainAxisSize: pw.MainAxisSize.min,
-                          children: <pw.Widget>[
-                            line('ASEC', 13, color: _red, isBold: true, spacing: 2),
-                            line('CERTIFIED', 6, color: _red, spacing: 1.5),
-                          ],
+                      footerItem('Date', d.dateLabel),
+                      // The office stamp, tilted a little like a real one.
+                      pw.Transform.rotateBox(
+                        angle: 0.12,
+                        child: pw.Opacity(
+                          opacity: 0.92,
+                          child: pw.Image(stamp, width: 100, height: 100),
                         ),
                       ),
-                      footerItem('Certificate No.', 'رقم الشهادة', d.number),
+                      // Eng. Ahmed Shuhayb's signature above the line.
+                      pw.Column(
+                        mainAxisSize: pw.MainAxisSize.min,
+                        children: <pw.Widget>[
+                          pw.Image(signature, height: 48),
+                          pw.Container(width: 150, height: 0.8, color: _muted, margin: const pw.EdgeInsets.symmetric(vertical: 4)),
+                          line('Eng. Ahmed Shuhayb', 11, color: _navy, isBold: true),
+                          line('Authorized Signature', 9, color: _muted),
+                        ],
+                      ),
                     ],
                   ),
+                  pw.SizedBox(height: 10),
+                  line('Certificate No. ${d.number} · verify at asecbim.com', 9, color: _muted),
                 ],
               ),
             ),

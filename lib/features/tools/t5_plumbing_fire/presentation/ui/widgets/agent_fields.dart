@@ -22,6 +22,16 @@ import 'package:asec/features/tools/t5_plumbing_fire/domain/clean_agents.dart';
 abstract class AgentTabState<T extends StatefulWidget> extends State<T> {
   final Map<String, TextEditingController> _fields = <String, TextEditingController>{};
 
+  /// Each number field's label and unit, in the order they were made — the
+  /// inputs printed in the exported files (09/11/2026).
+  final Map<String, (String, String)> _labels = <String, (String, String)>{};
+
+  /// The number fields as report rows (label, typed value, unit).
+  List<ResultItem> inputItems() => <ResultItem>[
+        for (final MapEntry<String, (String, String)> e in _labels.entries)
+          ResultItem(e.value.$1, _fields[e.key]?.text.trim() ?? '', e.value.$2),
+      ];
+
   /// The field [key], created with [initial] the first time.
   TextEditingController field(String key, num initial) => _fields.putIfAbsent(
         key,
@@ -36,8 +46,10 @@ abstract class AgentTabState<T extends StatefulWidget> extends State<T> {
   void changed(String _) => setState(() {});
 
   /// A number field bound to [key].
-  Widget number(String key, num initial, String label, [String? unit]) =>
-      NumberField(controller: field(key, initial), label: label, unit: unit, onChanged: changed);
+  Widget number(String key, num initial, String label, [String? unit]) {
+    _labels[key] = (label, unit ?? '');
+    return NumberField(controller: field(key, initial), label: label, unit: unit, onChanged: changed);
+  }
 
   /// Length, width and height — the workbook's 5 × 5 × 5 m example room.
   /// (26/10/2026: additional voids and excluded volume removed from the

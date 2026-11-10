@@ -150,10 +150,11 @@ class AdminShell extends StatelessWidget {
               ShellSection(
                 id: 'engineeringCalc',
                 icon: CalcIcons.hvac,
-                label: s.engineeringCalc,
                 // 26/10/2026: the menu reads Units, Ducts, Pipes, HVAC, Plumbing, Fire.
+                // 09/11/2026: HVAC = the load estimation only.
+                label: 'HVAC',
                 shortLabel: 'HVAC',
-                page: const EngineeringCalcPage(),
+                page: const EngineeringCalcPage.hvac(),
               ),
               ShellSection(
                 id: 'plumbingFireCalc',

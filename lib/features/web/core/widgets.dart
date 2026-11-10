@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:asec/core/custom/111-app_svg_icon.dart';
 import 'package:asec/features/web/core/i18n.dart';
 import 'package:asec/features/web/core/theme.dart';
+import 'package:asec/core/helper/main_helper/format_helper.dart';
 
 extension Responsive on BuildContext {
   double get width => MediaQuery.sizeOf(this).width;
@@ -134,7 +135,7 @@ class SectionTitle extends StatelessWidget {
     return Column(
       children: <Widget>[
         Text(
-          title,
+          FormatHelper.capitalize(title),
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: context.isMobile ? 26 : 34,
@@ -153,7 +154,7 @@ class SectionTitle extends StatelessWidget {
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 820),
             child: Text(
-              intro,
+              FormatHelper.capitalize(intro),
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 15,
@@ -196,7 +197,7 @@ class EmptyNote extends StatelessWidget {
           children: <Widget>[
             AppIcon(icon, size: 42, color: WebColors.muted.withValues(alpha: 0.5)),
             const SizedBox(height: 10),
-            Text(text, textAlign: TextAlign.center, style: TextStyle(color: WebColors.muted)),
+            Text(FormatHelper.capitalize(text), textAlign: TextAlign.center, style: TextStyle(color: WebColors.muted)),
           ],
         ),
       );

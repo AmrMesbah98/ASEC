@@ -12,6 +12,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import 'package:asec/features/engagement/e1_engagement/presentation/ui/pages/file_viewer_page.dart';
 import 'package:asec/core/animation/app_animations.dart';
 import 'package:asec/core/custom/110-app_widgets.dart';
 import 'package:asec/core/theme/app_colors.dart';
@@ -101,6 +102,7 @@ class _LibraryViewState extends State<LibraryView> {
                     if (i > 0) SizedBox(height: 10.h),
                     FileTile(
                       file: files[i],
+                      onTap: () => openFilesInApp(context, files, index: i),
                       trailing: widget.admin
                           ? DeleteMenu(
                               onDelete: () => confirmDelete(

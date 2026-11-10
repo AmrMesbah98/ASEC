@@ -78,7 +78,7 @@ class _ArticlesPageState extends State<ArticlesPage> {
                       alignment: WrapAlignment.center,
                       children: <Widget>[
                         ChoiceChip(
-                          label: Text(const L('الكل', 'All').t),
+                          label: Text(FormatHelper.capitalize(const L('الكل', 'All').t)),
                           selected: _cat.isEmpty,
                           onSelected: (_) => setState(() {
                             _cat = '';
@@ -87,7 +87,7 @@ class _ArticlesPageState extends State<ArticlesPage> {
                         ),
                         for (final String c in cats)
                           ChoiceChip(
-                            label: Text(c),
+                            label: Text(FormatHelper.capitalize(c)),
                             selected: _cat == c,
                             onSelected: (_) => setState(() {
                               _cat = c;
@@ -118,12 +118,12 @@ class _ArticlesPageState extends State<ArticlesPage> {
                                   ? FilledButton(
                                       style: FilledButton.styleFrom(padding: EdgeInsets.zero),
                                       onPressed: () {},
-                                      child: Text('${i + 1}'),
+                                      child: Text(FormatHelper.capitalize('${i + 1}')),
                                     )
                                   : OutlinedButton(
                                       style: OutlinedButton.styleFrom(padding: EdgeInsets.zero),
                                       onPressed: () => setState(() => _page = i),
-                                      child: Text('${i + 1}'),
+                                      child: Text(FormatHelper.capitalize('${i + 1}')),
                                     ),
                             ),
                         ],
@@ -166,10 +166,10 @@ class ArticleDetailPage extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
                     if (d.s('category').isNotEmpty)
-                      Text(d.s('category'),
+                      Text(FormatHelper.capitalize(d.s('category')),
                           style: const TextStyle(color: WebColors.blue, fontWeight: FontWeight.w700)),
                     const SizedBox(height: 6),
-                    Text(d.s('title'),
+                    Text(FormatHelper.capitalize(d.s('title')),
                         textDirection: d.dirOf('title'),
                         style: TextStyle(
                           fontSize: context.isMobile ? 26 : 36,
@@ -178,7 +178,7 @@ class ArticleDetailPage extends StatelessWidget {
                           color: WebColors.navy,
                         )),
                     const SizedBox(height: 8),
-                    Text(panelDate(d.t('published_at')), style: TextStyle(color: WebColors.muted)),
+                    Text(FormatHelper.capitalize(panelDate(d.t('published_at'))), style: TextStyle(color: WebColors.muted)),
                     const SizedBox(height: 22),
                     if (d.s('cover').isNotEmpty) NetImage(d.s('cover'), radius: 12, fit: BoxFit.contain),
                     const SizedBox(height: 26),

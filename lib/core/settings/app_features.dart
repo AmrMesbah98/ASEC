@@ -59,6 +59,13 @@ enum AppFeature {
   videoResume('video_resume', AppFeatureGroup.videos, Icons.history_rounded),
   videoSearch('video_search', AppFeatureGroup.videos, Icons.search_rounded),
   videoCourseProgress('video_course_progress', AppFeatureGroup.videos, Icons.stacked_line_chart_rounded),
+  /// ON = members can save lessons INSIDE the app (encrypted, this device and
+  /// account only) and watch them offline. OFF also erases saved lessons.
+  videoDownloads('video_downloads', AppFeatureGroup.videos, Icons.download_for_offline_rounded),
+  /// ON = lessons come ONLY from the Cloudflare lesson server (no Google
+  /// Drive download limit). Copy the lessons there first (Settings →
+  /// Cloudflare lessons). OFF = Google Drive, as before. (07/11/2026)
+  videoCloud('video_cloud', AppFeatureGroup.videos, Icons.cloud_rounded, defaultOn: false),
 
   // ── Calculators: ON = every member (with the calculators) can open it ──
   calcConverter('calc_converter', AppFeatureGroup.calculators, Icons.swap_horiz_rounded),

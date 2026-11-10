@@ -27,6 +27,7 @@ import 'package:asec/features/quiz/q1_quizzes/domain/entities/quiz_question.dart
 import 'package:asec/features/quiz/q1_quizzes/domain/enums/quiz_window_state.dart';
 import 'package:asec/features/quiz/q1_quizzes/presentation/controller/quiz_attempt_cubit.dart';
 import 'package:asec/features/quiz/q1_quizzes/presentation/ui/widgets/quiz_meta.dart';
+import 'package:asec/features/quiz/q1_quizzes/presentation/ui/widgets/quiz_result_export.dart';
 import 'package:asec/features/quiz/q2_certificates/presentation/ui/pages/certificate_page.dart';
 import 'package:asec/generated/l10n.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
@@ -469,6 +470,9 @@ class _Result extends StatelessWidget {
     final Quiz quiz = state.quiz;
     final double percent = attempt.percent;
     final bool cert = quiz.certificate;
+    // 09/11/2026: EVERY quiz finished with a pass (Quiz.passPercent or more)
+    // earns the ASEC certificate — the same design as the certificate exams.
+    final bool earned = cert ? attempt.passed : percent >= Quiz.passPercent;
     final Color color = cert
         ? (attempt.passed ? AppColors.green : AppColors.red)
         : percent >= 80
@@ -555,7 +559,15 @@ class _Result extends StatelessWidget {
                   style: StyleText.fontSize14Weight600,
                 ),
                 SizedBox(height: 18.h),
-                if (cert && attempt.passed) ...<Widget>[
+                // 10/11/2026: the member's grade as a PDF or Excel sheet.
+                // A final exam that can still be retaken leaves out the key.
+                QuizResultExportButtons(
+                  quiz: quiz,
+                  attempt: attempt,
+                  showKey: !cert || attempt.passed,
+                ),
+                SizedBox(height: 10.h),
+                if (earned) ...<Widget>[
                   AppButton(
                     label: s.viewCertificate,
                     icon: Icons.workspace_premium_rounded,

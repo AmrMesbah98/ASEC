@@ -4166,6 +4166,18 @@ abstract class S {
   /// **'\"3 of 10 lessons watched\" at the top.'**
   String get ctlVideoCourseProgressHint;
 
+  /// No description provided for @ctlVideoDownloads.
+  ///
+  /// In en, this message translates to:
+  /// **'Download inside the app (offline)'**
+  String get ctlVideoDownloads;
+
+  /// No description provided for @ctlVideoDownloadsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Members save lessons INSIDE ASEC — encrypted for that device and account — and watch them without internet. Off also erases saved lessons on every device.'**
+  String get ctlVideoDownloadsHint;
+
   /// No description provided for @ctlAnimations.
   ///
   /// In en, this message translates to:
@@ -5735,7 +5747,7 @@ abstract class S {
   /// No description provided for @engLibraryCertificate.
   ///
   /// In en, this message translates to:
-  /// **'Certificate'**
+  /// **'Certificates'**
   String get engLibraryCertificate;
 
   /// No description provided for @engLibrarySub.
@@ -6793,6 +6805,348 @@ abstract class S {
   /// In en, this message translates to:
   /// **'Admin'**
   String get onlineAdminTag;
+
+  /// No description provided for @quizTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Quiz'**
+  String get quizTab;
+
+  /// No description provided for @myCertificatesSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Every certificate you have earned.'**
+  String get myCertificatesSub;
+
+  /// No description provided for @noCertificatesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No certificates yet'**
+  String get noCertificatesTitle;
+
+  /// No description provided for @noCertificatesSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Pass a course\'s quiz in Settings → Quiz to earn your first certificate.'**
+  String get noCertificatesSub;
+
+  /// No description provided for @accessUploadExcel.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload Excel'**
+  String get accessUploadExcel;
+
+  /// No description provided for @accessImportTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Give course access from a sheet'**
+  String get accessImportTitle;
+
+  /// No description provided for @accessImportMatched.
+  ///
+  /// In en, this message translates to:
+  /// **'Members in the sheet'**
+  String get accessImportMatched;
+
+  /// No description provided for @accessImportNoAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'No account with these emails — skipped (they must register first)'**
+  String get accessImportNoAccount;
+
+  /// No description provided for @accessImportUnknownCourse.
+  ///
+  /// In en, this message translates to:
+  /// **'No course has these names — check the spelling (saved anyway)'**
+  String get accessImportUnknownCourse;
+
+  /// No description provided for @accessImportSkippedRows.
+  ///
+  /// In en, this message translates to:
+  /// **'Skipped rows (not an email, or no course)'**
+  String get accessImportSkippedRows;
+
+  /// No description provided for @accessImportAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add these courses'**
+  String get accessImportAdd;
+
+  /// No description provided for @accessImportAddSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Members keep the courses they already have.'**
+  String get accessImportAddSub;
+
+  /// No description provided for @accessImportReplace.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace'**
+  String get accessImportReplace;
+
+  /// No description provided for @accessImportReplaceSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Each member gets exactly the courses in the sheet. General Notes and Tips and Tricks stay open.'**
+  String get accessImportReplaceSub;
+
+  /// No description provided for @accessImportSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Give access'**
+  String get accessImportSave;
+
+  /// No description provided for @accessImportSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Access saved'**
+  String get accessImportSaved;
+
+  /// No description provided for @accessImportNothing.
+  ///
+  /// In en, this message translates to:
+  /// **'No row with a member\'s email and a course was found. Column A: email, then the course names.'**
+  String get accessImportNothing;
+
+  /// No description provided for @accessImportUnreadable.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not read the file. Save it as .xlsx (Excel) or .csv and try again.'**
+  String get accessImportUnreadable;
+
+  /// No description provided for @mySpaceLearning.
+  ///
+  /// In en, this message translates to:
+  /// **'My Learning'**
+  String get mySpaceLearning;
+
+  /// No description provided for @mySpaceResources.
+  ///
+  /// In en, this message translates to:
+  /// **'My Resources'**
+  String get mySpaceResources;
+
+  /// No description provided for @mySpaceSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved'**
+  String get mySpaceSaved;
+
+  /// No description provided for @mySpaceSavedSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Everything you saved, like tips and tricks'**
+  String get mySpaceSavedSub;
+
+  /// No description provided for @mySpaceQuizzes.
+  ///
+  /// In en, this message translates to:
+  /// **'Quizzes & Results'**
+  String get mySpaceQuizzes;
+
+  /// No description provided for @mySpaceQuizzesSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Take quizzes and view your scores'**
+  String get mySpaceQuizzesSub;
+
+  /// No description provided for @mySpaceCertificates.
+  ///
+  /// In en, this message translates to:
+  /// **'My Certificates'**
+  String get mySpaceCertificates;
+
+  /// No description provided for @mySpaceCertificatesSub.
+  ///
+  /// In en, this message translates to:
+  /// **'View and download your certificates'**
+  String get mySpaceCertificatesSub;
+
+  /// No description provided for @mySpaceCv.
+  ///
+  /// In en, this message translates to:
+  /// **'My CV'**
+  String get mySpaceCv;
+
+  /// No description provided for @mySpaceCvSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Build and update your CV'**
+  String get mySpaceCvSub;
+
+  /// No description provided for @mySpaceCvLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Locked — ask the admin to allow your CV'**
+  String get mySpaceCvLocked;
+
+  /// No description provided for @mySpaceDownloads.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloads'**
+  String get mySpaceDownloads;
+
+  /// No description provided for @mySpaceDownloadsSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Your downloaded lessons'**
+  String get mySpaceDownloadsSub;
+
+  /// No description provided for @mySpaceTools.
+  ///
+  /// In en, this message translates to:
+  /// **'Engineering Tools'**
+  String get mySpaceTools;
+
+  /// No description provided for @mySpaceToolsSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Calculators and useful engineering tools'**
+  String get mySpaceToolsSub;
+
+  /// No description provided for @mySpaceToolsLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Coming soon'**
+  String get mySpaceToolsLocked;
+
+  /// No description provided for @permEngQuestions.
+  ///
+  /// In en, this message translates to:
+  /// **'Answer questions'**
+  String get permEngQuestions;
+
+  /// No description provided for @engQuestions.
+  ///
+  /// In en, this message translates to:
+  /// **'Questions'**
+  String get engQuestions;
+
+  /// No description provided for @engQuestionsAdminSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Members\' questions. Write an answer and it is posted on every member\'s home page.'**
+  String get engQuestionsAdminSub;
+
+  /// No description provided for @qaTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Questions & Answers'**
+  String get qaTitle;
+
+  /// No description provided for @qaAsk.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask a question'**
+  String get qaAsk;
+
+  /// No description provided for @qaAskHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Write your question…'**
+  String get qaAskHint;
+
+  /// No description provided for @qaSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get qaSend;
+
+  /// No description provided for @qaSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Question sent — the answer will appear here.'**
+  String get qaSent;
+
+  /// No description provided for @qaSeeMore.
+  ///
+  /// In en, this message translates to:
+  /// **'See more'**
+  String get qaSeeMore;
+
+  /// No description provided for @qaEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No answered questions yet'**
+  String get qaEmpty;
+
+  /// No description provided for @qaEmptySub.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask the first one — the ASEC team will answer.'**
+  String get qaEmptySub;
+
+  /// No description provided for @qaWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for an answer'**
+  String get qaWaiting;
+
+  /// No description provided for @qaMine.
+  ///
+  /// In en, this message translates to:
+  /// **'My questions'**
+  String get qaMine;
+
+  /// No description provided for @qaAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All questions'**
+  String get qaAll;
+
+  /// No description provided for @qaTeam.
+  ///
+  /// In en, this message translates to:
+  /// **'ASEC Team'**
+  String get qaTeam;
+
+  /// No description provided for @qaAnswer.
+  ///
+  /// In en, this message translates to:
+  /// **'Answer'**
+  String get qaAnswer;
+
+  /// No description provided for @qaEditAnswer.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit answer'**
+  String get qaEditAnswer;
+
+  /// No description provided for @qaAnswerHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Write the answer…'**
+  String get qaAnswerHint;
+
+  /// No description provided for @qaPost.
+  ///
+  /// In en, this message translates to:
+  /// **'Post answer'**
+  String get qaPost;
+
+  /// No description provided for @qaPosted.
+  ///
+  /// In en, this message translates to:
+  /// **'Answer posted'**
+  String get qaPosted;
+
+  /// No description provided for @qaDeleteQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this question?'**
+  String get qaDeleteQuestion;
+
+  /// No description provided for @qaNoQuestions.
+  ///
+  /// In en, this message translates to:
+  /// **'No questions yet'**
+  String get qaNoQuestions;
+
+  /// No description provided for @fvLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load this file'**
+  String get fvLoadFailed;
 }
 
 class _SDelegate extends LocalizationsDelegate<S> {

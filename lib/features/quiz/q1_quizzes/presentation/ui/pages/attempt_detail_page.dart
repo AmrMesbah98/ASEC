@@ -22,6 +22,7 @@ import 'package:asec/features/quiz/q1_quizzes/domain/entities/quiz.dart';
 import 'package:asec/features/quiz/q1_quizzes/domain/entities/quiz_attempt.dart';
 import 'package:asec/features/quiz/q1_quizzes/domain/entities/quiz_question.dart';
 import 'package:asec/features/quiz/q1_quizzes/presentation/ui/widgets/quiz_meta.dart';
+import 'package:asec/features/quiz/q1_quizzes/presentation/ui/widgets/quiz_result_export.dart';
 import 'package:asec/generated/l10n.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
 
@@ -75,6 +76,11 @@ class AttemptDetailPage extends StatelessWidget {
             ),
           ],
         ),
+        // 10/11/2026: this member's grade as a PDF or Excel sheet.
+        actions: <Widget>[
+          QuizResultExportButtons(quiz: quiz, attempt: attempt, dense: true),
+          SizedBox(width: 12.w),
+        ],
       ),
       body: Center(
         child: ConstrainedBox(

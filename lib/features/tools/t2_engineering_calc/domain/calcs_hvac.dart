@@ -13,6 +13,7 @@
 
 import 'dart:math' as math;
 
+import 'package:asec/features/tools/t2_engineering_calc/domain/calc_load_estimation.dart';
 import 'package:asec/features/tools/t2_engineering_calc/domain/calc_model.dart';
 import 'package:asec/features/tools/t2_engineering_calc/domain/calc_units.dart';
 
@@ -141,8 +142,8 @@ const EngCalc coolingLoad = EngCalc(
   compute: _coolingLoad,
   formula: 'Glass = A·(SG + U·ΔT)   Walls = U·A·ΔT   Roof = U·A·(ΔT + 8)\n'
       'People = n·(qs + ql)   Lights, equipment = W/m² × area\n'
-      'Fresh air: qs = 1.21·L/s·ΔT   ql = 3.0·L/s·Δw\n'
-      'Supply air (L/s) = room sensible ÷ (1.21 × ΔT supply)',
+      'Fresh air: qs = 1.21·l/s·ΔT   ql = 3.0·l/s·Δw\n'
+      'Supply air (l/s) = room sensible ÷ (1.21 × ΔT supply)',
   noteEn: 'Quick block-load estimate. Typical sun on unshaded glass is 150–500 W/m² '
       '(west worst). Roof uses ΔT + 8 K for sun on the slab. Fresh-air load is on the '
       'coil, so supply air uses the room sensible load only. Offices usually land '
@@ -280,8 +281,8 @@ const EngCalc supplyAir = EngCalc(
     CalcResult('dw', 'Moisture the supply air must pick up', 'الرطوبة التي يجب أن يمتصها الهواء', qty: Q.humidity),
   ],
   compute: _supplyAir,
-  formula: 'SI:  L/s = qs (W) ÷ (1.21 × ΔT)\nIP:  CFM = qs (BTU/h) ÷ (1.08 × ΔT °F)\n'
-      'Δw = ql ÷ (3.0 × L/s)',
+  formula: 'SI:  l/s = qs (W) ÷ (1.21 × ΔT)\nIP:  CFM = qs (BTU/h) ÷ (1.08 × ΔT °F)\n'
+      'Δw = ql ÷ (3.0 × l/s)',
   noteEn: 'ΔT of 10–12 K is usual for comfort cooling (supply ≈ 13 °C to a 24 °C room).',
   noteAr: 'فرق الحرارة 10–12 كلفن معتاد في تكييف الراحة (إمداد ≈ 13 °م لغرفة 24 °م).',
 );
@@ -527,6 +528,7 @@ const EngCalc expansionTank = EngCalc(
 );
 
 const List<EngCalc> hvacCalcs = <EngCalc>[
+  loadEstimation,
   coolingLoad,
   ventilation,
   airChanges,

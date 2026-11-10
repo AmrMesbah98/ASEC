@@ -87,7 +87,7 @@ abstract final class CalcUnits {
       nameAr: 'هواء لكل شخص',
       icon: Icons.person_rounded,
       units: <UnitDef>[
-        UnitDef('L/s/person', 'L/s per person', 'لتر/ث لكل شخص', 1),
+        UnitDef('L/s/person', 'l/s per person', 'لتر/ث لكل شخص', 1),
         UnitDef('CFM/person', 'CFM per person', 'CFM لكل شخص', 0.47194745),
         UnitDef('m³/h/person', 'm³/h per person', 'م³/س لكل شخص', 1 / 3.6),
       ],
@@ -98,7 +98,7 @@ abstract final class CalcUnits {
       nameAr: 'هواء لكل مساحة',
       icon: Icons.crop_square_rounded,
       units: <UnitDef>[
-        UnitDef('L/s/m²', 'L/s per m²', 'لتر/ث لكل م²', 1),
+        UnitDef('L/s/m²', 'l/s per m²', 'لتر/ث لكل م²', 1),
         UnitDef('CFM/ft²', 'CFM per ft²', 'CFM لكل قدم²', 0.47194745 / 0.09290304),
         UnitDef('m³/h/m²', 'm³/h per m²', 'م³/س لكل م²', 1 / 3.6),
       ],
@@ -109,7 +109,7 @@ abstract final class CalcUnits {
       nameAr: 'معامل K للرشاش',
       icon: Icons.shower_rounded,
       units: <UnitDef>[
-        UnitDef('L/min/bar½', 'L/min per √bar', 'لتر/د لكل √بار', 1),
+        UnitDef('L/min/bar½', 'l/min per √bar', 'لتر/د لكل √بار', 1),
         UnitDef('gpm/psi½', 'gpm per √psi', 'جالون/د لكل √psi', 14.4163),
       ],
     ),
@@ -119,7 +119,7 @@ abstract final class CalcUnits {
       nameAr: 'كثافة التصميم',
       icon: Icons.water_drop_rounded,
       units: <UnitDef>[
-        UnitDef('mm/min', 'mm/min (L/min·m²)', 'مم/د (لتر/د·م²)', 1),
+        UnitDef('mm/min', 'mm/min (l/min·m²)', 'مم/د (لتر/د·م²)', 1),
         UnitDef('gpm/ft²', 'gpm per ft²', 'جالون/د لكل قدم²', 40.7458),
       ],
     ),
