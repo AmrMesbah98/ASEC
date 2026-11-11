@@ -211,7 +211,8 @@ begin
     for i := 0 to n - 1 do
     begin
       Item := Items.ItemIndex(i);
-      name := Lowercase(Item.Name);
+      name := Item.Name;
+      name := Lowercase(name);
       if (Pos('basic display', name) = 0) and (Pos('basic render', name) = 0) then
         Result := False;
     end;
