@@ -70,8 +70,9 @@ abstract final class DeviceIdentity {
     } catch (_) {}
     String? id = _valid(stored) ? stored : null;
     try {
-      if (Platform.isIOS) {
-        // The Keychain wins: after a reinstall it still holds the old id.
+      if (Platform.isIOS || Platform.isMacOS) {
+        // The Keychain wins: after a reinstall it still holds the old id
+        // (macOS too since 10/11/2026, ported from ENGX v1.0.46).
         final String? kept = await _native
             .invokeMethod<String>('stableId', id ?? _random())
             .timeout(const Duration(seconds: 3));

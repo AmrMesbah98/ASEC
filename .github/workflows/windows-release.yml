@@ -113,14 +113,20 @@ jobs:
           & $iscc "/DAppVersion=$version" "/DSourceDir=$PWD\build\windows\x64\runner\Release" "/DOutputDir=$PWD" "windows\installer\asec_setup.iss"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      # Only for manual runs (no tag): a tag's files go to its GitHub release
+      # below, which has no storage limit. GitHub's artifact storage is small —
+      # "Artifact storage quota has been hit" (ENGX, 10/11/2026) failed the
+      # whole job before the release was made — so it may never stop a build.
       - name: Upload build artifact
+        if: github.ref_type != 'tag'
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: asec-windows-${{ github.ref_name }}
           path: |
             ASEC-Setup.exe
             ASEC-windows.zip
-          retention-days: 7
+          retention-days: 1
           compression-level: 0
 
       - name: Attach to GitHub release

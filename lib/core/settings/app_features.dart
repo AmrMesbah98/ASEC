@@ -32,6 +32,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 
 import 'package:asec/core/network/app_firebase.dart';
 import 'package:asec/features/onboarding/o2_authentication/domain/entities/app_user.dart';
@@ -66,6 +67,11 @@ enum AppFeature {
   /// Drive download limit). Copy the lessons there first (Settings →
   /// Cloudflare lessons). OFF = Google Drive, as before. (07/11/2026)
   videoCloud('video_cloud', AppFeatureGroup.videos, Icons.cloud_rounded, defaultOn: false),
+  /// ON = every signed-in member can watch EVERY course, new uploads too —
+  /// no course list needed. Blocked / paused / expired accounts and the
+  /// platform limits still apply (ported from ENGX v1.0.73, 10/11/2026).
+  /// firestore.rules reads the same `open_all_courses` field.
+  openAllCourses('open_all_courses', AppFeatureGroup.videos, Icons.lock_open_rounded, defaultOn: false),
 
   // ── Calculators: ON = every member (with the calculators) can open it ──
   calcConverter('calc_converter', AppFeatureGroup.calculators, Icons.swap_horiz_rounded),
@@ -143,6 +149,17 @@ class AppFeatures extends GetxController {
             for (final MapEntry<String, dynamic> e in data.entries)
               if (e.value is bool) e.key: e.value as bool,
           });
+          final Object? days = data[_expiryKey];
+          if (days is num) {
+            downloadExpiryDays.value = days.toInt();
+            // Kept on the device too: offline (when the expiry matters
+            // most) the setting can't be read from the server.
+            try {
+              GetStorage().write(_expiryKey, days.toInt());
+            } catch (_) {}
+          } else if (!snap.metadata.isFromCache) {
+            downloadExpiryDays.value = 0;
+          }
         },
         onError: (Object _) {},
       );
@@ -152,6 +169,27 @@ class AppFeatures extends GetxController {
   }
 
   bool isOn(AppFeature f) => values[f.key] ?? f.defaultOn;
+
+  // ── Downloaded lessons expire (ported from ENGX v1.0.54) ─────────────────
+
+  static const String _expiryKey = 'download_expiry_days';
+
+  /// Days a downloaded lesson stays on the device after it was downloaded;
+  /// 0 = never expires. Control centre → Video lessons. Starts from the
+  /// last value seen online, for an offline start.
+  final RxInt downloadExpiryDays = (() {
+    try {
+      return GetStorage().read<int>(_expiryKey) ?? 0;
+    } catch (_) {
+      return 0;
+    }
+  })()
+      .obs;
+
+  Future<void> setDownloadExpiryDays(int days) async {
+    downloadExpiryDays.value = days; // optimistic
+    await _doc.set(<String, dynamic>{_expiryKey: days}, SetOptions(merge: true));
+  }
 
   /// A calculator switch for the signed-in account: admins always see every
   /// calculator; members only the ones switched on.

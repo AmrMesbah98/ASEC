@@ -9,9 +9,17 @@
 /// Author: ASEC team
 /// Created: 25/9/2026
 
+import 'dart:async';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:intl/intl.dart';
+
+import 'package:asec/core/constants/firebase_collections.dart';
+import 'package:asec/core/network/app_firebase.dart';
+import 'package:asec/features/onboarding/o2_authentication/domain/entities/app_user.dart';
+import 'package:asec/features/onboarding/o2_authentication/presentation/controller/session_controller.dart';
 
 import 'package:asec/features/engagement/e1_engagement/presentation/controller/watch_sync.dart';
 import 'package:asec/generated/l10n.dart';
@@ -60,6 +68,92 @@ abstract final class VideoWatchStore {
     }
   }
 
+  // ── On the member's account too (ported from ENGX v1.0.57) ───────────────
+  //
+  // Progress lived only on this device, so after uninstalling / reinstalling
+  // (or on another device) every lesson started from 0. Each lesson's resume
+  // point, length, furthest point and done flag are also kept in
+  // `progress/{uid}.watch` and merged back in when the Videos page opens.
+
+  static String _atKey(String id) => 'video_at_$id';
+  static final Set<String> _dirty = <String>{};
+  static Timer? _cloudTimer;
+  static String _pulledFor = '';
+
+  static DocumentReference<Map<String, dynamic>>? _cloudDoc() {
+    final AppUser me = SessionController.to.current;
+    if (me.isEmpty || me.isAdmin) return null;
+    return AppFirebase.db.collection(FirebaseCollections.progress).doc(me.uid);
+  }
+
+  static Map<String, int> _entry(String id) => <String, int>{
+        'p': position(id)?.inSeconds ?? 0,
+        'd': duration(id)?.inSeconds ?? 0,
+        'm': maxWatched(id).inSeconds,
+        'w': isWatched(id) ? 1 : 0,
+        't': _box.read<int>(_atKey(id)) ?? 0,
+      };
+
+  /// Merges the account's progress into this device's, once per member per
+  /// run (the newer resume point wins; the furthest point and "watched" are
+  /// never lowered). Never throws.
+  static Future<void> pullCloud() async {
+    final DocumentReference<Map<String, dynamic>>? doc = _cloudDoc();
+    if (doc == null || _pulledFor == doc.id) return;
+    _pulledFor = doc.id;
+    try {
+      final DocumentSnapshot<Map<String, dynamic>> snap = await doc.get().timeout(const Duration(seconds: 10));
+      final Object? raw = snap.data()?['watch'];
+      if (raw is! Map) return;
+      int n(Object? v) => v is num ? v.toInt() : int.tryParse('$v') ?? 0;
+      raw.forEach((Object? k, Object? v) {
+        if (k is! String || v is! Map) return;
+        final int at = n(v['t']);
+        if (at > (_box.read<int>(_atKey(k)) ?? 0)) {
+          if (n(v['d']) > 0) _box.write(_durKey(k), n(v['d']));
+          if (n(v['p']) > 0) {
+            _box.write(_posKey(k), n(v['p']));
+          } else {
+            _box.remove(_posKey(k));
+          }
+          _box.write(_atKey(k), at);
+        }
+        if (n(v['m']) > maxWatched(k).inSeconds) _box.write(_maxKey(k), n(v['m']));
+        if (n(v['w']) == 1) _box.write(_doneKey(k), true);
+      });
+    } catch (_) {
+      _pulledFor = ''; // offline: try again next time
+    }
+  }
+
+  /// Sends the changed lessons to the account — at most every 20 s while a
+  /// lesson plays, and at once when [flushCloud] is called (lesson closed).
+  static void _queueCloud(String id) {
+    _dirty.add(id);
+    _cloudTimer ??= Timer(const Duration(seconds: 20), () => unawaited(flushCloud()));
+  }
+
+  static Future<void> flushCloud() async {
+    _cloudTimer?.cancel();
+    _cloudTimer = null;
+    if (_dirty.isEmpty) return;
+    final DocumentReference<Map<String, dynamic>>? doc = _cloudDoc();
+    if (doc == null) return;
+    final Map<String, Object> changed = <String, Object>{
+      for (final String id in _dirty) id: _entry(id),
+    };
+    _dirty.clear();
+    try {
+      await doc.set(<String, dynamic>{
+        'name': SessionController.to.current.displayName,
+        'watch': changed,
+        FirebaseCollections.updatedAtField: FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (_) {
+      _dirty.addAll(changed.keys); // try again with the next save
+    }
+  }
+
   static void save(String id, Duration position, Duration duration) {
     if (duration > Duration.zero) _box.write(_durKey(id), duration.inSeconds);
     final bool reachedEnd = duration > Duration.zero &&
@@ -71,6 +165,8 @@ abstract final class VideoWatchStore {
     } else {
       _box.write(_posKey(id), position.inSeconds);
     }
+    _box.write(_atKey(id), DateTime.now().millisecondsSinceEpoch);
+    _queueCloud(id);
     // Stars: every 20% watched is a point the admin can see.
     WatchSync.report(id, progress(id));
   }

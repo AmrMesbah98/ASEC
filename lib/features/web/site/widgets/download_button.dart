@@ -50,7 +50,7 @@ import 'package:asec/features/web/core/theme.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
 
 /// The GitHub repository the Windows build is released from.
-const String kReleaseRepo = 'AmrMesbah82/asec-app';
+const String kReleaseRepo = 'AmrMesbah98/asec-app';
 
 /// The installer the workflow attaches to every release (preferred).
 const String kWindowsSetupName = 'ASEC-Setup.exe';

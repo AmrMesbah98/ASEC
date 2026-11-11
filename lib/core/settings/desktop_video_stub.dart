@@ -8,3 +8,15 @@ void registerDesktopVideo() {}
 
 /// Web build: no fallback player.
 bool enableSoftwareVideoPlayer() => false;
+
+/// Web build: nothing to prepare.
+Future<void> prepareDesktopVideo() async {}
+
+/// Web build: no lower decoding level.
+Future<String?> softerDesktopVideo() async => null;
+
+/// Web build: the browser decodes.
+String get desktopVideoMode => 'browser';
+
+/// Web build: decoder errors are the browser's.
+bool isVideoDecoderError(Object e) => false;

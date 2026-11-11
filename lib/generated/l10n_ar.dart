@@ -3879,4 +3879,33 @@ class SAr extends S {
 
   @override
   String get fvLoadFailed => 'تعذّر تحميل هذا الملف';
+
+  @override
+  String get lessonNetworkBlocked => 'هذه الشبكة تحجب دروس ASEC (جدار حماية شركة أو جامعة أو مزوّد الإنترنت). جرّب اتصالًا آخر، مثل نقطة اتصال الهاتف، أو اطلب من مسؤول الشبكة السماح لـ ASEC، ثم اضغط «حاول مرة أخرى».';
+
+  @override
+  String get lessonUnreachable => 'تعذّر الوصول إلى الدرس. تحقّق من اتصال الإنترنت ثم اضغط «حاول مرة أخرى». إذا كانت المواقع الأخرى تفتح، فقد تكون هذه الشبكة تحجب ASEC؛ جرّب اتصالًا آخر (مثل نقطة اتصال الهاتف).';
+
+  @override
+  String get lessonTooSlow => 'يستغرق بدء الدرس وقتًا طويلًا. تحقّق من اتصال الإنترنت ثم اضغط «حاول مرة أخرى».';
+
+  @override
+  String get ctlOpenAllCourses => 'فتح كل الدورات لكل الأعضاء';
+
+  @override
+  String get ctlOpenAllCoursesHint => 'يستطيع كل عضو مسجّل مشاهدة كل الدورات، بما فيها الجديدة التي ترفعها، دون الحاجة لتحديد الدورات له. تبقى الحسابات المحظورة والوصول الموقوف وتواريخ الانتهاء وحدود المنصّات كما هي. عند الإيقاف: يرى كل عضو الدورات المحددة له في تعديل الوصول فقط.';
+
+  @override
+  String get ctlDownloadExpiry => 'تنتهي صلاحية التنزيلات بعد';
+
+  @override
+  String get ctlDownloadExpiryHint => 'يُحذف كل درس محفوظ بعد هذا العدد من الأيام من تنزيله. يعمل دون إنترنت، ولا يفيد إرجاع ساعة الجهاز.';
+
+  @override
+  String get ctlDownloadExpiryNever => 'أبدًا';
+
+  @override
+  String ctlDaysCount(int count) {
+    return '$count يوم';
+  }
 }

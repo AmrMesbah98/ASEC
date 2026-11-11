@@ -7147,6 +7147,60 @@ abstract class S {
   /// In en, this message translates to:
   /// **'Couldn\'t load this file'**
   String get fvLoadFailed;
+
+  /// No description provided for @lessonNetworkBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'This network is blocking ASEC lessons (a company or university firewall, or the internet provider). Try another connection, for example a mobile hotspot, or ask the network admin to allow ASEC, then press Try again.'**
+  String get lessonNetworkBlocked;
+
+  /// No description provided for @lessonUnreachable.
+  ///
+  /// In en, this message translates to:
+  /// **'The lesson could not be reached. Check the internet connection, then press Try again. If other websites open, this network may be blocking ASEC; try another connection (for example a mobile hotspot).'**
+  String get lessonUnreachable;
+
+  /// No description provided for @lessonTooSlow.
+  ///
+  /// In en, this message translates to:
+  /// **'The lesson is taking too long to start. Check the internet connection, then press Try again.'**
+  String get lessonTooSlow;
+
+  /// No description provided for @ctlOpenAllCourses.
+  ///
+  /// In en, this message translates to:
+  /// **'Open every course to all members'**
+  String get ctlOpenAllCourses;
+
+  /// No description provided for @ctlOpenAllCoursesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Every signed-in member can watch every course, including new ones you upload, with no course access needed. Blocked accounts, paused access, end dates and platform limits still apply. Off: each member sees only the courses given in Edit access.'**
+  String get ctlOpenAllCoursesHint;
+
+  /// No description provided for @ctlDownloadExpiry.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloads expire after'**
+  String get ctlDownloadExpiry;
+
+  /// No description provided for @ctlDownloadExpiryHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Each saved lesson is erased this many days after it was downloaded. Works offline, and turning the device clock back does not help.'**
+  String get ctlDownloadExpiryHint;
+
+  /// No description provided for @ctlDownloadExpiryNever.
+  ///
+  /// In en, this message translates to:
+  /// **'Never'**
+  String get ctlDownloadExpiryNever;
+
+  /// No description provided for @ctlDaysCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} days'**
+  String ctlDaysCount(int count);
 }
 
 class _SDelegate extends LocalizationsDelegate<S> {

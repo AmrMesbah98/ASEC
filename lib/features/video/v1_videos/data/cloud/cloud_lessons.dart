@@ -91,9 +91,47 @@ abstract final class CloudLessons {
 
   static String get _device => FirebaseAuth.instance.currentUser?.uid ?? '';
 
+  /// WRONG PC CLOCK (ported from ENGX, 10/11/2026). A signed address carries
+  /// an expiry taken from this device's clock; the Worker refuses one more
+  /// than an hour off ("HTTP 403 Expired"), so a PC with a wrong date or time
+  /// zone could play nothing. The Worker's own time (its `Date` header) minus
+  /// this device's, learnt once per run; zero until known.
+  static Duration _clockOffset = Duration.zero;
+  static Future<void>? _clockSync;
+
+  /// Now, by the lesson server's clock when it is known.
+  static DateTime get _now => DateTime.now().add(_clockOffset);
+
+  /// Learns the Worker's clock once per run (call before signing). Never
+  /// throws; gives up after a few seconds and keeps this device's clock.
+  static Future<void> syncClock() {
+    final Future<void> f = _clockSync ??= _syncClock();
+    return f.timeout(const Duration(seconds: 7), onTimeout: () {});
+  }
+
+  static Future<void> _syncClock() async {
+    try {
+      final DateTime sent = DateTime.now();
+      final http.Response r = await http.head(Uri.parse('$baseUrl/')).timeout(const Duration(seconds: 6));
+      final String? date = r.headers['date'];
+      if (date != null) {
+        final DateTime server = HttpDate.parse(date);
+        // Half the round trip: when the server wrote the header.
+        final DateTime local = sent.add(DateTime.now().difference(sent) ~/ 2);
+        final Duration off = server.difference(local);
+        // Under two minutes off is fine as it is (the header has whole seconds).
+        _clockOffset = off.abs() > const Duration(minutes: 2) ? off : Duration.zero;
+        if (_clockOffset != Duration.zero) debugPrint('🟡 [Cloud] device clock off by $_clockOffset — using the server clock');
+        return;
+      }
+    } catch (_) {}
+    _clockSync = null; // nobody answered: try again next time
+  }
+
   /// A fresh signed address for [key] (valid 10 minutes).
   static String signedUrl(String key) {
-    final int e = DateTime.now().millisecondsSinceEpoch ~/ 1000 + 600;
+    unawaited(syncClock());
+    final int e = _now.millisecondsSinceEpoch ~/ 1000 + 600;
     final String d = _device;
     final String s = Hmac(sha256, utf8.encode(_signKey)).convert(utf8.encode('$key|$e|$d')).toString();
     return '$baseUrl/v/$key?e=$e&d=${Uri.encodeQueryComponent(d)}&s=$s';

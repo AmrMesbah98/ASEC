@@ -183,6 +183,9 @@ class _VideoPlayerPageState extends State<_VideoPlayerView>
       await VideoDownloads.ensureLoaded();
       final String? localPath = VideoDownloads.localPath(widget.video.id);
       _local = localPath != null;
+      // Signed Cloudflare addresses use the server's clock (a PC with a
+      // wrong date got HTTP 403 Expired) — learn it before the first one.
+      if (!_local && CloudLessons.signerFor(widget.video.url) != null) await CloudLessons.syncClock();
       // THE PLAYER NEVER GETS THE DRIVE LINK OR THE FILE: it plays a
       // one-time 127.0.0.1 address from SecureVideoServer, which fetches
       // from Drive itself (pinned to Google, past any proxy) or decrypts the
@@ -208,9 +211,18 @@ class _VideoPlayerPageState extends State<_VideoPlayerView>
         return;
       }
       _useSoftwarePlayerIfNeeded();
+      // WINDOWS / LINUX (11/11/2026): decode on the CPU on a PC that needs it
+      // (no graphics driver, or a lesson failed in the graphics card before).
+      await prepareDesktopVideo();
+      if (_closed || !mounted) {
+        SecureVideoServer.revoke(stream);
+        return;
+      }
       final VideoPlayerController video = VideoPlayerController.networkUrl(stream);
       _pending = video; // dispose() stops it if the page closes meanwhile
-      await video.initialize();
+      // DESKTOP (ported from ENGX v1.0.68): never "loading" for ever — waits
+      // while the lesson keeps arriving, gives up after 40 s with nothing new.
+      await (_desktop ? _initWhileProgressing(video, stream) : video.initialize());
       if (_closed || !mounted) return; // already stopped by dispose()
 
       // Resume, unless it was (nearly) finished last time.
@@ -267,6 +279,45 @@ class _VideoPlayerPageState extends State<_VideoPlayerView>
       _pending = null; // owned by _video from here on
       _focus.requestFocus();
     } catch (error) {
+      // WINDOWS / LINUX (11/11/2026): the graphics card could not decode the
+      // lesson ("Could not open codec." — no graphics driver, a virtual
+      // machine, Remote Desktop …) → decode on the CPU and try again.
+      if (mounted && !_closed && isVideoDecoderError(error)) {
+        final String? level = await softerDesktopVideo();
+        if (level != null && mounted && !_closed) {
+          ErrorReports.report('Switched this PC to "$level" for lessons after: $error', StackTrace.empty,
+              source: 'video');
+          final VideoPlayerController? stale = _pending;
+          _pending = null;
+          try {
+            await stale?.dispose();
+          } catch (_) {}
+          SecureVideoServer.revoke(_stream);
+          _stream = null;
+          unawaited(_open());
+          return;
+        }
+      }
+      final String problem = SecureVideoServer.problemOf(_stream);
+      // Stuck or the connection dropped (not a firewall): try once more by
+      // itself before the member is told (ported from ENGX).
+      if (mounted &&
+          !_closed &&
+          !_local &&
+          !_retriedStuck &&
+          !problem.startsWith('blocked') &&
+          (error is TimeoutException || problem.startsWith('network') || problem.startsWith('offline'))) {
+        _retriedStuck = true;
+        final VideoPlayerController? stale = _pending;
+        _pending = null;
+        try {
+          await stale?.dispose();
+        } catch (_) {}
+        SecureVideoServer.revoke(_stream);
+        _stream = null;
+        unawaited(_open());
+        return;
+      }
       // ANDROID: this phone's video chip refused the lesson → play it with
       // the software player instead (and on this phone from now on).
       if (mounted && !_closed && _isDecoderError(error) && !_softwarePlayerOn && enableSoftwareVideoPlayer()) {
@@ -289,10 +340,74 @@ class _VideoPlayerPageState extends State<_VideoPlayerView>
       if (mounted) {
         setState(() {
           _failed = true;
-          _errorText = '$error';
+          _problem = error is TimeoutException ? 'slow' : problem;
+          _errorText = '$error${problem.isEmpty ? '' : '\n$problem'}';
         });
       }
     }
+  }
+
+  /// Why the lesson failed: 'blocked…', 'network…', 'slow' or ''.
+  String _problem = '';
+
+  /// Retried once already after the lesson got stuck.
+  bool _retriedStuck = false;
+
+  bool get _desktop =>
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.windows ||
+          defaultTargetPlatform == TargetPlatform.macOS ||
+          defaultTargetPlatform == TargetPlatform.linux);
+
+  /// DESKTOP start (ported from ENGX v1.0.68): waits as long as bytes keep
+  /// coming (up to 2½ minutes) and gives up only after 40 s with nothing new.
+  Future<void> _initWhileProgressing(VideoPlayerController video, Uri uri) async {
+    final Future<bool> init = video.initialize().then((_) => true);
+    int last = -1;
+    int idle = 0;
+    int total = 0;
+    while (true) {
+      final bool done = await init.timeout(const Duration(seconds: 5), onTimeout: () => false);
+      if (done) return;
+      if (_closed) {
+        unawaited(init.catchError((Object _) => false));
+        return;
+      }
+      total += 5;
+      final int now = SecureVideoServer.servedOf(uri);
+      if (now != last) {
+        last = now;
+        idle = 0;
+      } else {
+        idle += 5;
+      }
+      if (idle >= 40 || total >= 150) {
+        unawaited(init.catchError((Object _) => false));
+        throw TimeoutException('The lesson did not start', Duration(seconds: total));
+      }
+    }
+  }
+
+  /// The member pressed Try again.
+  void _retry() {
+    SecureVideoServer.revoke(_stream);
+    _stream = null;
+    setState(() {
+      _failed = false;
+      _problem = '';
+      _errorText = null;
+      _retriedStuck = false;
+    });
+    unawaited(_open());
+  }
+
+  /// What the member is told (never where lessons are stored).
+  String _failMessage(S s) {
+    if (_problem.startsWith('blocked')) return s.lessonNetworkBlocked;
+    // 'offline' (11/11/2026): not even Google's DNS answered — no internet.
+    if (_problem.startsWith('network') || _problem.startsWith('offline')) return s.lessonUnreachable;
+    if (_problem == 'slow') return s.lessonTooSlow;
+    return s.videoFailed;
   }
 
   // ── Android: software player for phones whose video chip fails ────────────
@@ -335,9 +450,49 @@ class _VideoPlayerPageState extends State<_VideoPlayerView>
   bool _on(AppFeature f) => AppFeatures.to.isOn(f);
   DateTime _lastSkipWarning = DateTime(0);
 
+  /// A decoder error mid-lesson is being handled (once per page).
+  bool _softening = false;
+
+  /// WINDOWS / LINUX (11/11/2026): "Could not open codec." after the lesson
+  /// had started → decode on the CPU and reopen it where it stopped.
+  Future<void> _softenAndReopen(String why) async {
+    final String? level = await softerDesktopVideo();
+    if (level == null || !mounted || _closed) return;
+    ErrorReports.report('Switched this PC to "$level" for lessons after: $why', StackTrace.empty,
+        source: 'video');
+    _savePosition();
+    _saveTimer?.cancel();
+    final ChewieController? chewie = _chewie;
+    final VideoPlayerController? video = _video;
+    video?.removeListener(_onTick);
+    try {
+      if (chewie?.isFullScreen ?? false) chewie!.exitFullScreen();
+    } catch (_) {}
+    setState(() {
+      _video = null;
+      _chewie = null;
+    });
+    // Freed once no screen shows them any more (see dispose()).
+    Future<void>.delayed(const Duration(milliseconds: 800), () {
+      try {
+        chewie?.dispose();
+      } catch (_) {}
+      video?.dispose().catchError((Object _) {});
+    });
+    SecureVideoServer.revoke(_stream);
+    _stream = null;
+    unawaited(_open());
+  }
+
   void _onTick() {
     final VideoPlayerController? v = _video;
     if (v == null) return;
+
+    if (!_softening && v.value.hasError && isVideoDecoderError(v.value.errorDescription ?? '')) {
+      _softening = true;
+      unawaited(_softenAndReopen(v.value.errorDescription ?? ''));
+      return;
+    }
 
     // NO SKIPPING AHEAD in an unfinished course lesson.
     if (_guardSkips && v.value.isInitialized) {
@@ -487,6 +642,7 @@ class _VideoPlayerPageState extends State<_VideoPlayerView>
     WidgetsBinding.instance.removeObserver(this);
     _video?.pause();
     _savePosition();
+    unawaited(VideoWatchStore.flushCloud()); // resume point to the account
     _video?.removeListener(_onTick);
     _saveTimer?.cancel();
     _guard?.dispose();
@@ -676,7 +832,8 @@ class _VideoPlayerPageState extends State<_VideoPlayerView>
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           AppErrorView(
-            message: s.videoFailed,
+            message: _failMessage(s),
+            onRetry: _local ? null : _retry,
             // No link here: the report must not carry the Drive address.
             error: 'Video failed: ${widget.video.title} (${widget.video.id})\n${_errorText ?? ''}',
           ),

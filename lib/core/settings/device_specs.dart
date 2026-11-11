@@ -37,6 +37,12 @@ abstract final class DeviceSpecs {
   /// The CPU lacks BMI2 (Intel before 2013, many Pentium / Celeron, older AMD).
   static bool get oldCpu => _oldCpu;
 
+  /// No graphics driver installed (11/11/2026): Windows lists only
+  /// "Microsoft Basic Display Adapter" / "Basic Render Driver". The graphics
+  /// card cannot decode video then, so lessons are decoded on the CPU.
+  static bool get noGraphicsDriver => _noGraphicsDriver;
+  static bool _noGraphicsDriver = false;
+
   /// Starts reading in the background (call once in main()).
   static Future<void> load() {
     if (kIsWeb || !Platform.isWindows) return Future<void>.value();
@@ -92,6 +98,8 @@ abstract final class DeviceSpecs {
       if (lines.isNotEmpty) os = lines[0].replaceFirst('Microsoft ', '');
       if (lines.length > 1) gpu = lines[1];
     } catch (_) {}
+    _noGraphicsDriver = gpu.isNotEmpty &&
+        gpu.split(' + ').every((String g) => RegExp('basic (display|render)', caseSensitive: false).hasMatch(g));
 
     for (final String p in <String>[os, cpu, cpuFlags, cores, ram, gpu]) {
       if (p.isNotEmpty) parts.add(p);
@@ -117,6 +125,7 @@ class PcRating {
     final List<String> low = <String>[];
     final List<String> ok = <String>[];
     if (specs.contains('OLD CPU')) low.add('old CPU (crash risk)');
+    if (RegExp('Basic (Display|Render)').hasMatch(specs)) low.add('no graphics driver');
     final int? cores = int.tryParse(RegExp(r'(\d+) cores').firstMatch(specs)?.group(1) ?? '');
     final double? ram = double.tryParse(RegExp(r'([\d.]+) GB RAM').firstMatch(specs)?.group(1) ?? '');
     if (cores != null) {

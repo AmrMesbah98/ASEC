@@ -16,4 +16,8 @@ abstract final class SecureVideoServer {
       Uri.parse(path);
 
   static void revoke(Uri? uri) {}
+
+  static String problemOf(Uri? stream) => '';
+
+  static int servedOf(Uri? stream) => 0;
 }

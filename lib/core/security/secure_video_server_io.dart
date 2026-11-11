@@ -36,6 +36,8 @@ import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart' show debugPrint;
+
 import 'package:asec/core/security/content_crypto.dart';
 import 'package:asec/core/security/ctr_worker.dart';
 import 'package:asec/core/security/security_monitor.dart';
@@ -61,6 +63,15 @@ class _Source {
   final String label;
   int served = 0;
   bool flagged = false;
+
+  /// Why the last request failed ('' = fine): `network:…` (no answer) or
+  /// `blocked:…` (a firewall answered with its own certificate). Read by the
+  /// player to tell the member what to do (ported from ENGX, 08/11/2026).
+  String problem = '';
+
+  /// Times a stalled / broken lesson stream was picked up again from where
+  /// it stopped (ported from ENGX v1.0.72), for the error report.
+  int resumes = 0;
 }
 
 abstract final class SecureVideoServer {
@@ -117,6 +128,31 @@ abstract final class SecureVideoServer {
   static void revoke(Uri? uri) {
     if (uri == null || uri.pathSegments.length < 2) return;
     _tokens.remove(uri.pathSegments.last.replaceAll('.mp4', ''));
+  }
+
+  /// NO INTERNET AT ALL (11/11/2026, from ENGX): the lesson host's name was
+  /// not found AND not even Google's / Cloudflare's DNS answered by IP
+  /// address (network unreachable, sending not allowed, no route). The
+  /// device was offline at that moment — not a blocked DNS.
+  static bool looksOffline(String t) => t
+      .split(' | ')
+      .every((String h) => h.contains('DNS over HTTPS failed too') && _offlineSign.hasMatch(h));
+
+  static final RegExp _offlineSign = RegExp(
+    r'Network is unreachable|was disallowed because|No route to host|errno = (101|113|10050|10051|10057|10065)\b',
+  );
+
+  /// Why the lesson at [stream] could not be fetched ('' = no problem):
+  /// `blocked:…` or `network:…`.
+  static String problemOf(Uri? stream) => _sourceOf(stream)?.problem ?? '';
+
+  /// Bytes already handed to the player for [stream].
+  static int servedOf(Uri? stream) => _sourceOf(stream)?.served ?? 0;
+
+  static _Source? _sourceOf(Uri? stream) {
+    if (stream == null) return null;
+    final List<String> seg = stream.pathSegments;
+    return seg.isEmpty ? null : _tokens[seg.last.replaceAll('.mp4', '')];
   }
 
   static Future<void> _handle(HttpRequest req) async {
@@ -192,40 +228,11 @@ abstract final class SecureVideoServer {
     final String? range = req.headers.value(HttpHeaders.rangeHeader);
     final bool head = req.method == 'HEAD';
     try {
-      final String Function()? cloud = src.cloud;
-      if (cloud != null) {
+      if (src.cloud != null) {
         // CLOUDFLARE ONLY (07/11/2026, from ENGX): never Google Drive while
-        // it is on — Drive's daily download limit stopped every lesson. No
-        // answer → 3 tries (10 s each) before the player is told.
-        HttpClientResponse? fromCloud;
-        Object? lastError;
-        for (int attempt = 0; attempt < 3 && fromCloud == null; attempt++) {
-          try {
-            final Uri at = Uri.parse(cloud());
-            try {
-              fromCloud = await PinnedFetch.get(at, range: range, head: head)
-                  .timeout(const Duration(seconds: 15));
-            } on TimeoutException {
-              // NO ANSWER (07/11/2026, from ENGX): some providers send
-              // *.workers.dev to an address that never answers instead of
-              // failing the name lookup. The next try connects to the
-              // address Google's DNS gives instead.
-              PinnedFetch.suspect(at);
-              rethrow;
-            } on SocketException {
-              PinnedFetch.suspect(at);
-              rethrow;
-            }
-          } on InterceptedException {
-            rethrow;
-          } catch (e) {
-            lastError = e;
-            if (attempt < 2) await Future<void>.delayed(Duration(milliseconds: 600 * (attempt + 1)));
-          }
-        }
+        // it is on — Drive's daily download limit stopped every lesson.
+        final HttpClientResponse? fromCloud = await _fetchCloud(src, range, head);
         if (fromCloud == null) {
-          ErrorReports.report('Lesson "${src.label}" could not play: the lesson server did not answer ($lastError)',
-              StackTrace.empty, source: 'video');
           res.statusCode = HttpStatus.badGateway;
           await res.close();
           return;
@@ -265,6 +272,18 @@ abstract final class SecureVideoServer {
       res.statusCode = HttpStatus.badGateway;
       await res.close();
       return;
+    } catch (e) {
+      // No internet, DNS, a firewall, a timeout … — answered at once so the
+      // player is not left waiting (ported from ENGX).
+      final String t = '$e';
+      src.problem = t.contains('CERTIFICATE_VERIFY_FAILED')
+          ? 'blocked:$t'
+          : looksOffline(t)
+              ? 'offline:$t'
+              : 'network:$t';
+      res.statusCode = HttpStatus.badGateway;
+      await res.close();
+      return;
     }
     res.statusCode = up.statusCode;
     for (final String h in <String>[
@@ -281,11 +300,164 @@ abstract final class SecureVideoServer {
     if (!type.startsWith('video/')) res.headers.set(HttpHeaders.contentTypeHeader, 'video/mp4');
     res.headers.set(HttpHeaders.acceptRangesHeader, 'bytes');
     res.headers.set(HttpHeaders.cacheControlHeader, 'no-store');
-    await res.addStream(up.map((List<int> c) {
-      _count(src, c.length, token);
-      return c;
-    }));
+    if (src.cloud != null && !head) {
+      await _pipeResuming(res, up, src, token);
+    } else {
+      await res.addStream(up.map((List<int> c) {
+        _count(src, c.length, token);
+        return c;
+      }));
+    }
     await res.close();
+  }
+
+  /// One lesson request to Cloudflare: 3 tries (15 s each). Null = no
+  /// answer (reported, and [_Source.problem] says why).
+  static Future<HttpClientResponse?> _fetchCloud(_Source src, String? range, bool head,
+      {bool report = true}) async {
+    final String Function() cloud = src.cloud!;
+    Object? lastError;
+    for (int attempt = 0; attempt < 3; attempt++) {
+      try {
+        final Uri at = Uri.parse(cloud());
+        try {
+          final HttpClientResponse r =
+              await PinnedFetch.get(at, range: range, head: head).timeout(const Duration(seconds: 15));
+          src.problem = '';
+          return r;
+        } on TimeoutException {
+          // NO ANSWER (07/11/2026, from ENGX): some providers send
+          // *.workers.dev to an address that never answers instead of
+          // failing the name lookup. The next try connects to the address
+          // Google's DNS gives instead.
+          PinnedFetch.suspect(at);
+          rethrow;
+        } on SocketException {
+          PinnedFetch.suspect(at);
+          rethrow;
+        }
+      } on InterceptedException {
+        rethrow;
+      } catch (e) {
+        lastError = e;
+        if (attempt < 2) await Future<void>.delayed(Duration(milliseconds: 600 * (attempt + 1)));
+      }
+    }
+    // BLOCKED NETWORK (ported from ENGX, 08/11/2026): a certificate the
+    // device does not trust ("self signed", "Hostname mismatch") is a
+    // company / provider firewall's block page — the member is told to try
+    // another connection, not to "check the internet".
+    final String t = '$lastError'.replaceAll(RegExp(r'\s+'), ' ');
+    src.problem = t.contains('CERTIFICATE_VERIFY_FAILED') || t.contains('HandshakeException')
+        ? 'blocked:$t'
+        : looksOffline(t)
+            ? 'offline:$t'
+            : 'network:$t';
+    if (report) {
+      ErrorReports.report(
+        'Lesson "${src.label}" could not play: the lesson server did not answer '
+        '(${t.length > 900 ? t.substring(0, 900) : t})'
+        '${src.resumes > 0 ? ' · stream picked up again ${src.resumes} time${src.resumes == 1 ? '' : 's'}' : ''}',
+        StackTrace.empty,
+        source: 'video',
+      );
+    }
+    return null;
+  }
+
+  // ── Stalled streams (ported from ENGX v1.0.72) ────────────────────────────
+  // The lesson host answered, sent a few KB, then the connection went
+  // silent (a lossy line / a provider dropping long transfers). Nothing
+  // watched the body, so the player waited on a dead socket. Now: no byte
+  // for [_stallAfter] while the player is reading → that connection is
+  // dropped and the SAME response continues from the exact byte it stopped
+  // at, with a fresh signed address.
+
+  static const Duration _stallAfter = Duration(seconds: 12);
+  static const int _maxResumes = 6;
+  static final RegExp _contentRange = RegExp(r'bytes\s+(\d+)-(\d+)/');
+
+  /// Pipes [first] to [res]; a stalled or broken upstream is picked up
+  /// again with a Range request from the next missing byte.
+  static Future<void> _pipeResuming(HttpResponse res, HttpClientResponse first, _Source src, String token) async {
+    int start = 0;
+    int? end;
+    final RegExpMatch? cr = _contentRange.firstMatch(first.headers.value(HttpHeaders.contentRangeHeader) ?? '');
+    if (first.statusCode == HttpStatus.partialContent && cr != null) {
+      start = int.parse(cr.group(1)!);
+      end = int.parse(cr.group(2)!);
+    } else if (first.statusCode == HttpStatus.ok && first.contentLength > 0) {
+      end = first.contentLength - 1;
+    } else if (first.statusCode != HttpStatus.ok) {
+      await res.addStream(first.map((List<int> c) {
+        _count(src, c.length, token);
+        return c;
+      }));
+      return;
+    }
+    int sent = 0;
+    HttpClientResponse up = first;
+    for (int resume = 0;; resume++) {
+      final _PipeEnd how = await _pipe(res, up, src, token, (int n) => sent += n);
+      if (how == _PipeEnd.playerGone) return;
+      final int from = start + sent;
+      if (how == _PipeEnd.done && (end == null || from > end)) return;
+      if (resume >= _maxResumes || !_tokens.containsKey(token) || (end != null && from > end)) return;
+      HttpClientResponse? next;
+      try {
+        next = await _fetchCloud(src, 'bytes=$from-${end ?? ''}', false, report: false);
+      } catch (_) {
+        next = null;
+      }
+      if (next == null) return; // closing the response lets the player ask again
+      final RegExpMatch? nr = _contentRange.firstMatch(next.headers.value(HttpHeaders.contentRangeHeader) ?? '');
+      if (next.statusCode != HttpStatus.partialContent || nr == null || int.parse(nr.group(1)!) != from) {
+        unawaited(next.drain<void>().catchError((Object _) {}));
+        return;
+      }
+      src.resumes++;
+      debugPrint('🟡 [Lesson] stream stalled — picked up again at byte $from (${src.resumes})');
+      up = next;
+    }
+  }
+
+  /// Copies [up] into [res] until it ends, stalls, breaks, or the player
+  /// hangs up. Waits for each chunk to be written before reading the next,
+  /// so a paused player never piles the lesson up in memory — and only the
+  /// time spent waiting on the lesson host counts as a stall.
+  static Future<_PipeEnd> _pipe(
+    HttpResponse res,
+    HttpClientResponse up,
+    _Source src,
+    String token,
+    void Function(int bytes) onBytes,
+  ) async {
+    final StreamIterator<List<int>> it = StreamIterator<List<int>>(up);
+    try {
+      while (true) {
+        bool more;
+        try {
+          more = await it.moveNext().timeout(_stallAfter);
+        } on TimeoutException {
+          return _PipeEnd.broken;
+        } catch (_) {
+          return _PipeEnd.broken; // connection dropped mid-lesson
+        }
+        if (!more) return _PipeEnd.done;
+        final List<int> chunk = it.current;
+        try {
+          res.add(chunk);
+          await res.flush();
+        } catch (_) {
+          return _PipeEnd.playerGone; // seek / closed lesson
+        }
+        onBytes(chunk.length);
+        _count(src, chunk.length, token);
+        if (!_tokens.containsKey(token)) return _PipeEnd.playerGone;
+      }
+    } finally {
+      unawaited(it.cancel().catchError((Object _) {}));
+    }
   }
 
   // ── Downloaded (encrypted) lessons ────────────────────────────────────────
@@ -358,6 +530,9 @@ abstract final class SecureVideoServer {
 
 /// The Drive answer did not come from Google: something is decrypting the
 /// app's HTTPS (a proxy / sniffer with its own certificate).
+/// How one upstream connection of a lesson stream ended.
+enum _PipeEnd { done, broken, playerGone }
+
 class InterceptedException implements Exception {
   const InterceptedException(this.issuer);
   final String issuer;

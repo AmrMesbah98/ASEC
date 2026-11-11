@@ -28,10 +28,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'package:asec/core/constants/firebase_collections.dart';
 import 'package:asec/core/network/app_firebase.dart';
+import 'package:asec/core/settings/app_features.dart';
 import 'package:asec/features/onboarding/o2_authentication/domain/entities/app_user.dart';
 import 'package:asec/features/onboarding/o2_authentication/presentation/controller/session_controller.dart';
 import 'package:asec/features/video/v1_videos/data/models/video_model.dart';
 import 'package:asec/features/video/v1_videos/domain/entities/video_item.dart';
+import 'package:asec/features/video/v1_videos/presentation/ui/widgets/video_watch_store.dart';
 
 abstract final class MemberVideos {
   const MemberVideos._();
@@ -40,7 +42,7 @@ abstract final class MemberVideos {
       AppFirebase.db.collection(FirebaseCollections.videos);
 
   /// What decides the queries: rebuilt only when this changes.
-  static String _signature(AppUser u) => u.isAdmin || u.allCourses
+  static String _signature(AppUser u) => u.isAdmin || u.hasEveryCourse
       ? 'all'
       : (_openCourses(u)..sort()).join('\u0001');
 
@@ -59,6 +61,7 @@ abstract final class MemberVideos {
     late StreamController<List<VideoItem>> out;
     final List<StreamSubscription<dynamic>> subs = <StreamSubscription<dynamic>>[];
     StreamSubscription<AppUser?>? userSub;
+    StreamSubscription<dynamic>? featuresSub;
     String? current;
 
     // COLD-START RETRY. On the first launch the first query can fire a moment
@@ -154,15 +157,23 @@ abstract final class MemberVideos {
 
     out = StreamController<List<VideoItem>>(
       onListen: () {
+        // Resume points kept on the account (another device / reinstall).
+        unawaited(VideoWatchStore.pullCloud());
         start(SessionController.to.current);
         userSub = SessionController.to.user.listen((AppUser? u) {
           if (u != null && !u.isEmpty) start(u);
+        });
+        // "Open every course to all members" reaches open screens live.
+        featuresSub = AppFeatures.to.values.listen((_) {
+          final AppUser u = SessionController.to.current;
+          if (!u.isEmpty) start(u);
         });
       },
       onCancel: () {
         retryTimer?.cancel();
         cancelQueries();
         userSub?.cancel();
+        featuresSub?.cancel();
       },
     );
     return out.stream;

@@ -24,6 +24,7 @@ import 'package:asec/core/custom/101-custom_surface.dart';
 import 'package:asec/core/custom/110-app_widgets.dart';
 import 'package:asec/core/custom/57-custom_dialog_manager.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
+import 'package:asec/core/settings/error_report_pdf.dart';
 import 'package:asec/core/settings/error_reports.dart';
 import 'package:asec/core/theme/app_colors.dart';
 import 'package:asec/core/theme/app_theme.dart';
@@ -31,6 +32,8 @@ import 'package:asec/features/onboarding/o2_authentication/domain/entities/membe
 import 'package:asec/generated/l10n.dart';
 import 'package:asec/core/custom/114-app_messenger.dart';
 import 'package:asec/core/network/shared_stream.dart';
+import 'package:asec/features/onboarding/o2_authentication/data/repository/auth_repository.dart';
+import 'package:asec/features/onboarding/o2_authentication/domain/entities/app_user.dart';
 
 class ErrorReportsCard extends StatefulWidget {
   const ErrorReportsCard({super.key});
@@ -93,6 +96,26 @@ class _ErrorReportsCardState extends State<ErrorReportsCard> {
       _toast(S.of(context).errUnknown);
     } finally {
       if (mounted) setState(() => _exporting = false);
+    }
+  }
+
+  bool _exportingPdf = false;
+
+  /// Export PDF (ported from ENGX v1.0.53 / v1.0.72): in short, what went
+  /// wrong in plain words, members with / without errors, every report.
+  Future<void> _exportPdf() async {
+    setState(() => _exportingPdf = true);
+    try {
+      final List<ErrorReport> all = await ErrorReports.watch(limit: 100000).first;
+      List<AppUser> members = const <AppUser>[];
+      try {
+        members = await UsersRepository().watchMembers().first.timeout(const Duration(seconds: 12));
+      } catch (_) {}
+      await ErrorReportPdf.share(all, members: members);
+    } catch (_) {
+      _toast(S.of(context).errUnknown);
+    } finally {
+      if (mounted) setState(() => _exportingPdf = false);
     }
   }
 
@@ -229,6 +252,15 @@ class _ErrorReportsCardState extends State<ErrorReportsCard> {
                 icon: Icon(Icons.ios_share_rounded, size: 18, color: AppColors.primary),
                 label: Text(
                   _exporting ? (_ar ? 'جارٍ التصدير…' : 'Exporting…') : (_ar ? 'تصدير الكل' : 'Export all'),
+                  style: TextStyle(color: AppColors.primary),
+                ),
+              ),
+            if (reports.isNotEmpty)
+              TextButton.icon(
+                onPressed: _exportingPdf ? null : _exportPdf,
+                icon: Icon(Icons.picture_as_pdf_rounded, size: 18, color: AppColors.primary),
+                label: Text(
+                  _exportingPdf ? (_ar ? 'جارٍ التصدير…' : 'Exporting…') : (_ar ? 'تصدير PDF' : 'Export PDF'),
                   style: TextStyle(color: AppColors.primary),
                 ),
               ),

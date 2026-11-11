@@ -15,6 +15,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
+import 'package:asec/core/custom/1-custom_dropdown.dart';
 import 'package:asec/core/custom/101-custom_surface.dart';
 import 'package:asec/core/custom/110-app_widgets.dart';
 import 'package:asec/core/custom/111-app_svg_icon.dart';
@@ -79,6 +80,8 @@ class ControlCentreCard extends StatelessWidget {
           'ON = lessons come only from your Cloudflare lesson server — no Google Drive download limit. '
               'Copy the lessons first (Settings → Cloudflare lessons). OFF = Google Drive.',
         );
+      case AppFeature.openAllCourses:
+        return (s.ctlOpenAllCourses, s.ctlOpenAllCoursesHint);
       case AppFeature.calcConverter:
         return (s.unitConverter, s.ctlCalcHint);
       case AppFeature.calcEngineering:
@@ -126,6 +129,7 @@ class ControlCentreCard extends StatelessWidget {
       child: Obx(() {
         // Touch the map so Obx tracks it.
         features.values.length;
+        features.downloadExpiryDays.value;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
@@ -170,6 +174,9 @@ class ControlCentreCard extends StatelessWidget {
                         },
                       ),
                     ],
+                    // Downloaded lessons expire (ported from ENGX v1.0.54).
+                    if (g == AppFeatureGroup.videos && features.isOn(AppFeature.videoDownloads))
+                      _ExpiryRow(features: features),
                   ],
                 ),
               ),
@@ -253,6 +260,80 @@ class _FeatureRow extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Control centre → Video lessons → "Downloads expire after" (0 = never).
+class _ExpiryRow extends StatelessWidget {
+  const _ExpiryRow({required this.features});
+
+  final AppFeatures features;
+
+  static const List<int> _choices = <int>[0, 3, 7, 14, 30, 60, 90];
+
+  @override
+  Widget build(BuildContext context) {
+    final S s = S.of(context);
+    final int current = features.downloadExpiryDays.value;
+    return Padding(
+      padding: EdgeInsets.all(12.sp),
+      child: Row(
+        children: <Widget>[
+          Container(
+            width: 34.r,
+            height: 34.r,
+            decoration: BoxDecoration(
+              color: AppColors.card,
+              borderRadius: BorderRadius.circular(10.r),
+            ),
+            child: Center(
+              child: AppIcon(
+                Icons.timer_outlined,
+                size: 18.sp,
+                color: current > 0 ? AppColors.primary : AppColors.secondaryText,
+              ),
+            ),
+          ),
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Text(FormatHelper.capitalize(s.ctlDownloadExpiry), style: StyleText.fontSize14Weight600),
+                Text(
+                  FormatHelper.capitalize(s.ctlDownloadExpiryHint),
+                  style: StyleText.fontSize12Weight400.copyWith(color: AppColors.secondaryText),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(width: 12.w),
+          SizedBox(
+            width: 140.w,
+            child: CustomDropdown<int>(
+              value: _choices.contains(current) ? current : null,
+              hint: s.ctlDaysCount(current),
+              items: <DropdownItem<int>>[
+                for (final int d in _choices)
+                  DropdownItem<int>(value: d, label: d == 0 ? s.ctlDownloadExpiryNever : s.ctlDaysCount(d)),
+              ],
+              onChanged: (int d) async {
+                try {
+                  await features.setDownloadExpiryDays(d);
+                } catch (_) {
+                  if (context.mounted) {
+                    AppMessenger.of(context).show(
+                      AppMessage(content: Text(FormatHelper.capitalize(s.errUnknown))),
+                    );
+                  }
+                }
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

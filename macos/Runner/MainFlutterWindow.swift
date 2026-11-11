@@ -1,5 +1,6 @@
 import Cocoa
 import FlutterMacOS
+import Security
 
 // Window sizing ported from manger_plus/macos/Runner/MainFlutterWindow.swift.
 class MainFlutterWindow: NSWindow {
@@ -66,6 +67,11 @@ class MainFlutterWindow: NSWindow {
         let on = (call.arguments as? Bool) ?? true
         self?.sharingType = on ? .none : .readOnly
         result(nil)
+      } else if call.method == "stableId" {
+        // lib/.../device_identity.dart (ported from ENGX v1.0.46): the
+        // device id lives in the Keychain, which survives removing ASEC, so
+        // a reinstall is not "another device" for the video lock.
+        result(AsecDeviceId.get(seed: call.arguments as? String))
       } else if call.method == "integrity" {
         // lib/core/settings/app_integrity.dart
         result(MainFlutterWindow.debuggerAttached() ? ["debugger"] : [String]())
@@ -85,5 +91,35 @@ class MainFlutterWindow: NSWindow {
     var size = MemoryLayout<kinfo_proc>.stride
     let rc = sysctl(&mib, UInt32(mib.count), &info, &size, nil, 0)
     return rc == 0 && (info.kp_proc.p_flag & P_TRACED) != 0
+  }
+}
+
+/// The app's device id in the Keychain (this Mac only, not synced). The
+/// first call stores [seed] — the id the app already had — so members who
+/// update keep their device; later calls, also after a reinstall, return
+/// the stored one. Same as ios/Runner/AppDelegate.swift.
+enum AsecDeviceId {
+  private static let query: [String: Any] = [
+    kSecClass as String: kSecClassGenericPassword,
+    kSecAttrService as String: "com.asec.app.device",
+    kSecAttrAccount as String: "device_id",
+    kSecUseDataProtectionKeychain as String: true,
+  ]
+
+  static func get(seed: String?) -> String? {
+    var read = query
+    read[kSecReturnData as String] = true
+    read[kSecMatchLimit as String] = kSecMatchLimitOne
+    var item: CFTypeRef?
+    if SecItemCopyMatching(read as CFDictionary, &item) == errSecSuccess,
+       let data = item as? Data, let id = String(data: data, encoding: .utf8), id.count >= 16 {
+      return id
+    }
+    guard let id = seed, id.count >= 16 else { return nil }
+    var add = query
+    add[kSecValueData as String] = Data(id.utf8)
+    add[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+    SecItemDelete(query as CFDictionary)
+    return SecItemAdd(add as CFDictionary, nil) == errSecSuccess ? id : nil
   }
 }

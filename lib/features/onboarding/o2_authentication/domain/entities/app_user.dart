@@ -6,6 +6,7 @@
 /// Author: ASEC team
 /// Created: 19/9/2026
 
+import 'package:asec/core/settings/app_features.dart';
 import 'package:asec/core/constants/app_constants.dart';
 import 'package:asec/features/onboarding/o2_authentication/domain/entities/course_access.dart';
 import 'package:asec/features/onboarding/o2_authentication/domain/entities/member_access.dart';
@@ -105,6 +106,17 @@ class AppUser {
   });
 
   bool get isPaused => pausedAt != null;
+
+  /// Every course: given "all courses", or the admin switched on Control
+  /// centre → "Open every course to all members" (ported from ENGX).
+  bool get hasEveryCourse {
+    if (allCourses) return true;
+    try {
+      return AppFeatures.on(AppFeature.openAllCourses);
+    } catch (_) {
+      return false;
+    }
+  }
   bool get isPermanent => accessFrom == null && accessUntil == null;
 
   /// Whether this member may see [category] HERE (this platform, now).
@@ -115,7 +127,7 @@ class AppUser {
   bool canSeeCourse(String category) {
     if (isAdmin) return true;
     final String c = category.trim();
-    if (!allCourses && !courses.contains(c)) return false;
+    if (!hasEveryCourse && !courses.contains(c)) return false;
     final CourseAccess? a = courseAccess[c];
     if (a != null) return a.openHere;
     // The default courses (GENERAL NOTES, Reals) open on every platform
@@ -128,7 +140,7 @@ class AppUser {
   bool courseOutsideWindow(String category) {
     if (isAdmin) return false;
     final String c = category.trim();
-    if (!allCourses && !courses.contains(c)) return false;
+    if (!hasEveryCourse && !courses.contains(c)) return false;
     final CourseAccess? a = courseAccess[c];
     if (a != null) return !a.openHere;
     if (MemberAccess.defaultCourses.contains(c)) return false;

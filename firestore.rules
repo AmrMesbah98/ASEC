@@ -166,11 +166,18 @@ service cloud.firestore {
     // on, or the course is in the list the admin ticked on the Members page.
     // The default courses are open to everyone unless switched off —
     // keep this list the same as MemberAccess.defaultCourses in the app.
+    function openAllCourses() {
+      return get(/databases/$(database)/documents/settings/app).data.get('open_all_courses', false) == true;
+    }
+
     function hasCourse(course) {
       return isStaff()
         // No courses_all yet = every course (the app's default too).
         || ((me().get('courses_all', true) == true
               || course in me().get('courses', [])
+              // Control centre → "Open every course to all members"
+              // (lib/core/settings/app_features.dart, open_all_courses).
+              || openAllCourses()
               // General Notes and Tips and Tricks are open to every member
               // until the admin switches one off for them.
               || (course in ['General Notes', 'Tips and Tricks', 'GENERAL NOTES', 'Reals']
@@ -648,8 +655,10 @@ service cloud.firestore {
     match /progress/{uid} {
       allow read: if isSelf(uid) || memberOk();
       allow create, update: if isSelf(uid)
-        && request.resource.data.keys().hasOnly(['name', 'videos', 'updated_at'])
-        && request.resource.data.videos is map;
+        && request.resource.data.keys().hasOnly(['name', 'videos', 'watch', 'updated_at'])
+        && request.resource.data.get('videos', {}) is map
+        // Resume points (lib/.../video_watch_store.dart, from ENGX).
+        && request.resource.data.get('watch', {}) is map;
       allow delete: if isSelf(uid) || can('members');
     }
 

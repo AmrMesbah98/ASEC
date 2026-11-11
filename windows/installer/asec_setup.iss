@@ -190,6 +190,36 @@ end;
   folder someone picked like the Desktop); after copying, every file the app
   needs to start must be there — an antivirus that quarantined one makes the
   app close at once or show a white window, so say so now. }
+{ NO GRAPHICS DRIVER (11/11/2026): Windows lists only "Microsoft Basic
+  Display Adapter" / "Basic Render Driver". Lessons then failed with "Could
+  not open codec". The app now decodes them on the CPU by itself; the
+  member is told once here that installing the driver makes them smoother. }
+function NoGraphicsDriver(): Boolean;
+var
+  Locator, Service, Items, Item: Variant;
+  i, n: Integer;
+  name: String;
+begin
+  Result := False;
+  try
+    Locator := CreateOleObject('WbemScripting.SWbemLocator');
+    Service := Locator.ConnectServer('.', 'root\CIMV2');
+    Items := Service.ExecQuery('SELECT Name FROM Win32_VideoController');
+    n := Items.Count;
+    if n = 0 then exit;
+    Result := True;
+    for i := 0 to n - 1 do
+    begin
+      Item := Items.ItemIndex(i);
+      name := Lowercase(Item.Name);
+      if (Pos('basic display', name) = 0) and (Pos('basic render', name) = 0) then
+        Result := False;
+    end;
+  except
+    Result := False;
+  end;
+end;
+
 procedure CurStepChanged(CurStep: TSetupStep);
 var
   missing, dir: String;
@@ -221,6 +251,11 @@ begin
     MsgBox('Some ASEC files were not installed:' + missing + #13#10 + #13#10 +
       'Usually an antivirus removed them. Add the ASEC folder as an exception in the antivirus, ' +
       'then run the installer again.', mbError, MB_OK);
+  if (not WizardSilent()) and NoGraphicsDriver() then
+    MsgBox('This PC has no graphics driver installed (Windows shows "Microsoft Basic Display Adapter").' + #13#10 + #13#10 +
+      'ASEC will still play lessons, using the processor instead of the graphics card, but video ' +
+      'is smoother with the driver. Install it from Windows Update (Settings > Windows Update > ' +
+      'Advanced options > Optional updates) or from the Intel / AMD / NVIDIA website.', mbInformation, MB_OK);
 end;
 
 function InitializeUninstall(): Boolean;

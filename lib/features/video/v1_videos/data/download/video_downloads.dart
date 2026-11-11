@@ -60,6 +60,64 @@ abstract final class VideoDownloads {
     }
     _switchWorker = ever<Map<String, bool>>(AppFeatures.to.values, check);
     check(AppFeatures.to.values);
+    // Downloads that pass their time go — when the setting changes and
+    // while the app stays open.
+    ever<int>(AppFeatures.to.downloadExpiryDays, (_) => unawaited(removeExpired()));
+    Timer.periodic(const Duration(minutes: 5), (_) => unawaited(removeExpired()));
+  }
+
+  // ── EXPIRY (ported from ENGX v1.0.54) ─────────────────────────────────────
+  //
+  // Control centre → "Downloads expire after": each saved lesson is erased
+  // that many days after it was downloaded (0 = never). Works offline: the
+  // number is kept on the device, and turning the clock back does not help
+  // — the latest time ever seen is used.
+
+  static final Map<String, int> _savedAt = <String, int>{};
+  static const String _clockKey = 'asec_vault_clock';
+
+  static int get _expiryDays =>
+      Get.isRegistered<AppFeatures>() ? AppFeatures.to.downloadExpiryDays.value : 0;
+
+  /// Now — never earlier than a time this device has already seen.
+  static int _now() {
+    final int real = DateTime.now().millisecondsSinceEpoch;
+    try {
+      final int seen = _box.read<int>(_clockKey) ?? 0;
+      if (real > seen) {
+        _box.write(_clockKey, real);
+        return real;
+      }
+      return seen;
+    } catch (_) {
+      return real;
+    }
+  }
+
+  /// When [id] will be erased, or null (never / not downloaded).
+  static DateTime? expiresAt(String id) {
+    final int? at = _savedAt[id];
+    if (_expiryDays <= 0 || at == null) return null;
+    return DateTime.fromMillisecondsSinceEpoch(at).add(Duration(days: _expiryDays));
+  }
+
+  static bool _expired(String id, int now) {
+    final DateTime? end = expiresAt(id);
+    return end != null && now >= end.millisecondsSinceEpoch;
+  }
+
+  /// Erases every saved lesson past its time.
+  static Future<void> removeExpired() async {
+    if (_dir.isEmpty || _expiryDays <= 0 || items.isEmpty) return;
+    final int now = _now();
+    final List<VideoItem> gone = items.where((VideoItem v) => _expired(v.id, now)).toList();
+    if (gone.isEmpty) return;
+    for (final VideoItem v in gone) {
+      items.removeWhere((VideoItem x) => x.id == v.id);
+      _savedAt.remove(v.id);
+      await deleteVideoFile(_path(v.id));
+    }
+    _save();
   }
 
   /// Erases every offline lesson on this device, of every account.
@@ -116,13 +174,21 @@ abstract final class VideoDownloads {
     _dir = await videoDownloadsDir(uid);
     _loadedFor = uid;
     final List<dynamic> raw = _box.read<List<dynamic>>(_key(uid)) ?? <dynamic>[];
+    final int loadedAt = DateTime.now().millisecondsSinceEpoch;
+    for (final dynamic m in raw) {
+      if (m is! Map) continue;
+      final Object? saved = m['saved'];
+      // Saved before expiry existed: counted from now.
+      _savedAt['${m['id'] ?? ''}'] = saved is num ? saved.toInt() : loadedAt;
+    }
     final List<VideoItem> list = <VideoItem>[
       for (final dynamic m in raw)
         if (m is Map) _fromMap(Map<String, dynamic>.from(m)),
     ].where((VideoItem v) =>
         videoFileExists(_path(v.id)) || videoFileExists(legacyVideoPath(_path(v.id)))).toList();
     items.assignAll(list);
-    if (list.length != raw.length) _save();
+    _save(); // also records the download time of older entries
+    await removeExpired();
     // Plain `.mp4` files from before encryption: encrypt them now, in the
     // background. Until each is done it streams online like any lesson.
     unawaited(_encryptLegacy(uid, list));
@@ -180,6 +246,10 @@ abstract final class VideoDownloads {
   /// The file to play instead of the internet stream, or null.
   static String? localPath(String id) {
     if (!enabled || _dir.isEmpty || !isDownloaded(id)) return null;
+    if (_expired(id, _now())) {
+      unawaited(removeExpired());
+      return null;
+    }
     final String p = _path(id);
     return videoFileExists(p) ? p : null;
   }
@@ -205,6 +275,7 @@ abstract final class VideoDownloads {
     active[video.id] = 0;
     try {
       int size = video.sizeBytes;
+      if (CloudLessons.signerFor(video.url) != null) await CloudLessons.syncClock();
       await downloadVideoFile(
         url: VideoLink.playable(video.url),
         cloud: CloudLessons.signerFor(video.url),
@@ -218,6 +289,7 @@ abstract final class VideoDownloads {
         },
       );
       if (_loadedFor == owner) {
+        _savedAt[video.id] = _now();
         items.insert(0, video.copyWith(sizeBytes: size));
         _save();
       }
@@ -280,6 +352,7 @@ abstract final class VideoDownloads {
         'subcategory': v.subcategory,
         'subcategory_order': v.subcategoryOrder,
         'created': v.createdAt?.millisecondsSinceEpoch,
+        'saved': _savedAt[v.id],
       };
 
   static VideoItem _fromMap(Map<String, dynamic> m) {
