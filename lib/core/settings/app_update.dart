@@ -641,25 +641,36 @@ class _UpdateDialog extends StatelessWidget {
           ),
         ],
         SizedBox(height: 22.h),
-        _PrimaryButton(
-          label: primaryLabel,
-          icon: primaryIcon,
-          // A required update keeps the dialog up: if the user backs out of
-          // Play, they come back to it.
-          onPressed: () async {
-            if (!forced) Navigator.of(context).pop();
-            await onPrimary();
-          },
+        // 11/11/2026: "Later" and "Update now" on ONE row — Later on the
+        // left (an outlined button, easy to see and tap), Update on the
+        // right. A required update shows only "Update now".
+        Row(
+          children: <Widget>[
+            if (!forced) ...<Widget>[
+              Expanded(
+                child: AppButton(
+                  label: secondaryLabel,
+                  kind: AppButtonKind.outlined,
+                  expand: true,
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ),
+              SizedBox(width: 10.w),
+            ],
+            Expanded(
+              child: _PrimaryButton(
+                label: primaryLabel,
+                icon: primaryIcon,
+                // A required update keeps the dialog up: if the user backs
+                // out of Play, they come back to it.
+                onPressed: () async {
+                  if (!forced) Navigator.of(context).pop();
+                  await onPrimary();
+                },
+              ),
+            ),
+          ],
         ),
-        if (!forced) ...<Widget>[
-          SizedBox(height: 8.h),
-          AppButton(
-            label: secondaryLabel,
-            kind: AppButtonKind.subtle,
-            expand: true,
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-        ],
       ],
     );
   }

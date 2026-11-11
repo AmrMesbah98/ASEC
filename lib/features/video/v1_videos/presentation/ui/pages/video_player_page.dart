@@ -105,7 +105,7 @@ class _VideoPlayerView extends StatefulWidget {
 
 class _VideoPlayerPageState extends State<_VideoPlayerView>
     with WidgetsBindingObserver {
-  static const List<double> _speeds = <double>[0.5, 0.75, 1, 1.25, 1.5, 2];
+  static const List<double> _speeds = <double>[0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3];
 
   VideoPlayerController? _video;
   Worker? _guard;

@@ -39,10 +39,22 @@ class VideoDevice {
   /// MachineGuid id (an install made before it was used), or — a slot saved
   /// by an older install on this very computer — the same computer name
   /// ("Windows · DESKTOP-4KQ2"), which an uninstall / reinstall never changes.
+  ///
+  /// UPDATES NEVER LOCK A MEMBER OUT (11/11/2026): a slot this install has
+  /// already played with (its id kept in the app's storage, which an update
+  /// never removes) is still this device, even if an update reads this
+  /// device's id differently.
   bool get isThisDevice {
+    final bool mine = _matches;
+    if (mine) VideoDeviceLock._hold(id);
+    return mine;
+  }
+
+  bool get _matches {
     if (id == DeviceIdentity.id) return true;
     final String? machine = DeviceIdentity.machineId;
     if (machine != null && id == machine) return true;
+    if (VideoDeviceLock._heldIds().contains(id)) return true;
     final String me = DeviceIdentity.name;
     return me.contains(' · ') && name == me;
   }
@@ -110,6 +122,34 @@ abstract final class VideoDeviceLock {
   // read, the last confirmed answer for this device decides.
 
   static String _key(String uid) => 'asec_video_slot_${uid}_${MemberAccess.currentPlatform}';
+
+  // ── Slot ids this install played with (11/11/2026) ─────────────────────
+
+  static const String _heldKey = 'asec_video_device_ids';
+  static Set<String>? _held;
+
+  static Set<String> _heldIds() {
+    if (_held != null) return _held!;
+    try {
+      final List<dynamic> raw = GetStorage().read<List<dynamic>>(_heldKey) ?? const <dynamic>[];
+      _held = <String>{for (final dynamic v in raw) if ('$v'.trim().isNotEmpty) '$v'.trim()};
+    } catch (_) {
+      _held = <String>{};
+    }
+    return _held!;
+  }
+
+  static void _hold(String id) {
+    final Set<String> held = _heldIds();
+    if (id.trim().isEmpty || held.contains(id)) return;
+    held.add(id);
+    while (held.length > 10) {
+      held.remove(held.first);
+    }
+    try {
+      GetStorage().write(_heldKey, held.toList());
+    } catch (_) {}
+  }
 
   static bool rememberedOwner(String uid) {
     try {

@@ -124,6 +124,23 @@ class AppVideoPlayer extends VideoPlayerPlatform {
     _initialize(textureId);
     // --------------------------------------------------
 
+    // FAST SPEEDS (11/11/2026): at 2× / 2.5× / 3× the picture fell behind
+    // the sound — mpv only dropped late frames at the screen, so a decoder
+    // that could not keep up drifted further and further. Frames are now
+    // also dropped at the decoder, so picture and sound stay together.
+    // On the CPU modes the decoder also takes the faster path.
+    final PlatformPlayer? native = player.platform;
+    if (native is NativePlayer) {
+      try {
+        await native.setProperty('framedrop', 'decoder+vo');
+        await native.setProperty('video-sync', 'audio');
+        if (mode != VideoDecodeMode.normal) {
+          await native.setProperty('vd-lavc-fast', 'yes');
+          await native.setProperty('vd-lavc-skiploopfilter', 'nonref');
+        }
+      } catch (_) {}
+    }
+
     final String resource;
     final Map<String, String> httpHeaders = dataSource.httpHeaders;
 
@@ -264,8 +281,12 @@ class AppVideoPlayer extends VideoPlayerPlatform {
       int? height;
       Duration? duration;
 
+      // Set when a decoder error was passed on before the start: the start
+      // has failed, so a late "initialized" must not follow it.
+      bool failed = false;
+
       void notify() {
-        if (!completer.isCompleted) {
+        if (!completer.isCompleted && !failed) {
           if (width != null && height != null && duration != null) {
             streamController.add(
               VideoEvent(
@@ -386,6 +407,8 @@ class AppVideoPlayer extends VideoPlayerPlatform {
             // once (11/11/2026) — waiting for a start that never comes left
             // the lesson "loading" until the app's time-out.
             if (!completer.isCompleted && isVideoDecoderError(event)) {
+              if (failed) return;
+              failed = true;
               if (!streamController.isClosed) {
                 streamController.addError(PlatformException(code: 'decoder', message: event));
               }
