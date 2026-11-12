@@ -23,6 +23,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import 'package:asec/features/admin/a3_dashboard/presentation/ui/widgets/activity_charts.dart';
 import 'package:asec/core/custom/101-custom_surface.dart';
 import 'package:asec/core/custom/110-app_widgets.dart';
 import 'package:asec/core/custom/111-app_svg_icon.dart';
@@ -218,8 +219,14 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     caption: data.hasAttempts ? null : s.nothingToChartAsec,
                   ),
                   SizedBox(height: 12.h),
+                  // Members in the app, by hour and by day (12/11/2026).
                   FadeSlideIn(
                     delay: const Duration(milliseconds: 380),
+                    child: const ActivityCharts(),
+                  ),
+                  SizedBox(height: 16.h),
+                  FadeSlideIn(
+                    delay: const Duration(milliseconds: 420),
                     child: DashboardCharts(data: data),
                   ),
                   SizedBox(height: 20.h),

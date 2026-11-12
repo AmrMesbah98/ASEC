@@ -18,6 +18,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
+import 'package:asec/core/settings/app_features.dart';
 import 'package:asec/core/custom/110-app_widgets.dart';
 import 'package:asec/core/custom/111-app_svg_icon.dart';
 import 'package:asec/core/custom/57-custom_dialog_manager.dart';
@@ -514,6 +515,56 @@ class _CourseBar extends StatelessWidget {
             ],
           ],
         ),
+        // OPEN TO ALL MEMBERS (12/11/2026, from ENGX): every signed-in member
+        // can watch this course — no course ticked on the Members page needed.
+        Obx(() {
+          final bool all = AppFeatures.to.isOn(AppFeature.openAllCourses);
+          final bool open = all || AppFeatures.to.courseOpenToAll(course);
+          final bool ar = Localizations.localeOf(context).languageCode == 'ar';
+          return Container(
+            padding: EdgeInsetsDirectional.fromSTEB(12.w, 6.h, 8.w, 6.h),
+            decoration: BoxDecoration(
+              color: AppColors.card,
+              borderRadius: BorderRadius.circular(12.r),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                AppIcon(open ? Icons.lock_open_rounded : Icons.lock_rounded,
+                    size: 18.sp, color: open ? AppColors.green : AppColors.secondaryText),
+                SizedBox(width: 8.w),
+                Flexible(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Text(
+                        ar ? 'مفتوح لكل الأعضاء' : 'Open to all members',
+                        style: StyleText.fontSize13Weight600.copyWith(color: AppColors.text),
+                      ),
+                      Text(
+                        ar
+                            ? 'كل عضو مسجّل يشاهد هذا الكورس بدون تحديده له'
+                            : 'Every signed-in member can watch it, no access needed',
+                        style: StyleText.fontSize11Weight400.copyWith(color: AppColors.secondaryText),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(width: 10.w),
+                IgnorePointer(
+                  // \"Open every course\" already opens it. Owner only: firestore.rules
+                  // lets only the super admin write settings/app.
+                  ignoring: all || !SessionController.to.current.isSuperAdmin,
+                  child: DefaultSwitchButton(
+                    value: open,
+                    onChanged: (bool v) => AppFeatures.to.setCourseOpenToAll(course, v),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
         Obx(() {
           final bool on = CourseSettings.to.isSequential(course);
           return Container(

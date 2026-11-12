@@ -37,7 +37,8 @@ class PoweredByFooter extends StatelessWidget {
         ),
         SizedBox(height: 2.h),
         Text(
-          FormatHelper.capitalize(arabic ? '© $year جميع الحقوق محفوظة' : '© $year All rights reserved'),
+          // 12/11/2026: every right belongs to Amr Mesbah.
+          arabic ? '© $year Amr Mesbah — جميع الحقوق محفوظة' : '© $year Amr Mesbah. All rights reserved.',
           textAlign: TextAlign.center,
           style: StyleText.fontSize12Weight400.copyWith(color: c),
         ),

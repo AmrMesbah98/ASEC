@@ -114,6 +114,34 @@ class CustomSearchFilterSortBar<TFilter, TSort> extends StatelessWidget {
       ...trailingChildren,
     ];
 
+    // PHONE (12/11/2026): the search gets its own full-width row and the
+    // filter / sort / page buttons go on the row under it — on one row the
+    // search box was squeezed to a few letters.
+    final bool isPhone = MediaQuery.sizeOf(context).shortestSide < 600;
+    if (isPhone && controls.isNotEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          AppSearchTextField(
+            controller: searchController,
+            onChanged: onSearchChanged,
+            hintText: searchHint,
+            height: rawHeight,
+            fillColor: fillColor,
+            expanded: false,
+          ),
+          SizedBox(height: effectiveSpacing),
+          Wrap(
+            spacing: effectiveSpacing,
+            runSpacing: effectiveSpacing,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: controls,
+          ),
+        ],
+      );
+    }
+
     return Row(
       children: <Widget>[
         // `35-custom_search_widget_custom` IS the app's search box. This

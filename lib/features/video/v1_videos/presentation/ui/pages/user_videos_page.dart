@@ -19,6 +19,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
+import 'package:asec/features/video/v1_videos/presentation/ui/widgets/download_all_bar.dart';
 import 'package:asec/core/security/content_crypto.dart';
 import 'package:asec/core/settings/capture_context.dart';
 import 'package:asec/core/custom/110-app_widgets.dart';
@@ -387,6 +388,17 @@ class _UserVideosPageState extends State<_UserVideosView> {
                   user: me,
                   unlocked: playable.isNotEmpty && watched >= playable.length,
                 ),
+                // DOWNLOAD THE WHOLE FOLDER (12/11/2026) — only lessons this
+                // member may open now (not given / "watch in order" locks out).
+                if (!filesMode && VideoDownloads.bulkEnabled)
+                  DownloadAllBar(
+                    key: ValueKey<String>('dl_all_${category.name}_${sub?.name ?? ''}'),
+                    folderName: sub?.name ?? category.name,
+                    videos: <VideoItem>[
+                      for (final VideoItem v in course)
+                        if (!locked.contains(v.id)) v,
+                    ],
+                  ),
                 if (features.isOn(AppFeature.videoSearch) && !filesMode) ...<Widget>[
                   _SearchBox(
                     controller: _search,

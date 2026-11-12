@@ -64,6 +64,10 @@ class _Source {
   int served = 0;
   bool flagged = false;
 
+  /// Bytes served in the current 5-minute window ([_count]).
+  int windowBytes = 0;
+  DateTime windowStart = DateTime.now();
+
   /// Why the last request failed ('' = fine): `network:…` (no answer) or
   /// `blocked:…` (a firewall answered with its own certificate). Read by the
   /// player to tell the member what to do (ported from ENGX, 08/11/2026).
@@ -81,6 +85,18 @@ abstract final class SecureVideoServer {
   static Future<HttpServer>? _starting;
   static final Map<String, _Source> _tokens = <String, _Source>{};
   static int _unknownHits = 0;
+  static DateTime _unknownSince = DateTime.now();
+
+  /// Lesson addresses that were valid and then closed (player left the
+  /// lesson, next lesson, revoked). The player often asks for them a few
+  /// more times — that is NOT someone probing the gateway (12/11/2026).
+  static final Set<String> _retired = <String>{};
+
+  static void _retire(String token) {
+    _retire(token);
+    _retired.add(token);
+    if (_retired.length > 200) _retired.remove(_retired.first);
+  }
 
   /// User agents of download / scraping tools. The players (ExoPlayer,
   /// AVFoundation's AppleCoreMedia) never send these.
@@ -127,7 +143,7 @@ abstract final class SecureVideoServer {
 
   static void revoke(Uri? uri) {
     if (uri == null || uri.pathSegments.length < 2) return;
-    _tokens.remove(uri.pathSegments.last.replaceAll('.mp4', ''));
+    _retire(uri.pathSegments.last.replaceAll('.mp4', ''));
   }
 
   /// NO INTERNET AT ALL (11/11/2026, from ENGX): the lesson host's name was
@@ -169,8 +185,18 @@ abstract final class SecureVideoServer {
       final _Source? src = _tokens[token];
       if (src == null) {
         // Somebody is guessing addresses on the gateway.
-        if (++_unknownHits == 20) {
-          SecurityMonitor.alert('gateway_probe', '20 requests for unknown video addresses');
+        // FIX (12/11/2026): addresses of lessons that were open a moment ago
+        // don't count, and the count starts again every 10 minutes — before,
+        // 20 harmless misses over a whole day raised "gateway probed".
+        if (!_retired.contains(token)) {
+          final DateTime now = DateTime.now();
+          if (now.difference(_unknownSince) > const Duration(minutes: 10)) {
+            _unknownSince = now;
+            _unknownHits = 0;
+          }
+          if (++_unknownHits == 20) {
+            SecurityMonitor.alert('gateway_probe', '20 requests for unknown video addresses in 10 minutes');
+          }
         }
         res.statusCode = HttpStatus.notFound;
         await res.close();
@@ -182,7 +208,7 @@ abstract final class SecureVideoServer {
           'stream_grab',
           'A download tool asked for a lesson stream (${src.label}). User-Agent: $agent',
         );
-        _tokens.remove(token);
+        _retire(token);
         res.statusCode = HttpStatus.forbidden;
         await res.close();
         return;
@@ -206,17 +232,31 @@ abstract final class SecureVideoServer {
 
   /// The player asks for far more than the lesson's size → something else
   /// is reading the stream (a capture tool on the loopback address).
+  ///
+  /// FIX (12/11/2026): MORE THAN 3× THE LESSON IN 5 MINUTES. It used to be 4×
+  /// over the WHOLE time a lesson was open — a student who re-watched or kept
+  /// seeking back went past it, got a false "stream copied", and the lesson
+  /// STOPPED mid-watch. Watching never pulls a whole lesson three times in 5
+  /// minutes; a second program copying it alongside the player does.
+  static const Duration _abuseWindow = Duration(minutes: 5);
+
   static void _count(_Source src, int bytes, String token) {
     src.served += bytes;
+    final DateTime now = DateTime.now();
+    if (now.difference(src.windowStart) > _abuseWindow) {
+      src.windowStart = now;
+      src.windowBytes = 0;
+    }
+    src.windowBytes += bytes;
     final int size = src.sizeBytes > 0 ? src.sizeBytes : 0;
-    if (!src.flagged && size > 0 && src.served > size * 4) {
+    if (!src.flagged && size > 0 && src.windowBytes > size * 3) {
       src.flagged = true;
       SecurityMonitor.alert(
         'stream_abuse',
-        'Lesson "${src.label}" streamed ${src.served ~/ (1024 * 1024)} MB '
+        'Lesson "${src.label}" streamed ${src.windowBytes ~/ (1024 * 1024)} MB in 5 minutes '
         '(the file is ${size ~/ (1024 * 1024)} MB) — something else is reading it.',
       );
-      _tokens.remove(token);
+      _retire(token);
     }
   }
 
@@ -256,7 +296,7 @@ abstract final class SecureVideoServer {
         up = await PinnedFetch.get(Uri.parse(src.url!), range: range, head: head);
       }
     } on InterceptedException {
-      _tokens.remove(token);
+      _retire(token);
       res.statusCode = HttpStatus.forbidden;
       await res.close();
       return;
@@ -550,10 +590,7 @@ abstract final class PinnedFetch {
     ..autoUncompress = false
     ..connectionTimeout = const Duration(seconds: 20)
     // A certificate the device does not trust at all is refused outright.
-    ..badCertificateCallback = ((X509Certificate cert, String host, int port) {
-      SecurityMonitor.intercepted(host, cert.issuer);
-      return false;
-    });
+    ..badCertificateCallback = PinnedFetch.outdatedRoot;
 
   /// Google's own CA; Drive's certificates are issued by it.
   static bool _isGoogle(X509Certificate? c) =>
@@ -569,6 +606,23 @@ abstract final class PinnedFetch {
     'Sectigo',
     'DigiCert',
   ];
+
+  /// FIX (12/11/2026) — FALSE "HTTPS sniffer" alerts. Cloudflare's lesson
+  /// server uses an SSL.com certificate; PCs whose root certificates were
+  /// never updated don't know SSL.com's newer ECC root, so the connection was
+  /// refused, reported as a sniffer, and the lesson did not play.
+  /// Now, for the lesson server only (never Google), a certificate from a
+  /// known public CA, inside its validity dates, is accepted quietly. A
+  /// sniffer's certificate carries its own name and is still refused.
+  static bool outdatedRoot(X509Certificate cert, String host, int port) {
+    final DateTime now = DateTime.now();
+    final bool known = !host.contains('google') &&
+        _cloudflareIssuers.any(cert.issuer.contains) &&
+        now.isAfter(cert.startValidity) &&
+        now.isBefore(cert.endValidity);
+    if (!known) SecurityMonitor.intercepted(host, cert.issuer);
+    return known;
+  }
 
   static bool _trusted(X509Certificate? c, Uri uri) {
     if (c == null) return false;
@@ -622,10 +676,7 @@ abstract final class PinnedFetch {
       ..findProxy = ((Uri _) => 'DIRECT')
       ..autoUncompress = false
       ..connectionTimeout = const Duration(seconds: 20)
-      ..badCertificateCallback = ((X509Certificate cert, String h, int port) {
-        SecurityMonitor.intercepted(h, cert.issuer);
-        return false;
-      });
+      ..badCertificateCallback = PinnedFetch.outdatedRoot;
     int next = 0;
     c.connectionFactory = (Uri url, String? proxyHost, int? proxyPort) async {
       final InternetAddress ip = ips[next++ % ips.length];

@@ -175,6 +175,9 @@ service cloud.firestore {
         // No courses_all yet = every course (the app's default too).
         || ((me().get('courses_all', true) == true
               || course in me().get('courses', [])
+              // Videos → a course → "Open to all members" (12/11/2026,
+              // AppFeatures.openCourses).
+              || course in get(/databases/$(database)/documents/settings/app).data.get('open_courses', [])
               // Control centre → "Open every course to all members"
               // (lib/core/settings/app_features.dart, open_all_courses).
               || openAllCourses()
@@ -333,6 +336,18 @@ service cloud.firestore {
     // Each open app writes its own document once a minute (Presence in
     // lib/core/settings/presence.dart). Fixed shape, the server's own time,
     // and only about the caller. Admins with Members read the list.
+    // Dashboard → Active by hour / by day (12/11/2026): one document a day,
+    // uids per hour + minutes. Every signed-in account adds itself; staff read.
+    match /app_activity/{day} {
+      allow read: if isStaff();
+      allow create, update: if signedIn()
+        && request.resource.data.keys().hasOnly(['date',
+             'u0','u1','u2','u3','u4','u5','u6','u7','u8','u9','u10','u11',
+             'u12','u13','u14','u15','u16','u17','u18','u19','u20','u21','u22','u23',
+             'm0','m1','m2','m3','m4','m5','m6','m7','m8','m9','m10','m11',
+             'm12','m13','m14','m15','m16','m17','m18','m19','m20','m21','m22','m23']);
+    }
+
     match /presence/{uid} {
       allow create, update: if isSelf(uid)
         && request.resource.data.uid == uid

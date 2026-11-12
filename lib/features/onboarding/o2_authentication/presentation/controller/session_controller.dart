@@ -9,6 +9,7 @@
 import 'dart:async';
 
 import 'package:dartz/dartz.dart' show Either, Unit;
+import 'package:asec/features/video/v1_videos/data/download/video_downloads.dart';
 import 'package:get/get.dart';
 
 import 'package:asec/features/onboarding/o2_authentication/data/repository/auth_repository.dart';
@@ -60,6 +61,8 @@ class SessionController extends GetxController {
     AppFeatures.to.listen();
     // "Online now" for the admins (Settings).
     Presence.start(signedIn);
+    // Removed access erases the saved lessons (12/11/2026).
+    VideoDownloads.watchAccess(signedIn.uid);
     // If the LAST run crashed (e.g. vanished to the desktop on startup), it is
     // reported now — a report needs a signed-in user, and we have one.
     if (CrashTracker.hasPendingCrash) {
@@ -88,6 +91,8 @@ class SessionController extends GetxController {
     _sub = _users.watchUser(signedIn.uid).listen(
       (AppUser? live) {
         if (live == null || !live.active) {
+          // Switched off / deleted: the saved lessons go too (12/11/2026).
+          unawaited(VideoDownloads.removeWhere((_) => true));
           onDeactivated?.call();
           return;
         }
@@ -100,6 +105,7 @@ class SessionController extends GetxController {
   }
 
   Future<void> signOut() async {
+    VideoDownloads.stopAccess();
     // Off the "Online now" list while still allowed to write it.
     await Presence.stop();
     await _sub?.cancel();

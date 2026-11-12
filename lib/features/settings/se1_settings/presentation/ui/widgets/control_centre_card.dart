@@ -74,6 +74,11 @@ class ControlCentreCard extends StatelessWidget {
         return (s.ctlVideoCourseProgress, s.ctlVideoCourseProgressHint);
       case AppFeature.videoDownloads:
         return (s.ctlVideoDownloads, s.ctlVideoDownloadsHint);
+      case AppFeature.videoDownloadAll:
+        return Localizations.localeOf(context).languageCode == 'ar'
+            ? ('تحميل مجلد كامل', 'زر "تحميل الكل" فوق دروس كل مجلد يحفظها كلها واحدًا بعد الآخر.')
+            : ('Download a whole folder',
+                'A "Download all" button above each folder\'s lessons saves every lesson in it, one after another.');
       case AppFeature.videoCloud:
         return (
           'Play lessons from Cloudflare',

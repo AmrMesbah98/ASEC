@@ -68,8 +68,63 @@ abstract final class Presence {
     _send(online: true);
     _timer?.cancel();
     _timer = Timer.periodic(beat, (_) {
-      if (_foreground) _send(online: true);
+      if (_foreground) {
+        _send(online: true);
+        unawaited(_track());
+      }
     });
+    unawaited(_track());
+  }
+
+  // ── ACTIVITY HISTORY (12/11/2026, from ENGX) ─────────────────────────────
+  //
+  // For the dashboard charts "Active by hour" / "Active by day". `presence`
+  // keeps only the LAST beat, so one small document per day is kept too:
+  // `app_activity/{yyyy-MM-dd}` (UTC) — u0…u23 = uids active in that UTC
+  // hour, m0…m23 = minutes spent in it (everybody together). One write when
+  // the hour changes, then one every 10 minutes of use. Admins don't count.
+
+  static const String activityCollection = 'app_activity';
+  static String _slot = '';
+  static String _slotUid = '';
+  static int _minutes = 0;
+
+  static String _two(int n) => n.toString().padLeft(2, '0');
+
+  static Future<void> _track() async {
+    final AppUser? u = _user;
+    if (u == null || u.isAdmin) return;
+    final DateTime now = DateTime.now().toUtc();
+    final String slot = '${now.year}-${_two(now.month)}-${_two(now.day)}|${now.hour}';
+    if (slot != _slot || u.uid != _slotUid) {
+      await _flush();
+      _slot = slot;
+      _slotUid = u.uid;
+      _minutes = 1;
+      await _writeActivity(slot, u.uid, 0);
+      return;
+    }
+    if (++_minutes >= 10) await _flush();
+  }
+
+  static Future<void> _flush() async {
+    if (_slot.isEmpty || _minutes <= 0) return;
+    final int n = _minutes;
+    _minutes = 0;
+    await _writeActivity(_slot, _slotUid, n);
+  }
+
+  static Future<void> _writeActivity(String slot, String uid, int minutes) async {
+    final List<String> parts = slot.split('|');
+    try {
+      await AppFirebase.db.collection(activityCollection).doc(parts[0]).set(<String, dynamic>{
+        'date': parts[0],
+        'u${parts[1]}': FieldValue.arrayUnion(<String>[uid]),
+        if (minutes > 0) 'm${parts[1]}': FieldValue.increment(minutes),
+      }, SetOptions(merge: true));
+    } catch (_) {
+      // Best-effort.
+    }
   }
 
   /// Keeps the name / email current when the live profile changes.
@@ -79,6 +134,7 @@ abstract final class Presence {
 
   /// Before sign-out / account delete: says goodbye and stops.
   static Future<void> stop() async {
+    await _flush().timeout(const Duration(seconds: 3), onTimeout: () {});
     _timer?.cancel();
     _timer = null;
     final _LifecycleWatcher? w = _watcher;
@@ -99,12 +155,14 @@ abstract final class Presence {
       case AppLifecycleState.resumed:
         _foreground = true;
         _send(online: true);
+        unawaited(_track());
       case AppLifecycleState.paused:
       case AppLifecycleState.hidden:
       case AppLifecycleState.detached:
         if (_foreground) {
           _foreground = false;
           _send(online: false);
+          unawaited(_flush());
         }
       case AppLifecycleState.inactive:
         // A desktop window that lost focus is still open.

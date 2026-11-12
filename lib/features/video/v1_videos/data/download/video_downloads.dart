@@ -26,6 +26,7 @@ import 'package:asec/features/video/v1_videos/data/cloud/cloud_lessons.dart';
 import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 
@@ -36,6 +37,10 @@ import 'package:asec/core/security/security_monitor.dart';
 import 'package:asec/features/video/v1_videos/data/download/video_file.dart';
 import 'package:asec/features/video/v1_videos/domain/entities/video_item.dart';
 import 'package:asec/features/video/v1_videos/domain/entities/video_link.dart';
+import 'package:asec/core/constants/firebase_collections.dart';
+import 'package:asec/features/onboarding/o2_authentication/data/models/user_model.dart';
+import 'package:asec/features/onboarding/o2_authentication/domain/entities/app_user.dart';
+import 'package:asec/features/onboarding/o2_authentication/domain/entities/member_access.dart';
 
 abstract final class VideoDownloads {
   const VideoDownloads._();
@@ -48,7 +53,159 @@ abstract final class VideoDownloads {
   static bool get enabled =>
       supported && (!Get.isRegistered<AppFeatures>() || AppFeatures.to.isOn(AppFeature.videoDownloads));
 
+  /// "Download all" for a whole folder — needs [enabled] too (12/11/2026).
+  static bool get bulkEnabled =>
+      enabled && (!Get.isRegistered<AppFeatures>() || AppFeatures.to.isOn(AppFeature.videoDownloadAll));
+
   static Worker? _switchWorker;
+
+  // ── REMOVED ACCESS ERASES DOWNLOADS (12/11/2026, from ENGX) ──────────────
+  //
+  // The member's own `users/{uid}` document is followed for the whole
+  // session. The moment the SERVER says the account is gone, switched off,
+  // paused, not started or ended — or a course was taken away — the saved
+  // lessons of what they lost are erased, and their downloads stop. Only
+  // server-confirmed data counts: offline / from cache, nothing is touched.
+
+  static StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _accessSub;
+  static Worker? _accessWorker;
+  static String _accessUid = '';
+  static AppUser? _accessUser;
+  static bool _accessKnown = false;
+
+  /// Called by SessionController.start for the signed-in account.
+  static void watchAccess(String uid) {
+    if (!supported || uid.isEmpty) return;
+    stopAccess();
+    _accessUid = uid;
+    _accessSub = AppFirebase.db
+        .collection(FirebaseCollections.users)
+        .doc(uid)
+        .snapshots(includeMetadataChanges: true)
+        .listen(
+      (DocumentSnapshot<Map<String, dynamic>> doc) {
+        if (doc.metadata.isFromCache) return;
+        _accessUser = doc.exists ? UserModel.fromDoc(doc) : null;
+        _accessKnown = true;
+        unawaited(_applyAccess());
+      },
+      onError: (Object _) {},
+    );
+    // "Open every course" etc. must come from the server too.
+    if (Get.isRegistered<AppFeatures>()) {
+      _accessWorker = ever<bool>(AppFeatures.to.fromServer, (_) => unawaited(_applyAccess()));
+    }
+  }
+
+  /// On sign-out.
+  static void stopAccess() {
+    _accessSub?.cancel();
+    _accessSub = null;
+    _accessWorker?.dispose();
+    _accessWorker = null;
+    _accessUid = '';
+    _accessUser = null;
+    _accessKnown = false;
+  }
+
+  static Future<void> _applyAccess() async {
+    if (!_accessKnown || _accessUid.isEmpty) return;
+    if (Get.isRegistered<AppFeatures>() && !AppFeatures.to.fromServer.value) return;
+    final AppUser? user = _accessUser;
+    if (user != null && user.isAdmin) return;
+    final bool blocked = user == null || !user.active || MemberAccess.check(user) != AccessBlock.none;
+    await ensureLoaded();
+    if (_loadedFor != _accessUid) return;
+    await removeWhere((VideoItem v) => blocked || user == null || !user.canSeeCourse(v.category));
+  }
+
+  /// Erases every saved lesson (and stops every download) [test] says.
+  static Future<void> removeWhere(bool Function(VideoItem v) test) async {
+    for (final _Job j in List<_Job>.of(_queue)) {
+      if (test(j.video)) cancel(j.video.id);
+    }
+    for (final VideoItem v in _pending.values.toList()) {
+      if (test(v)) cancel(v.id);
+    }
+    await ensureLoaded();
+    if (_dir.isEmpty) return;
+    final List<VideoItem> gone = items.where(test).toList();
+    if (gone.isEmpty) return;
+    for (final VideoItem v in gone) {
+      items.removeWhere((VideoItem x) => x.id == v.id);
+      _savedAt.remove(v.id);
+      failed.remove(v.id);
+      await deleteVideoFile(_path(v.id));
+    }
+    _save();
+  }
+
+  // ── DOWNLOAD A WHOLE FOLDER (12/11/2026, from ENGX) ──────────────────────
+  //
+  // "Download all" above a folder's lessons: every lesson not saved yet is
+  // queued and downloaded ONE AFTER ANOTHER. The whole folder counts as ONE
+  // download for the hourly cap. Each lesson card shows "waiting".
+
+  static final List<_Job> _queue = <_Job>[];
+  static final RxSet<String> queued = <String>{}.obs;
+  static bool _running = false;
+
+  static bool isQueued(String id) => queued.contains(id);
+
+  /// Lessons of [videos] that "Download all" would still save.
+  static List<VideoItem> missing(List<VideoItem> videos) => <VideoItem>[
+        for (final VideoItem v in videos)
+          if (v.hasFile && !isDownloaded(v.id)) v,
+      ];
+
+  /// Queues every lesson of [videos] not saved yet. Returns how many were
+  /// queued, 0 = nothing to do, -1 = refused (switched off / hourly cap).
+  static Future<int> downloadAll(List<VideoItem> videos) async {
+    if (!bulkEnabled) return -1;
+    await ensureLoaded();
+    if (_loadedFor.isEmpty) return -1;
+    final List<VideoItem> todo = <VideoItem>[
+      for (final VideoItem v in missing(videos))
+        if (!isDownloading(v.id) && !isQueued(v.id)) v,
+    ];
+    if (todo.isEmpty) return 0;
+    if (!_burstAllowed(todo.first)) return -1;
+    final String owner = _loadedFor;
+    for (final VideoItem v in todo) {
+      failed.remove(v.id);
+      queued.add(v.id);
+      _queue.add(_Job(owner, v));
+    }
+    unawaited(_runQueue());
+    return todo.length;
+  }
+
+  /// Stops a folder download: the waiting lessons and the one in progress.
+  static void cancelAll(Iterable<String> ids) {
+    for (final String id in ids) {
+      cancel(id);
+    }
+  }
+
+  static Future<void> _runQueue() async {
+    if (_running) return;
+    _running = true;
+    try {
+      while (_queue.isNotEmpty) {
+        final _Job job = _queue.removeAt(0);
+        if (!queued.remove(job.video.id)) continue; // cancelled meanwhile
+        if (!enabled || _loadedFor != job.owner) continue;
+        await start(job.video, fromQueue: true);
+      }
+    } finally {
+      _running = false;
+    }
+  }
+
+  static void _clearQueue() {
+    _queue.clear();
+    queued.clear();
+  }
 
   /// Call once at start-up: the super admin switching downloads OFF erases
   /// the offline lessons on this device (every account). Only an explicit
@@ -122,6 +279,7 @@ abstract final class VideoDownloads {
 
   /// Erases every offline lesson on this device, of every account.
   static Future<void> wipeDevice() async {
+    _clearQueue();
     for (final String id in active.keys.toList()) {
       cancel(id);
     }
@@ -258,14 +416,15 @@ abstract final class VideoDownloads {
   static int get totalBytes =>
       items.fold<int>(0, (int sum, VideoItem v) => sum + v.sizeBytes);
 
-  static Future<void> start(VideoItem video) async {
+  static Future<void> start(VideoItem video, {bool fromQueue = false}) async {
     if (!enabled || !video.hasFile) return;
     await ensureLoaded();
     if (_loadedFor.isEmpty || isDownloaded(video.id) || isDownloading(video.id)) {
       return;
     }
     final String owner = _loadedFor;
-    if (!_burstAllowed(video)) {
+    // A folder download was counted once, as a whole, in [downloadAll].
+    if (!fromQueue && !_burstAllowed(video)) {
       failed.add(video.id);
       return;
     }
@@ -305,6 +464,7 @@ abstract final class VideoDownloads {
   }
 
   static void cancel(String id) {
+    if (queued.remove(id)) _queue.removeWhere((_Job j) => j.video.id == id);
     if (isDownloading(id)) _cancelled.add(id);
   }
 
@@ -321,6 +481,7 @@ abstract final class VideoDownloads {
   static Future<void> removeAll() async {
     await ensureLoaded();
     if (_dir.isEmpty) return;
+    _clearQueue();
     for (final String id in active.keys.toList()) {
       cancel(id);
     }
@@ -372,4 +533,12 @@ abstract final class VideoDownloads {
           : null,
     );
   }
+}
+
+/// One lesson waiting in a folder download.
+class _Job {
+  const _Job(this.owner, this.video);
+
+  final String owner;
+  final VideoItem video;
 }

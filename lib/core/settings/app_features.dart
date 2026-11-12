@@ -63,6 +63,9 @@ enum AppFeature {
   /// ON = members can save lessons INSIDE the app (encrypted, this device and
   /// account only) and watch them offline. OFF also erases saved lessons.
   videoDownloads('video_downloads', AppFeatureGroup.videos, Icons.download_for_offline_rounded),
+  /// ON = a "Download all" button above each folder's lessons saves them
+  /// all, one after another (needs videoDownloads). (12/11/2026, from ENGX)
+  videoDownloadAll('video_download_all', AppFeatureGroup.videos, Icons.cloud_download_rounded),
   /// ON = lessons come ONLY from the Cloudflare lesson server (no Google
   /// Drive download limit). Copy the lessons there first (Settings →
   /// Cloudflare lessons). OFF = Google Drive, as before. (07/11/2026)
@@ -129,6 +132,32 @@ class AppFeatures extends GetxController {
   /// [AppFeature.defaultOn] (on for all but a few).
   final RxMap<String, bool> values = <String, bool>{}.obs;
 
+  /// True once the switches were read from the SERVER, not the offline
+  /// cache. Anything that ERASES files waits for this (12/11/2026).
+  final RxBool fromServer = false.obs;
+
+  /// OPEN TO ALL, COURSE BY COURSE (12/11/2026, from ENGX): the courses the
+  /// admin opened to every signed-in member (Videos → a course → "Open to
+  /// all members"). `open_courses` in the same document; firestore.rules
+  /// (hasCourse) reads it too. Blocked / paused / expired accounts still
+  /// can't watch.
+  final RxList<String> openCourses = <String>[].obs;
+
+  bool courseOpenToAll(String course) => openCourses.contains(course.trim());
+
+  Future<void> setCourseOpenToAll(String course, bool value) async {
+    final String c = course.trim();
+    // Optimistic.
+    if (value) {
+      if (!openCourses.contains(c)) openCourses.add(c);
+    } else {
+      openCourses.remove(c);
+    }
+    await _doc.set(<String, dynamic>{
+      'open_courses': value ? FieldValue.arrayUnion(<String>[c]) : FieldValue.arrayRemove(<String>[c]),
+    }, SetOptions(merge: true));
+  }
+
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _sub;
 
   @override
@@ -142,8 +171,16 @@ class AppFeatures extends GetxController {
   void listen() {
     _sub?.cancel();
     try {
-      _sub = _doc.snapshots().listen(
+      // includeMetadataChanges: also hear "now confirmed by the server".
+      _sub = _doc.snapshots(includeMetadataChanges: true).listen(
         (DocumentSnapshot<Map<String, dynamic>> snap) {
+          if (!snap.metadata.isFromCache) fromServer.value = true;
+          final Object? open = snap.data()?['open_courses'];
+          if (open is List) {
+            openCourses.assignAll(<String>[for (final Object? c in open) '$c'.trim()]);
+          } else if (!snap.metadata.isFromCache) {
+            openCourses.clear();
+          }
           final Map<String, dynamic> data = snap.data() ?? <String, dynamic>{};
           values.assignAll(<String, bool>{
             for (final MapEntry<String, dynamic> e in data.entries)

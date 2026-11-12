@@ -71,6 +71,16 @@ class _VideoDownloadButtonState extends State<VideoDownloadButton> {
       VideoDownloads.items.length; // tracked: ✓ appears when it finishes
       final bool done = VideoDownloads.isDownloaded(id);
       final bool failed = VideoDownloads.failed.contains(id);
+      // Waiting its turn in a "Download all" (12/11/2026).
+      if (VideoDownloads.queued.contains(id) && progress == null) {
+        return _Tap(
+          tooltip: Localizations.localeOf(context).languageCode == 'ar'
+              ? 'في انتظار التحميل — اضغط للتخطي'
+              : 'Waiting to download — tap to skip',
+          onTap: () => VideoDownloads.cancel(id),
+          child: AppIcon(Icons.schedule_rounded, size: 22.sp, color: AppColors.secondaryText),
+        );
+      }
 
       if (progress != null) {
         return _Tap(

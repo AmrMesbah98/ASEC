@@ -117,6 +117,15 @@ class AppUser {
       return false;
     }
   }
+  /// Opened to every member by the admin (AppFeatures.openCourses).
+  static bool _openToAll(String course) {
+    try {
+      return AppFeatures.to.courseOpenToAll(course);
+    } catch (_) {
+      return false;
+    }
+  }
+
   bool get isPermanent => accessFrom == null && accessUntil == null;
 
   /// Whether this member may see [category] HERE (this platform, now).
@@ -127,7 +136,7 @@ class AppUser {
   bool canSeeCourse(String category) {
     if (isAdmin) return true;
     final String c = category.trim();
-    if (!hasEveryCourse && !courses.contains(c)) return false;
+    if (!hasEveryCourse && !courses.contains(c) && !_openToAll(c)) return false;
     final CourseAccess? a = courseAccess[c];
     if (a != null) return a.openHere;
     // The default courses (GENERAL NOTES, Reals) open on every platform
@@ -140,7 +149,7 @@ class AppUser {
   bool courseOutsideWindow(String category) {
     if (isAdmin) return false;
     final String c = category.trim();
-    if (!hasEveryCourse && !courses.contains(c)) return false;
+    if (!hasEveryCourse && !courses.contains(c) && !_openToAll(c)) return false;
     final CourseAccess? a = courseAccess[c];
     if (a != null) return !a.openHere;
     if (MemberAccess.defaultCourses.contains(c)) return false;
