@@ -30,6 +30,7 @@ import 'package:asec/features/quiz/q1_quizzes/data/repository/quiz_repository.da
 import 'package:asec/features/quiz/q1_quizzes/domain/base_repository/quiz_base_repository.dart';
 import 'package:asec/features/quiz/q1_quizzes/domain/entities/quiz.dart';
 import 'package:asec/features/quiz/q1_quizzes/domain/entities/quiz_attempt.dart';
+import 'package:asec/features/quiz/q1_quizzes/domain/entities/quiz_integrity_event.dart';
 import 'package:asec/features/quiz/q1_quizzes/presentation/ui/pages/attempt_detail_page.dart';
 import 'package:asec/generated/l10n.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
@@ -140,7 +141,13 @@ class _AdminResultsPageState extends State<AdminResultsPage> {
       formula: '',
       note: '',
       extraTitle: s.results,
-      extraHeaders: <String>[s.member, s.email, s.quizLabel, s.score, '%', s.timeTaken, s.finishedAt],
+      extraHeaders: <String>[
+        s.member, s.email, s.quizLabel, s.score, '%', s.timeTaken, s.finishedAt,
+        // 13/11/2026: what happened during the quiz.
+        ar ? 'لقطات الشاشة' : 'Screenshots',
+        ar ? 'الخروج من التطبيق' : 'Left the app',
+        ar ? 'وقت الخروج' : 'Time away',
+      ],
       extraRows: <List<String>>[
         for (final QuizAttempt a in rows)
           <String>[
@@ -151,6 +158,9 @@ class _AdminResultsPageState extends State<AdminResultsPage> {
             '${a.percent.round()}',
             time(a),
             AppDates.dateTime(context, a.submittedAt),
+            '${a.screenshots + a.recordings}',
+            '${a.leftApp}',
+            a.awaySeconds == 0 ? '0' : formatAwayTime(a.awaySeconds),
           ],
       ],
       labels: CalcReportLabels(

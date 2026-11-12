@@ -26,6 +26,9 @@ import 'package:asec/features/quiz/q1_quizzes/domain/entities/quiz_attempt.dart'
 import 'package:asec/features/quiz/q1_quizzes/domain/entities/quiz_question.dart';
 import 'package:asec/features/quiz/q1_quizzes/domain/enums/quiz_window_state.dart';
 import 'package:asec/features/quiz/q1_quizzes/presentation/controller/quiz_attempt_cubit.dart';
+import 'package:asec/features/quiz/q1_quizzes/data/quiz_integrity_monitor.dart';
+import 'package:asec/features/quiz/q1_quizzes/domain/entities/quiz_integrity_event.dart';
+import 'package:asec/features/quiz/q1_quizzes/presentation/ui/widgets/quiz_text_direction.dart';
 import 'package:asec/features/quiz/q1_quizzes/presentation/ui/widgets/quiz_meta.dart';
 import 'package:asec/features/quiz/q1_quizzes/presentation/ui/widgets/quiz_result_export.dart';
 import 'package:asec/features/quiz/q2_certificates/presentation/ui/pages/certificate_page.dart';
@@ -249,6 +252,14 @@ class _Intro extends StatelessWidget {
                     )
                   : s.quizRulesUntimed('${quiz.questionCount}'),
             ),
+            SizedBox(height: 10.h),
+            InfoBanner(
+              icon: Icons.visibility_outlined,
+              color: AppColors.statusPending,
+              message: Localizations.localeOf(context).languageCode == 'ar'
+                  ? 'ابقَ في الاختبار حتى تسلّم: كل لقطة شاشة وكل مرة تخرج فيها من التطبيق (تصغير، أو الانتقال لنافذة أو تطبيق آخر) تُحسب وتظهر للمدرّب.'
+                  : 'Stay in the quiz until you submit: every screenshot and every time you leave the app (minimise, switch to another window or app) is counted and shown to your instructor.',
+            ),
             SizedBox(height: 20.h),
             AppButton(
               label: s.startQuiz,
@@ -296,6 +307,7 @@ class _Questions extends StatelessWidget {
 
     return Column(
       children: <Widget>[
+        _IntegrityBar(monitor: cubit.monitor),
         // Progress: how far along, and how many are answered.
         Padding(
           padding: EdgeInsets.fromLTRB(AppPadding.h, 12.h, AppPadding.h, 0),
@@ -338,7 +350,10 @@ class _Questions extends StatelessWidget {
             padding:
                 EdgeInsets.symmetric(horizontal: AppPadding.h, vertical: 16.h),
             child: AppCard(
-              child: Column(
+              // An Arabic question and its options read right to left.
+              child: Directionality(
+                textDirection: quizTextDirection(question.text),
+                child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
@@ -353,6 +368,7 @@ class _Questions extends StatelessWidget {
                           : () => cubit.answer(question.id, i),
                     ),
                 ],
+              ),
               ),
             ),
           ),
@@ -558,6 +574,8 @@ class _Result extends StatelessWidget {
                   )),
                   style: StyleText.fontSize14Weight600,
                 ),
+                SizedBox(height: 10.h),
+                _IntegrityChips(attempt: attempt),
                 SizedBox(height: 18.h),
                 // 10/11/2026: the member's grade as a PDF or Excel sheet.
                 // A final exam that can still be retaken leaves out the key.
@@ -643,7 +661,9 @@ class _ReviewRow extends StatelessWidget {
 
     return Padding(
       padding: EdgeInsets.only(bottom: 10.h),
-      child: AppCard(
+      child: Directionality(
+        textDirection: quizTextDirection(question.text),
+        child: AppCard(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
@@ -682,6 +702,7 @@ class _ReviewRow extends StatelessWidget {
           ],
         ),
       ),
+      ),
     );
   }
 }
@@ -712,6 +733,124 @@ class _ReviewLine extends StatelessWidget {
             FormatHelper.capitalize(value),
             style: StyleText.fontSize13Weight600.copyWith(color: color),
           ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── 13/11/2026: screenshots and leaving the quiz ───────────────────────────
+
+/// Live counts the member sees while answering, and a warning each time.
+class _IntegrityBar extends StatefulWidget {
+  const _IntegrityBar({required this.monitor});
+
+  final QuizIntegrityMonitor monitor;
+
+  @override
+  State<_IntegrityBar> createState() => _IntegrityBarState();
+}
+
+class _IntegrityBarState extends State<_IntegrityBar> {
+  @override
+  void initState() {
+    super.initState();
+    widget.monitor.onEvent = _warn;
+  }
+
+  @override
+  void dispose() {
+    if (widget.monitor.onEvent == _warn) widget.monitor.onEvent = null;
+    super.dispose();
+  }
+
+  void _warn(QuizIntegrityEvent e) {
+    if (!mounted) return;
+    final bool ar = Localizations.localeOf(context).languageCode == 'ar';
+    final QuizIntegrityMonitor m = widget.monitor;
+    final String what = switch (e.type) {
+      'screenshot' => ar ? 'تم رصد لقطة شاشة (${m.screenshots})' : 'Screenshot detected (${m.screenshots})',
+      'recording' => ar ? 'تم رصد تسجيل للشاشة (${m.recordings})' : 'Screen recording detected (${m.recordings})',
+      _ => ar
+          ? 'خرجت من الاختبار (${m.leftApp}${e.seconds > 0 ? ' · ${formatAwayTime(e.seconds)}' : ''})'
+          : 'You left the quiz (${m.leftApp}${e.seconds > 0 ? ' · ${formatAwayTime(e.seconds)}' : ''})',
+    };
+    AppMessenger.of(context).show(AppMessage(
+      content: Text(ar ? '$what — سيظهر هذا للمدرّب.' : '$what — your instructor will see this.'),
+    ));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bool ar = Localizations.localeOf(context).languageCode == 'ar';
+    return ListenableBuilder(
+      listenable: widget.monitor,
+      builder: (BuildContext context, _) {
+        final QuizIntegrityMonitor m = widget.monitor;
+        final int shots = m.screenshots + m.recordings;
+        final bool clean = shots == 0 && m.leftApp == 0;
+        return Container(
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(horizontal: AppPadding.h, vertical: 8.h),
+          color: (clean ? AppColors.primary : AppColors.red).withValues(alpha: 0.08),
+          child: Wrap(
+            spacing: 14.w,
+            runSpacing: 4.h,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: <Widget>[
+              _count(Icons.camera_alt_rounded, ar ? 'لقطات الشاشة' : 'Screenshots', '$shots', shots > 0),
+              _count(Icons.logout_rounded, ar ? 'الخروج من الاختبار' : 'Left the quiz', '${m.leftApp}', m.leftApp > 0),
+              if (m.awaySeconds > 0)
+                _count(Icons.timer_outlined, ar ? 'وقت الخروج' : 'Time away', formatAwayTime(m.awaySeconds), true),
+              Text(
+                ar ? 'يراها المدرّب' : 'Your instructor sees these',
+                style: StyleText.fontSize12Weight400.copyWith(color: AppColors.secondaryText),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _count(IconData icon, String label, String value, bool bad) {
+    final Color c = bad ? AppColors.red : AppColors.secondaryText;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        AppIcon(icon, size: 16.sp, color: c),
+        SizedBox(width: 5.w),
+        Text('$label: $value', style: StyleText.fontSize12Weight600.copyWith(color: c)),
+      ],
+    );
+  }
+}
+
+/// On the result: how many screenshots and times they left.
+class _IntegrityChips extends StatelessWidget {
+  const _IntegrityChips({required this.attempt});
+
+  final QuizAttempt attempt;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool ar = Localizations.localeOf(context).languageCode == 'ar';
+    final int shots = attempt.screenshots + attempt.recordings;
+    return Wrap(
+      spacing: 8.w,
+      runSpacing: 8.h,
+      alignment: WrapAlignment.center,
+      children: <Widget>[
+        QuizChip(
+          icon: Icons.camera_alt_rounded,
+          label: '${ar ? 'لقطات الشاشة' : 'Screenshots'}: $shots',
+          color: shots > 0 ? AppColors.red : AppColors.secondaryText,
+        ),
+        QuizChip(
+          icon: Icons.logout_rounded,
+          label: '${ar ? 'الخروج من الاختبار' : 'Left the quiz'}: ${attempt.leftApp}'
+              '${attempt.awaySeconds > 0 ? ' (${formatAwayTime(attempt.awaySeconds)})' : ''}',
+          color: attempt.leftApp > 0 ? AppColors.red : AppColors.secondaryText,
         ),
       ],
     );

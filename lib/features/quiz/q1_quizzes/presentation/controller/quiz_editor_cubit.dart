@@ -177,7 +177,9 @@ class QuizEditorCubit extends Cubit<QuizEditorState> {
         // The marker moves with the list: removing the option ABOVE the
         // correct one must not silently change which answer is right.
         int correct = q.correctIndex;
-        if (index < correct) {
+        if (correct < 0) {
+          // No answer chosen yet (an imported question): stays unchosen.
+        } else if (index < correct) {
           correct--;
         } else if (index == correct) {
           correct = 0;
@@ -197,6 +199,67 @@ class QuizEditorCubit extends Cubit<QuizEditorState> {
         quiz: state.quiz.copyWith(questions: questions),
         clearErrors: true,
       ));
+
+  // ── Import / restore (13/11/2026) ────────────────────────────────────────
+
+  /// Questions read from a file (Import from file). [replace] drops the
+  /// current ones; otherwise they are added after them.
+  void importQuestions(List<QuizQuestion> imported, {required bool replace, String title = ''}) {
+    final Quiz quiz = state.quiz;
+    emit(state.copyWith(
+      quiz: quiz.copyWith(
+        questions: replace ? imported : <QuizQuestion>[...quiz.questions, ...imported],
+        title: quiz.title.trim().isEmpty && title.trim().isNotEmpty ? title.trim() : null,
+      ),
+      clearErrors: true,
+    ));
+  }
+
+  /// The work kept on this device ("Continue where you stopped?").
+  void restore(Quiz draft) => emit(state.copyWith(quiz: draft, clearErrors: true));
+
+  /// True after Save for later (the page says "saved as a draft").
+  bool savedAsDraft = false;
+
+  /// SAVE FOR LATER: keeps an unfinished quiz as a Draft members cannot see.
+  /// Only the closing-before-opening check applies; a missing title becomes
+  /// "Untitled quiz". A quiz that is already published is saved normally
+  /// (it must stay complete).
+  Future<void> saveForLater() async {
+    if (state.isSaving) return;
+    if (state.quiz.published) return save();
+    if (!state.quiz.hasValidWindow) {
+      emit(state.copyWith(status: QuizEditorStatus.editing, formError: QuizFormError.windowBackwards));
+      return;
+    }
+    savedAsDraft = true;
+    final Quiz draft = state.quiz.copyWith(
+      createdBy: adminUid,
+      published: false,
+      title: state.quiz.title.trim().isEmpty ? 'Untitled quiz' : null,
+    );
+    emit(state.copyWith(quiz: draft, status: QuizEditorStatus.saving, clearErrors: true));
+    await _write(draft);
+  }
+
+  Future<void> _write(Quiz quiz) async {
+    void fail(AppFailure failure) => emit(state.copyWith(
+          status: QuizEditorStatus.failure,
+          failure: failure,
+        ));
+    if (_isNew) {
+      final Either<AppFailure, String> result = await _repository.create(quiz);
+      if (isClosed) return;
+      result.fold(fail, (String id) {
+        _isNew = false;
+        emit(state.copyWith(status: QuizEditorStatus.saved, quiz: state.quiz.copyWith(id: id)));
+      });
+      return;
+    }
+    final Either<AppFailure, Unit> result = await _repository.update(quiz);
+    if (isClosed) return;
+    result.fold(fail, (_) => emit(state.copyWith(status: QuizEditorStatus.saved)));
+  }
 
   // ── Save ─────────────────────────────────────────────────────────────────
 

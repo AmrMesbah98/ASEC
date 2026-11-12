@@ -8,6 +8,7 @@
 /// Created: 19/9/2026
 
 import 'package:flutter/material.dart';
+import 'package:asec/features/quiz/q1_quizzes/presentation/ui/widgets/quiz_text_direction.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import 'package:asec/core/constants/app_constants.dart';
@@ -158,13 +159,20 @@ class _QuestionEditorCardState extends State<QuestionEditorCard> {
               controller: _text,
               hint: s.questionText,
               maxLines: 2,
+              // Arabic reads right to left, English left to right.
+              textDirection: quizTextDirection(_text.text),
               onChanged: widget.onTextChanged,
             ),
             SizedBox(height: 12.h),
             Text(
-              FormatHelper.capitalize(s.markCorrectHint),
-              style: StyleText.fontSize12Weight400
-                  .copyWith(color: AppColors.secondaryText),
+              q.correctIndex < 0
+                  // Imported without an answer key: pick the right option.
+                  ? (Localizations.localeOf(context).languageCode == 'ar'
+                      ? 'اختر الإجابة الصحيحة — اضغط الدائرة بجانبها'
+                      : 'Choose the correct answer — tap its circle')
+                  : FormatHelper.capitalize(s.markCorrectHint),
+              style: StyleText.fontSize12Weight400.copyWith(
+                  color: q.correctIndex < 0 ? AppColors.statusPending : AppColors.secondaryText),
             ),
             SizedBox(height: 8.h),
             for (int i = 0; i < _options.length; i++)
@@ -192,6 +200,7 @@ class _QuestionEditorCardState extends State<QuestionEditorCard> {
                       child: CustomTextField(
                         controller: _options[i],
                         hint: s.optionN('${i + 1}'),
+                        textDirection: quizTextDirection(_options[i].text),
                         onChanged: (String value) =>
                             widget.onOptionChanged(i, value),
                       ),

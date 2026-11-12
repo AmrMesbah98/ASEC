@@ -7,6 +7,8 @@
 /// Author: ASEC team
 /// Created: 19/9/2026
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -23,6 +25,10 @@ import 'package:asec/core/theme/app_theme.dart';
 import 'package:asec/features/quiz/q1_quizzes/domain/entities/quiz.dart';
 import 'package:asec/features/quiz/q1_quizzes/domain/entities/quiz_question.dart';
 import 'package:asec/features/quiz/q1_quizzes/presentation/controller/quiz_editor_cubit.dart';
+import 'package:asec/features/quiz/q1_quizzes/data/quiz_draft_store.dart';
+import 'package:asec/features/quiz/q1_quizzes/data/quiz_file_import.dart';
+import 'package:asec/features/quiz/q1_quizzes/data/quiz_import_parser.dart';
+import 'package:asec/core/custom/57-custom_dialog_manager.dart';
 import 'package:asec/features/quiz/q1_quizzes/presentation/ui/widgets/date_time_field.dart';
 import 'package:asec/features/quiz/q1_quizzes/presentation/ui/widgets/question_editor_card.dart';
 import 'package:asec/features/video/v1_videos/data/repository/video_repository.dart';
@@ -66,13 +72,162 @@ class QuizEditorPage extends StatelessWidget {
         course: course,
         section: section,
       ),
-      child: const _QuizEditorView(),
+      child: _DraftKeeper(slot: quiz?.id ?? ''),
+    );
+  }
+}
+
+/// 13/11/2026 — SAVE FOR LATER on this device: every change is kept (see
+/// QuizDraftStore), and opening the quiz again offers to continue. Also the
+/// home of "Import from file".
+class _DraftKeeper extends StatefulWidget {
+  const _DraftKeeper({required this.slot});
+
+  /// '' for a new quiz, else the quiz id.
+  final String slot;
+
+  @override
+  State<_DraftKeeper> createState() => _DraftKeeperState();
+}
+
+class _DraftKeeperState extends State<_DraftKeeper> {
+  /// Bumped when the whole quiz is replaced, so every text field restarts.
+  int _epoch = 0;
+  Timer? _autosave;
+  bool _dirty = false;
+  bool importing = false;
+  late final QuizEditorCubit _cubit;
+
+  @override
+  void initState() {
+    super.initState();
+    _cubit = context.read<QuizEditorCubit>();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _offerDraft());
+  }
+
+  @override
+  void dispose() {
+    _autosave?.cancel();
+    if (_dirty) {
+      QuizDraftStore.save(widget.slot, _cubit.state.quiz);
+    }
+    super.dispose();
+  }
+
+  Future<void> _offerDraft() async {
+    final QuizEditorCubit cubit = _cubit;
+    final QuizLocalDraft? draft = QuizDraftStore.load(widget.slot, cubit.state.quiz);
+    if (draft == null || !mounted) return;
+    await QuizDraftStore.clear(widget.slot);
+    if (!mounted) return;
+    final bool ar = Localizations.localeOf(context).languageCode == 'ar';
+    final Quiz q = draft.quiz;
+    await CustomDialogManager.showConfirm(
+      context: context,
+      title: ar ? 'متابعة من حيث توقفت؟' : 'Continue where you stopped?',
+      subtitle: ar
+          ? 'لديك عمل غير محفوظ: "${q.title.isEmpty ? 'بدون عنوان' : q.title}" — ${q.questions.length} سؤال.'
+          : 'You have unsaved work: "${q.title.isEmpty ? 'untitled' : q.title}" — ${q.questions.length} questions.',
+      confirmLabel: ar ? 'متابعة' : 'Continue',
+      cancelLabel: ar ? 'البدء من جديد' : 'Start over',
+      onConfirm: () {
+        cubit.restore(q);
+        _dirty = true;
+        if (mounted) setState(() => _epoch++);
+      },
+    );
+  }
+
+  void _changed() {
+    _dirty = true;
+    _autosave?.cancel();
+    _autosave = Timer(const Duration(milliseconds: 700), () {
+      if (!mounted) return;
+      QuizDraftStore.save(widget.slot, _cubit.state.quiz);
+    });
+  }
+
+  /// Import from file: a PDF (e.g. a Google Forms printout) or .txt.
+  Future<void> importFile() async {
+    final QuizEditorCubit cubit = _cubit;
+    final AppMessenger messenger = AppMessenger.of(context);
+    final bool ar = Localizations.localeOf(context).languageCode == 'ar';
+    setState(() => importing = true);
+    QuizImportResult? result;
+    try {
+      result = await QuizFileImport.pickAndParse();
+    } on FormatException catch (e) {
+      messenger.show(AppMessage(content: Text(ar ? 'لم يتم العثور على أسئلة في هذا الملف.' : e.message)));
+    } catch (e) {
+      // The PDF engine is native code: only there after a full rebuild.
+      final bool noEngine = '$e'.contains('FPDF_');
+      messenger.show(AppMessage(
+        content: Text(noEngine
+            ? (ar ? 'قارئ PDF غير موجود في هذا الإصدار — أوقف التطبيق وشغّله من جديد.'
+                : 'The PDF reader is not in this build yet — stop the app and run it again.')
+            : '${ar ? 'تعذّرت قراءة الملف' : 'Could not read the file'}: $e'),
+      ));
+    }
+    if (!mounted) return;
+    setState(() => importing = false);
+    if (result == null) return;
+    final QuizImportResult imported = result;
+
+    final bool onlyBlank = cubit.state.quiz.questions.every(
+        (QuizQuestion q) => q.text.trim().isEmpty && q.options.every((String o) => o.trim().isEmpty));
+    bool replace = true;
+    if (!onlyBlank) {
+      bool? choice;
+      await CustomDialogManager.showConfirm(
+        context: context,
+        title: ar ? 'تم العثور على ${imported.questions.length} سؤال' : '${imported.questions.length} questions found',
+        subtitle: ar
+            ? 'في الاختبار أسئلة بالفعل. استبدالها أم إضافة الجديدة بعدها؟'
+            : 'This quiz already has questions. Replace them, or add the new ones after them?',
+        confirmLabel: ar ? 'استبدال' : 'Replace',
+        cancelLabel: ar ? 'إضافة بعدها' : 'Add after',
+        onConfirm: () => choice = true,
+        onCancel: () => choice = false,
+      );
+      if (choice == null || !mounted) return;
+      replace = choice!;
+    }
+    cubit.importQuestions(imported.questions, replace: replace, title: imported.title);
+    setState(() => _epoch++);
+    _changed();
+    final int pts = imported.questions.fold<int>(0, (int s, QuizQuestion q) => s + q.points);
+    final int missing = imported.missingAnswers;
+    messenger.show(AppMessage(
+      content: Text(ar
+          ? 'تم استيراد ${imported.questions.length} سؤال · $pts درجة'
+              '${missing == 0 ? '' : ' · الملف بدون إجابات: اختر الإجابة الصحيحة في $missing سؤال'}'
+          : '${imported.questions.length} questions imported · $pts pts'
+              '${missing == 0 ? '' : ' · the file has no answer key: choose the correct answer on $missing questions'}'),
+    ));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocListener<QuizEditorCubit, QuizEditorState>(
+      listenWhen: (QuizEditorState a, QuizEditorState b) =>
+          a.quiz != b.quiz || (a.status != b.status && b.status == QuizEditorStatus.saved),
+      listener: (BuildContext context, QuizEditorState state) {
+        if (state.status == QuizEditorStatus.saved) {
+          // On the server now: the device copy is no longer needed.
+          _autosave?.cancel();
+          _dirty = false;
+          QuizDraftStore.clear(widget.slot);
+          return;
+        }
+        _changed();
+      },
+      child: _QuizEditorView(key: ValueKey<int>(_epoch)),
     );
   }
 }
 
 class _QuizEditorView extends StatelessWidget {
-  const _QuizEditorView();
+  const _QuizEditorView({super.key});
 
   /// From here the form is two columns: settings beside the questions.
   static const double _splitWidth = 1000;
@@ -104,8 +259,15 @@ class _QuizEditorView extends StatelessWidget {
         if (state.status == QuizEditorStatus.saved) {
           final AppMessenger messenger =
               AppMessenger.of(context);
+          final bool ar = Localizations.localeOf(context).languageCode == 'ar';
           Navigator.of(context).pop(true);
-          messenger.show(AppMessage(content: Text(FormatHelper.capitalize(s.quizSaved))));
+          messenger.show(AppMessage(
+            content: Text(cubit.savedAsDraft
+                ? (ar
+                    ? 'تم الحفظ كمسودة — لا يراها الأعضاء. افتحها من الاختبارات لمتابعتها.'
+                    : 'Saved for later as a Draft — members can not see it. Open it from Quizzes to continue.')
+                : FormatHelper.capitalize(s.quizSaved)),
+          ));
         }
       },
       builder: (BuildContext context, QuizEditorState state) {
@@ -122,6 +284,35 @@ class _QuizEditorView extends StatelessWidget {
               style: StyleText.fontSize18Weight600,
             ),
             actions: <Widget>[
+              // 13/11/2026: read a quiz from a PDF / .txt.
+              Builder(
+                builder: (BuildContext context) {
+                  final _DraftKeeperState? keeper =
+                      context.findAncestorStateOfType<_DraftKeeperState>();
+                  final bool ar = Localizations.localeOf(context).languageCode == 'ar';
+                  return AppButton(
+                    label: ar ? 'استيراد من ملف' : 'Import from file',
+                    icon: Icons.upload_file_rounded,
+                    kind: AppButtonKind.subtle,
+                    dense: true,
+                    loading: keeper?.importing ?? false,
+                    onPressed: keeper == null || state.isSaving ? null : keeper.importFile,
+                  );
+                },
+              ),
+              SizedBox(width: 8.w),
+              // 13/11/2026: SAVE FOR LATER — an unfinished quiz kept as a
+              // Draft. A published quiz just uses Save (it stays published).
+              if (!state.quiz.published) ...<Widget>[
+                AppButton(
+                  label: Localizations.localeOf(context).languageCode == 'ar' ? 'حفظ لوقت لاحق' : 'Save for later',
+                  icon: Icons.bookmark_border_rounded,
+                  kind: AppButtonKind.outlined,
+                  dense: true,
+                  onPressed: state.isSaving ? null : cubit.saveForLater,
+                ),
+                SizedBox(width: 8.w),
+              ],
               Padding(
                 padding: EdgeInsetsDirectional.only(end: AppPadding.h),
                 child: AppButton(

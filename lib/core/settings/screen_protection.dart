@@ -65,6 +65,12 @@ abstract final class ScreenProtection {
 
   static bool get isVideoOpen => _videoScreens > 0;
 
+  static final StreamController<String> _captures = StreamController<String>.broadcast();
+
+  /// 13/11/2026: every screen capture the native side reports
+  /// ('screenshot' / 'recording'), lesson or not. A running quiz counts them.
+  static Stream<String> get captures => _captures.stream;
+
   /// A lesson video came on screen: block capture (if the switch is on).
   static void enterVideo() {
     _videoScreens++;
@@ -151,6 +157,7 @@ abstract final class ScreenProtection {
 
   static Future<void> _onNative(MethodCall call) async {
     if (call.method != 'captured') return;
+    _captures.add('${call.arguments}' == 'recording' ? 'recording' : 'screenshot');
     // Capture is only blocked on videos, so only alert from there.
     if (!isVideoOpen) return;
     final String type = '${call.arguments}';

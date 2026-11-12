@@ -7,6 +7,7 @@
 /// Created: 19/9/2026
 
 import 'package:asec/features/quiz/q1_quizzes/domain/entities/quiz.dart';
+import 'package:asec/features/quiz/q1_quizzes/domain/entities/quiz_integrity_event.dart';
 import 'package:asec/features/quiz/q1_quizzes/domain/entities/quiz_question.dart';
 
 /// Stored at `attempts/{quizId}_{uid}` — one per member per quiz, so the id
@@ -44,6 +45,20 @@ class QuizAttempt {
   /// Certificate quizzes: how many times the member has sat it (1 = first).
   final int tries;
 
+  /// 13/11/2026: screenshots / screen recordings during the quiz.
+  final int screenshots;
+  final int recordings;
+
+  /// Times the member left the quiz (minimised, switched app or window,
+  /// locked the phone) and the total time away.
+  final int leftApp;
+  final int awaySeconds;
+
+  /// What happened, oldest first (the first 100).
+  final List<QuizIntegrityEvent> events;
+
+  bool get hasWarnings => screenshots > 0 || recordings > 0 || leftApp > 0;
+
   const QuizAttempt({
     required this.id,
     required this.quizId,
@@ -61,6 +76,11 @@ class QuizAttempt {
     this.autoSubmitted = false,
     this.passed = false,
     this.tries = 1,
+    this.screenshots = 0,
+    this.recordings = 0,
+    this.leftApp = 0,
+    this.awaySeconds = 0,
+    this.events = const <QuizIntegrityEvent>[],
   });
 
   double get percent => totalPoints == 0 ? 0 : (score / totalPoints) * 100;
@@ -88,6 +108,11 @@ class QuizAttempt {
     required DateTime submittedAt,
     bool autoSubmitted = false,
     int tries = 1,
+    int screenshots = 0,
+    int recordings = 0,
+    int leftApp = 0,
+    int awaySeconds = 0,
+    List<QuizIntegrityEvent> events = const <QuizIntegrityEvent>[],
   }) {
     int score = 0;
     int correct = 0;
@@ -115,6 +140,11 @@ class QuizAttempt {
       passed: quiz.totalPoints > 0 &&
           score * 100 >= Quiz.passPercent * quiz.totalPoints,
       tries: tries,
+      screenshots: screenshots,
+      recordings: recordings,
+      leftApp: leftApp,
+      awaySeconds: awaySeconds,
+      events: events,
     );
   }
 }

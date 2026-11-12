@@ -9,6 +9,8 @@
 /// Created: 20/9/2026
 
 import 'package:flutter/material.dart';
+import 'package:asec/features/quiz/q1_quizzes/domain/entities/quiz_integrity_event.dart';
+import 'package:asec/features/quiz/q1_quizzes/presentation/ui/widgets/quiz_text_direction.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import 'package:asec/core/custom/101-custom_surface.dart';
@@ -184,6 +186,10 @@ class AttemptDetailPage extends StatelessWidget {
                   ],
                 ),
               ),
+              SizedBox(height: 14.h),
+
+              // ── 13/11/2026: screenshots and leaving the quiz ─────────────
+              _Behaviour(attempt: attempt),
               SizedBox(height: 18.h),
 
               // ── Every question, and what they chose ──────────────────────
@@ -196,10 +202,13 @@ class AttemptDetailPage extends StatelessWidget {
               ),
               SizedBox(height: 10.h),
               for (int i = 0; i < quiz.questions.length; i++)
-                _QuestionSheet(
-                  index: i,
-                  question: quiz.questions[i],
-                  chosen: attempt.answers[quiz.questions[i].id],
+                Directionality(
+                  textDirection: quizTextDirection(quiz.questions[i].text),
+                  child: _QuestionSheet(
+                    index: i,
+                    question: quiz.questions[i],
+                    chosen: attempt.answers[quiz.questions[i].id],
+                  ),
                 ),
               SizedBox(height: 24.h),
             ],
@@ -402,6 +411,90 @@ class _OptionRow extends StatelessWidget {
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// 13/11/2026: what the member did during the quiz — screenshots, times
+/// they left the app, time away, and when each happened.
+class _Behaviour extends StatelessWidget {
+  const _Behaviour({required this.attempt});
+
+  final QuizAttempt attempt;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool ar = Localizations.localeOf(context).languageCode == 'ar';
+    final QuizAttempt a = attempt;
+    final DateTime? start = a.startedAt;
+    Widget stat(IconData icon, String label, String value, bool bad) => Expanded(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              AppIcon(icon, size: 22.sp, color: bad ? AppColors.red : AppColors.secondaryText),
+              SizedBox(height: 6.h),
+              Text(value,
+                  style: StyleText.fontSize18Weight600.copyWith(color: bad ? AppColors.red : null)),
+              Text(label,
+                  textAlign: TextAlign.center,
+                  style: StyleText.fontSize12Weight400.copyWith(color: AppColors.secondaryText)),
+            ],
+          ),
+        );
+    return AppCard(
+      title: ar ? 'أثناء الاختبار' : 'During the quiz',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              stat(Icons.camera_alt_rounded, ar ? 'لقطات الشاشة' : 'Screenshots', '${a.screenshots}', a.screenshots > 0),
+              if (a.recordings > 0)
+                stat(Icons.videocam_rounded, ar ? 'تسجيل الشاشة' : 'Screen recordings', '${a.recordings}', true),
+              stat(Icons.logout_rounded, ar ? 'الخروج من التطبيق' : 'Left the app', '${a.leftApp}', a.leftApp > 0),
+              stat(Icons.timer_outlined, ar ? 'وقت الخروج' : 'Time away',
+                  a.awaySeconds == 0 ? '0s' : formatAwayTime(a.awaySeconds), a.awaySeconds > 0),
+            ],
+          ),
+          SizedBox(height: 12.h),
+          if (a.events.isEmpty)
+            Text(
+              ar ? 'بقي في الاختبار طوال الوقت — لم تُرصد لقطات شاشة.' : 'Stayed in the quiz the whole time — no screenshots detected.',
+              textAlign: TextAlign.center,
+              style: StyleText.fontSize13Weight400.copyWith(color: AppColors.secondaryText),
+            )
+          else
+            for (final QuizIntegrityEvent e in a.events)
+              Padding(
+                padding: EdgeInsets.symmetric(vertical: 4.h),
+                child: Row(
+                  children: <Widget>[
+                    AppIcon(
+                      e.type == 'left_app' ? Icons.logout_rounded : Icons.camera_alt_rounded,
+                      size: 16.sp,
+                      color: AppColors.red,
+                    ),
+                    SizedBox(width: 8.w),
+                    Expanded(child: Text(e.label(ar), style: StyleText.fontSize13Weight400)),
+                    Text(
+                      start == null
+                          ? AppDates.dateTime(context, e.at)
+                          : '${AppDates.dateTime(context, e.at)} · ${formatAwayTime(e.at.difference(start).inSeconds.clamp(0, 1 << 30))}',
+                      style: StyleText.fontSize12Weight400.copyWith(color: AppColors.secondaryText),
+                    ),
+                  ],
+                ),
+              ),
+          SizedBox(height: 6.h),
+          Text(
+            ar
+                ? 'تُرصد لقطات الشاشة على أندرويد 14+ وآيفون؛ وعلى ويندوز/ماك زر Print Screen فقط. المحاولات قبل هذا التحديث تظهر 0.'
+                : 'Screenshots are detected on Android 14+ and iPhone; on Windows / Mac only the Print Screen key. Attempts from before this update show 0.',
+            style: StyleText.fontSize11Weight400.copyWith(color: AppColors.secondaryText),
+          ),
+        ],
       ),
     );
   }

@@ -13,7 +13,9 @@ import 'package:dartz/dartz.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:asec/core/network/app_failure.dart';
+import 'package:asec/features/quiz/q1_quizzes/data/quiz_integrity_monitor.dart';
 import 'package:asec/features/quiz/q1_quizzes/data/repository/quiz_repository.dart';
+import 'package:asec/features/quiz/q1_quizzes/domain/entities/quiz_integrity_event.dart';
 import 'package:asec/features/quiz/q1_quizzes/domain/base_repository/quiz_base_repository.dart';
 import 'package:asec/features/quiz/q1_quizzes/domain/entities/quiz.dart';
 import 'package:asec/features/quiz/q1_quizzes/domain/entities/quiz_attempt.dart';
@@ -136,6 +138,10 @@ class QuizAttemptCubit extends Cubit<QuizAttemptState> {
   Timer? _ticker;
   DateTime? _startedAt;
 
+  /// 13/11/2026: screenshots and leaving the quiz, counted while it runs —
+  /// shown to the member live and saved on the attempt for the admin.
+  final QuizIntegrityMonitor monitor = QuizIntegrityMonitor();
+
   /// Looks for an earlier attempt, then either shows it or offers the intro.
   Future<void> load() async {
     final QuizWindowState window = quiz.windowStateAt(DateTime.now());
@@ -199,6 +205,7 @@ class QuizAttemptCubit extends Cubit<QuizAttemptState> {
   void start() {
     if (state.stage != AttemptStage.intro) return;
     _startedAt = DateTime.now();
+    monitor.start();
     emit(state.copyWith(
       stage: AttemptStage.running,
       currentIndex: 0,
@@ -243,6 +250,7 @@ class QuizAttemptCubit extends Cubit<QuizAttemptState> {
   Future<void> submit({bool auto = false}) async {
     if (state.stage != AttemptStage.running) return;
     _stopTicker();
+    monitor.stop();
     emit(state.copyWith(stage: AttemptStage.submitting));
 
     final QuizAttempt marked = QuizAttempt.marked(
@@ -255,6 +263,11 @@ class QuizAttemptCubit extends Cubit<QuizAttemptState> {
       submittedAt: DateTime.now(),
       autoSubmitted: auto,
       tries: (state.previous?.tries ?? 0) + 1,
+      screenshots: monitor.screenshots,
+      recordings: monitor.recordings,
+      leftApp: monitor.leftApp,
+      awaySeconds: monitor.awaySeconds,
+      events: List<QuizIntegrityEvent>.of(monitor.events),
     );
 
     final Either<AppFailure, Unit> result =
@@ -262,12 +275,15 @@ class QuizAttemptCubit extends Cubit<QuizAttemptState> {
     if (isClosed) return;
 
     result.fold(
-      (AppFailure failure) => emit(state.copyWith(
+      (AppFailure failure) {
+        monitor.resume(); // still answering: keep counting
+        emit(state.copyWith(
         // Back to answering: their answers are still in memory, so a retry
         // after a dropped connection does not lose the sitting.
         stage: AttemptStage.running,
         failure: failure,
-      )),
+      ));
+      },
       (_) => emit(state.copyWith(
         stage: AttemptStage.finished,
         attempt: marked,
@@ -283,6 +299,7 @@ class QuizAttemptCubit extends Cubit<QuizAttemptState> {
   @override
   Future<void> close() {
     _stopTicker();
+    monitor.dispose();
     return super.close();
   }
 }

@@ -13,6 +13,7 @@ import 'package:asec/core/constants/firebase_collections.dart';
 import 'package:asec/core/helper/main_helper/firestore_mapper.dart';
 import 'package:asec/features/quiz/q1_quizzes/domain/entities/quiz.dart';
 import 'package:asec/features/quiz/q1_quizzes/domain/entities/quiz_attempt.dart';
+import 'package:asec/features/quiz/q1_quizzes/domain/entities/quiz_integrity_event.dart';
 import 'package:asec/features/quiz/q1_quizzes/domain/entities/quiz_question.dart';
 
 /// Field names here MUST match the `onlyKeys` lists in firestore.rules.
@@ -135,6 +136,11 @@ abstract final class QuizAttemptModel {
   static const String autoSubmitted = 'auto_submitted';
   static const String passed = 'passed';
   static const String tries = 'tries';
+  static const String screenshots = 'screenshots';
+  static const String recordings = 'screen_recordings';
+  static const String leftApp = 'left_app';
+  static const String awaySeconds = 'away_seconds';
+  static const String events = 'events';
 
   static QuizAttempt fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
     final Map<String, dynamic> data = doc.safeData;
@@ -160,6 +166,22 @@ abstract final class QuizAttemptModel {
       autoSubmitted: data.boolean(autoSubmitted),
       passed: data.boolean(passed),
       tries: data.integer(tries, 1),
+      screenshots: data.integer(screenshots),
+      recordings: data.integer(recordings),
+      leftApp: data.integer(leftApp),
+      awaySeconds: data.integer(awaySeconds),
+      events: <QuizIntegrityEvent>[
+        if (data[events] is List)
+          for (final Object? e in data[events] as List<dynamic>)
+            if (e is Map)
+              QuizIntegrityEvent(
+                type: '${e['type'] ?? ''}',
+                at: e['at'] is Timestamp
+                    ? (e['at'] as Timestamp).toDate()
+                    : DateTime.fromMillisecondsSinceEpoch(0),
+                seconds: (e['seconds'] as num?)?.toInt() ?? 0,
+              ),
+      ],
     );
   }
 
@@ -181,6 +203,18 @@ abstract final class QuizAttemptModel {
         autoSubmitted: attempt.autoSubmitted,
         passed: attempt.passed,
         tries: attempt.tries,
+        screenshots: attempt.screenshots,
+        recordings: attempt.recordings,
+        leftApp: attempt.leftApp,
+        awaySeconds: attempt.awaySeconds,
+        events: <Map<String, dynamic>>[
+          for (final QuizIntegrityEvent e in attempt.events.take(100))
+            <String, dynamic>{
+              'type': e.type,
+              'at': Timestamp.fromDate(e.at),
+              if (e.seconds > 0) 'seconds': e.seconds,
+            },
+        ],
         FirebaseCollections.createdAtField: FieldValue.serverTimestamp(),
       };
 }
