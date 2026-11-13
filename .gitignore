@@ -92,3 +92,4 @@ tool/videos_default_backup.json
 members_courses_backup.json
 asec_course_access_example.xlsx
 *.mp4
+.claude_backup/

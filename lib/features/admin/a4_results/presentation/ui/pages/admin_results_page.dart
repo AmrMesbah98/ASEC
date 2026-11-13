@@ -44,7 +44,20 @@ class _Results {
 
   final List<Quiz> quizzes;
   final List<QuizAttempt> attempts;
+
+  /// 13/11/2026: an attempt's course and lecture (section) come from its quiz.
+  Map<String, Quiz> get quizById => <String, Quiz>{for (final Quiz q in quizzes) q.id: q};
 }
+
+/// The course a quiz belongs to, '—' for none.
+String _courseOf(Quiz? q) => (q == null || q.course.trim().isEmpty) ? '—' : q.course.trim();
+
+/// The lecture (course section) a quiz closes, '—' for none.
+String _lectureOf(Quiz? q) => (q == null || q.section.trim().isEmpty) ? '—' : q.section.trim();
+
+/// "Lecture" in the app's language.
+String _lectureLabel(BuildContext context) =>
+    Localizations.localeOf(context).languageCode == 'ar' ? 'المحاضرة' : 'Lecture';
 
 class AdminResultsPage extends StatefulWidget {
   const AdminResultsPage({super.key});
@@ -85,13 +98,17 @@ class _AdminResultsPageState extends State<AdminResultsPage> {
   /// rarely both.
   List<QuizAttempt> _visible(_Results data) {
     final String query = _search.text.trim().toLowerCase();
+    final Map<String, Quiz> quizById = data.quizById;
 
     final List<QuizAttempt> rows = data.attempts.where((QuizAttempt a) {
       if (_quizFilter != _allQuizzes && a.quizId != _quizFilter) return false;
       if (query.isEmpty) return true;
+      final Quiz? q = quizById[a.quizId];
       return a.userName.toLowerCase().contains(query) ||
           a.userEmail.toLowerCase().contains(query) ||
-          a.quizTitle.toLowerCase().contains(query);
+          a.quizTitle.toLowerCase().contains(query) ||
+          (q?.course.toLowerCase().contains(query) ?? false) ||
+          (q?.section.toLowerCase().contains(query) ?? false);
     }).toList();
 
     int compare(QuizAttempt a, QuizAttempt b) {
@@ -127,6 +144,7 @@ class _AdminResultsPageState extends State<AdminResultsPage> {
     for (final Quiz q in data.quizzes) {
       if (q.id == _quizFilter) filter = q.title;
     }
+    final Map<String, Quiz> quizById = data.quizById;
     String time(QuizAttempt a) => a.timeTaken == null
         ? '—'
         : s.minutesSeconds('${a.timeTaken!.inMinutes}', '${a.timeTaken!.inSeconds.remainder(60)}');
@@ -142,7 +160,8 @@ class _AdminResultsPageState extends State<AdminResultsPage> {
       note: '',
       extraTitle: s.results,
       extraHeaders: <String>[
-        s.member, s.email, s.quizLabel, s.score, '%', s.timeTaken, s.finishedAt,
+        s.member, s.email, s.quizLabel, s.courseLabel, _lectureLabel(context),
+        s.score, '%', s.timeTaken, s.finishedAt,
         // 13/11/2026: what happened during the quiz.
         ar ? 'لقطات الشاشة' : 'Screenshots',
         ar ? 'الخروج من التطبيق' : 'Left the app',
@@ -154,6 +173,8 @@ class _AdminResultsPageState extends State<AdminResultsPage> {
             a.userName.isEmpty ? a.userId : a.userName,
             a.userEmail,
             a.quizTitle,
+            _courseOf(quizById[a.quizId]),
+            _lectureOf(quizById[a.quizId]),
             '${a.score}/${a.totalPoints}',
             '${a.percent.round()}',
             time(a),
@@ -333,11 +354,15 @@ class _AdminResultsPageState extends State<AdminResultsPage> {
                         emphasis: true,
                       ),
                     ),
+                    // 13/11/2026: the whole email — wider, wraps onto a
+                    // second line instead of "…", hover shows it too.
                     AppTableColumn<QuizAttempt>(
                       label: s.email,
-                      flex: 3,
-                      cell: (BuildContext context, QuizAttempt a) =>
-                          AppTableCellText(a.userEmail),
+                      flex: 4,
+                      cell: (BuildContext context, QuizAttempt a) => Tooltip(
+                        message: a.userEmail,
+                        child: AppTableCellText(a.userEmail, maxLines: 2, capitalize: false),
+                      ),
                     ),
                     AppTableColumn<QuizAttempt>(
                       label: s.quizLabel,
@@ -345,6 +370,18 @@ class _AdminResultsPageState extends State<AdminResultsPage> {
                       sortKey: 'quiz',
                       cell: (BuildContext context, QuizAttempt a) =>
                           AppTableCellText(a.quizTitle),
+                    ),
+                    AppTableColumn<QuizAttempt>(
+                      label: s.courseLabel,
+                      flex: 2,
+                      cell: (BuildContext context, QuizAttempt a) =>
+                          AppTableCellText(_courseOf(data.quizById[a.quizId])),
+                    ),
+                    AppTableColumn<QuizAttempt>(
+                      label: _lectureLabel(context),
+                      flex: 2,
+                      cell: (BuildContext context, QuizAttempt a) =>
+                          AppTableCellText(_lectureOf(data.quizById[a.quizId])),
                     ),
                     AppTableColumn<QuizAttempt>(
                       label: s.score,

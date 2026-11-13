@@ -145,6 +145,8 @@ class AppTableCellText extends StatelessWidget {
     this.color,
     this.emphasis = false,
     this.textAlign,
+    this.maxLines = 1,
+    this.capitalize = true,
   });
 
   final String value;
@@ -157,6 +159,13 @@ class AppTableCellText extends StatelessWidget {
 
   final TextAlign? textAlign;
 
+  /// 1 = one line with "…" (the standard). More = the text wraps — a long
+  /// email shows in full on two lines (13/11/2026).
+  final int maxLines;
+
+  /// False keeps the value as written (an email stays lower-case).
+  final bool capitalize;
+
   @override
   Widget build(BuildContext context) {
     final TextStyle base = style ??
@@ -165,9 +174,10 @@ class AppTableCellText extends StatelessWidget {
             : StyleText.fontSize13Weight400);
 
     return Text(
-      FormatHelper.capitalize(value),
-      maxLines: 1,
+      capitalize ? FormatHelper.capitalize(value) : value,
+      maxLines: maxLines,
       overflow: TextOverflow.ellipsis,
+      softWrap: maxLines > 1,
       textAlign: textAlign,
       style: base.copyWith(
         color: color ?? (emphasis ? AppColors.text : AppColors.secondaryText),
