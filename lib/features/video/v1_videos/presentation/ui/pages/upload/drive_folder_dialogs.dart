@@ -181,7 +181,6 @@ Future<void> showNewFolderDialog(
     if (context.mounted) AppMessenger.of(context).show(AppMessage(content: Text(s.fldCreated(picked))));
     onDone();
   } catch (e) {
-    debugPrint('[Folders] create failed: $e');
     if (context.mounted) AppMessenger.of(context).show(AppMessage(content: Text(_errorText(s, e))));
   }
 }

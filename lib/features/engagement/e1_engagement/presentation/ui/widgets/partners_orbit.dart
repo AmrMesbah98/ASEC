@@ -23,6 +23,7 @@ import 'dart:math' as math;
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:asec/core/custom/116-app_network_image.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import 'package:asec/core/custom/110-app_widgets.dart';
@@ -257,7 +258,7 @@ class _LogoChip extends StatelessWidget {
           ],
         ),
         child: ClipOval(
-          child: Image.network(
+          child: AppNetworkImage(
             item.logoUrl,
             fit: BoxFit.contain,
             errorBuilder: (_, __, ___) => Center(
@@ -467,7 +468,7 @@ class _PartnersAdminTabState extends State<PartnersAdminTab> {
                         shape: BoxShape.circle,
                       ),
                       child: ClipOval(
-                        child: Image.network(
+                        child: AppNetworkImage(
                           d.raw('logo_url'),
                           fit: BoxFit.contain,
                           errorBuilder: (_, __, ___) => const SizedBox.shrink(),

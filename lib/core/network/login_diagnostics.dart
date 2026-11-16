@@ -41,7 +41,6 @@ abstract final class LoginDiagnostics {
     final double s = DateTime.now().difference(_start).inMilliseconds / 1000;
     _steps.add('+${s.toStringAsFixed(2)}s  $step');
     if (_steps.length > 100) _steps.removeAt(0);
-    debugPrint('🟡 [LoginDiag] $step');
   }
 
   static void clear() => lastReport = '';
@@ -133,7 +132,6 @@ abstract final class LoginDiagnostics {
     }
 
     lastReport = b.toString();
-    debugPrint('🔴 [LoginDiag]\n$lastReport');
     return lastReport;
   }
 

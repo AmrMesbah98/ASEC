@@ -267,7 +267,6 @@ class EngagementRepository {
     void Function(double progress)? onProgress,
   }) async {
     final String key = CloudLessons.newKey(file.name);
-    debugPrint('🟡 [upload] drive put ($folder) ${file.name} → $key');
     int sent = 0;
     await CloudLessons.upload(
       key,
@@ -277,7 +276,6 @@ class EngagementRepository {
         if (file.size > 0) onProgress?.call((sent / file.size).clamp(0, 1).toDouble());
       },
     );
-    debugPrint('🟢 [upload] drive ok: $key');
     final String ref = '${CloudLessons.directPrefix}$key';
     return (url: ref, path: ref);
   }
@@ -317,7 +315,6 @@ class EngagementRepository {
       try {
         await CloudLessons.delete(CloudLessons.keyFor(path)!);
       } catch (e) {
-        debugPrint('🔴 [upload] drive delete failed ($path): $e');
       }
       return;
     }

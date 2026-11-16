@@ -32,8 +32,10 @@ import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart' as http;
 
+import 'package:asec/core/security/secure_video_server.dart';
 import 'package:asec/core/settings/app_features.dart';
 import 'package:asec/features/video/v1_videos/domain/entities/video_link.dart';
 
@@ -51,6 +53,40 @@ abstract final class CloudLessons {
 
   static final String baseUrl = _reveal(_hiddenBase);
   static final String _signKey = _reveal(_hiddenKey);
+
+  /// THE SAME WORKER ON ENGX'S DOMAIN (16/11/2026, as ENGX's lessons.engx.uk).
+  /// Some providers and company networks block every `*.workers.dev`
+  /// address, so lessons "could not be reached" there. This second address
+  /// (a Custom Domain of the asec-lessons Worker, on the engx.uk zone in the
+  /// same Cloudflare account) is tried too, and the one that answers is
+  /// remembered on the device and used first from then on.
+  static const String mirrorUrl = 'https://asec-lessons.engx.uk';
+
+  static const String _goodHostKey = 'cloud_good_host';
+  static bool _hostLoaded = false;
+
+  /// Every lesson address, the one that answered last on this device first.
+  static List<String> get bases {
+    if (!_hostLoaded) {
+      _hostLoaded = true;
+      try {
+        final GetStorage box = GetStorage();
+        if (SecureVideoServer.goodCloudHost.isEmpty) {
+          SecureVideoServer.goodCloudHost = '${box.read(_goodHostKey) ?? ''}';
+        }
+        SecureVideoServer.onGoodCloudHost = (String host) {
+          try {
+            box.write(_goodHostKey, host);
+          } catch (_) {}
+        };
+      } catch (_) {}
+    }
+    final List<String> all = <String>[baseUrl, mirrorUrl];
+    final String good = SecureVideoServer.goodCloudHost;
+    final int i = all.indexWhere((String u) => Uri.tryParse(u)?.host == good);
+    if (i > 0) all.insert(0, all.removeAt(i));
+    return all;
+  }
 
   /// R2 needs equal parts; a Worker request body must stay under 100 MB.
   static const int partBytes = 20 * 1024 * 1024;
@@ -112,7 +148,14 @@ abstract final class CloudLessons {
   static Future<void> _syncClock() async {
     try {
       final DateTime sent = DateTime.now();
-      final http.Response r = await http.head(Uri.parse('$baseUrl/')).timeout(const Duration(seconds: 6));
+      http.Response? r;
+      for (final String b in bases) {
+        try {
+          r = await http.head(Uri.parse('$b/')).timeout(const Duration(seconds: 6));
+          break;
+        } catch (_) {}
+      }
+      if (r == null) throw StateError('no lesson host answered');
       final String? date = r.headers['date'];
       if (date != null) {
         final DateTime server = HttpDate.parse(date);
@@ -121,7 +164,6 @@ abstract final class CloudLessons {
         final Duration off = server.difference(local);
         // Under two minutes off is fine as it is (the header has whole seconds).
         _clockOffset = off.abs() > const Duration(minutes: 2) ? off : Duration.zero;
-        if (_clockOffset != Duration.zero) debugPrint('🟡 [Cloud] device clock off by $_clockOffset — using the server clock');
         return;
       }
     } catch (_) {}
@@ -129,12 +171,14 @@ abstract final class CloudLessons {
   }
 
   /// A fresh signed address for [key] (valid 10 minutes).
-  static String signedUrl(String key) {
+  /// [base]: which lesson address — by default the one that answered last.
+  /// The signature does not include the host, so it is valid on every one.
+  static String signedUrl(String key, {String? base}) {
     unawaited(syncClock());
     final int e = _now.millisecondsSinceEpoch ~/ 1000 + 600;
     final String d = _device;
     final String s = Hmac(sha256, utf8.encode(_signKey)).convert(utf8.encode('$key|$e|$d')).toString();
-    return '$baseUrl/v/$key?e=$e&d=${Uri.encodeQueryComponent(d)}&s=$s';
+    return '${base ?? bases.first}/v/$key?e=$e&d=${Uri.encodeQueryComponent(d)}&s=$s';
   }
 
   /// For a Drive lesson [url]: signs a fresh Cloudflare address on every
@@ -145,7 +189,13 @@ abstract final class CloudLessons {
     if (!isDirect(url) && !on) return null;
     final String? key = keyFor(url);
     if (key == null) return null;
-    return () => signedUrl(key);
+    // Each call (each try) signs on the next address, the best one first:
+    // where workers.dev is blocked, the second try already uses engx.uk.
+    int n = 0;
+    return () {
+      final List<String> all = bases;
+      return signedUrl(key, base: all[n++ % all.length]);
+    };
   }
 
   // ── admin: uploads ────────────────────────────────────────────────────────
@@ -157,7 +207,7 @@ abstract final class CloudLessons {
     return <String, String>{HttpHeaders.authorizationHeader: 'Bearer $token'};
   }
 
-  static Uri _adminUri(String op, Map<String, String> q) => Uri.parse('$baseUrl/admin/$op').replace(queryParameters: q);
+  static Uri _adminUri(String op, Map<String, String> q) => Uri.parse('${bases.first}/admin/$op').replace(queryParameters: q);
 
   static Map<String, dynamic> _json(http.Response r) {
     if (r.statusCode >= 300) throw HttpException('Cloudflare ${r.statusCode}: ${r.body}');
@@ -239,9 +289,7 @@ abstract final class CloudLessons {
     if (path == null || path.isEmpty) return;
     try {
       await upload('lessons/$driveFileId', File(path).openRead());
-      debugPrint('[Cloud] copied new lesson $driveFileId');
     } catch (e) {
-      debugPrint('[Cloud] copy of $driveFileId failed (Settings → Cloudflare lessons → Copy): $e');
     }
   }
 }

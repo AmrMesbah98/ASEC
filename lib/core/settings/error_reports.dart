@@ -157,7 +157,6 @@ abstract final class ErrorReports {
   }) {
     if (error == null) return;
     // Always in the debug console too.
-    debugPrint('⚠️ [$source] ${error.runtimeType}: $error');
     // A debug run (Android Studio) is the developer's own — stopping it, hot
     // reload and layout warnings are not member errors (07/11/2026).
     if (kDebugMode) return;

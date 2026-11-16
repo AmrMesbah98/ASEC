@@ -19,6 +19,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:asec/core/custom/116-app_network_image.dart';
 
 import 'package:asec/core/helper/main_helper/format_helper.dart';
 import 'package:asec/core/theme/app_colors.dart';
@@ -429,7 +430,7 @@ class _Logo extends StatelessWidget {
     return SizedBox(
       width: size,
       height: size,
-      child: Image.network(
+      child: AppNetworkImage(
         item.logoUrl,
         fit: BoxFit.contain,
         errorBuilder: (_, __, ___) => Center(

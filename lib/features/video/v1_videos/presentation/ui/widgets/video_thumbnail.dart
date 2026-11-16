@@ -17,6 +17,7 @@
 /// Updated: 1/10/2026 - Drive cover image.
 
 import 'package:flutter/material.dart';
+import 'package:asec/core/custom/116-app_network_image.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import 'package:asec/core/custom/111-app_svg_icon.dart';
@@ -405,7 +406,7 @@ class VideoCoverImage extends StatelessWidget {
       fit: StackFit.expand,
       children: <Widget>[
         placeholder,
-        Image.network(
+        AppNetworkImage(
           src,
           fit: BoxFit.cover,
           // Drive sends no CORS headers; on the web this shows the image

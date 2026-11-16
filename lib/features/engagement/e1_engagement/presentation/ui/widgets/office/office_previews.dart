@@ -44,7 +44,6 @@ class _LoaderState<T> extends State<_Loader<T>> {
       future: _future,
       builder: (BuildContext context, AsyncSnapshot<T> snap) {
         if (snap.hasError) {
-          debugPrint('🔴 [office] preview failed: ${snap.error}');
           return Center(
             child: AppErrorView(
               message: S.of(context).fvLoadFailed,

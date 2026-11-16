@@ -41,10 +41,15 @@ class AppButton extends StatelessWidget {
     this.loading = false,
     this.expand = false,
     this.dense = false,
+    this.color,
   });
 
   final String label;
   final VoidCallback? onPressed;
+
+  /// A filled button in this colour with white text (e.g. green Approve,
+  /// red Reject) — overrides [kind].
+  final Color? color;
   final IconData? icon;
   final AppButtonKind kind;
   final bool loading;
@@ -59,8 +64,8 @@ class AppButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final bool enabled = onPressed != null && !loading;
 
-    final Color background;
-    final Color foreground;
+    Color background;
+    Color foreground;
     BorderSide? border;
     switch (kind) {
       case AppButtonKind.filled:
@@ -76,6 +81,11 @@ class AppButton extends StatelessWidget {
       case AppButtonKind.subtle:
         background = AppColors.chip;
         foreground = AppColors.onChip;
+    }
+    if (color != null) {
+      background = color!;
+      foreground = Colors.white;
+      border = null;
     }
 
     final double height = dense ? 38.h : 50.h;

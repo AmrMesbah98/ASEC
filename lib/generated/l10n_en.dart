@@ -1918,6 +1918,15 @@ class SEn extends S {
   String get cvRejected => 'Rejected';
 
   @override
+  String get cvApproved => 'Approved';
+
+  @override
+  String get cvApprove => 'Approve';
+
+  @override
+  String get cvReject => 'Reject';
+
+  @override
   String get reviewState => 'Review';
 
   @override
@@ -2884,15 +2893,17 @@ class SEn extends S {
   String get updateTitle => 'New version available';
 
   @override
-  String get updateMessage =>
-      'A new version of ASEC is ready on Google Play with improvements and fixes.';
+  String updateMessage(String store) {
+    return 'A new version of ASEC is ready on $store with improvements and fixes.';
+  }
 
   @override
   String get updateRequiredTitle => 'Update required';
 
   @override
-  String get updateRequiredMessage =>
-      'This version is no longer supported. Please update from Google Play to keep using ASEC.';
+  String updateRequiredMessage(String store) {
+    return 'This version is no longer supported. Please update from $store to keep using ASEC.';
+  }
 
   @override
   String get updateNow => 'Update now';
@@ -3945,25 +3956,30 @@ class SEn extends S {
   String get fvLoadFailed => 'Couldn\'t load this file';
 
   @override
-  String get lessonNetworkBlocked => 'This network is blocking ASEC lessons (a company or university firewall, or the internet provider). Try another connection, for example a mobile hotspot, or ask the network admin to allow ASEC, then press Try again.';
+  String get lessonNetworkBlocked =>
+      'This network is blocking ASEC lessons (a company or university firewall, or the internet provider). Try another connection, for example a mobile hotspot, or ask the network admin to allow ASEC, then press Try again.';
 
   @override
-  String get lessonUnreachable => 'The lesson could not be reached. Check the internet connection, then press Try again. If other websites open, this network may be blocking ASEC; try another connection (for example a mobile hotspot).';
+  String get lessonUnreachable =>
+      'The lesson could not be reached. Check the internet connection, then press Try again. If other websites open, this network may be blocking ASEC; try another connection (for example a mobile hotspot).';
 
   @override
-  String get lessonTooSlow => 'The lesson is taking too long to start. Check the internet connection, then press Try again.';
+  String get lessonTooSlow =>
+      'The lesson is taking too long to start. Check the internet connection, then press Try again.';
 
   @override
   String get ctlOpenAllCourses => 'Open every course to all members';
 
   @override
-  String get ctlOpenAllCoursesHint => 'Every signed-in member can watch every course, including new ones you upload, with no course access needed. Blocked accounts, paused access, end dates and platform limits still apply. Off: each member sees only the courses given in Edit access.';
+  String get ctlOpenAllCoursesHint =>
+      'Every signed-in member can watch every course, including new ones you upload, with no course access needed. Blocked accounts, paused access, end dates and platform limits still apply. Off: each member sees only the courses given in Edit access.';
 
   @override
   String get ctlDownloadExpiry => 'Downloads expire after';
 
   @override
-  String get ctlDownloadExpiryHint => 'Each saved lesson is erased this many days after it was downloaded. Works offline, and turning the device clock back does not help.';
+  String get ctlDownloadExpiryHint =>
+      'Each saved lesson is erased this many days after it was downloaded. Works offline, and turning the device clock back does not help.';
 
   @override
   String get ctlDownloadExpiryNever => 'Never';

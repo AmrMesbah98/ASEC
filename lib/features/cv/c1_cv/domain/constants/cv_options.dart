@@ -5,9 +5,10 @@
 /// Purpose: Declares `CvOptions` — every closed list a CV field picks from.
 /// Author: ASEC team
 /// Created: 20/9/2026
-///
-/// The lists are ENGX's, field for field, so a CV written here holds the same
-/// data an ENGX CV does. Only the wording of the UI around them is ours.
+/// Updated: 16/11/2026 - Every list is ENGX's again, item for item and in
+///          ENGX's order (create_cv_screen.dart): 8 specializations, 5 roles,
+///          professional skills that depend on the ROLE, 9 soft skills,
+///          4 languages, graduation years 2015–2025.
 ///
 /// WHY CLOSED LISTS AT ALL: free text in `specialization` gives you "Civil",
 /// "civil eng.", "Civil Engineering" and a directory nobody can filter. A
@@ -17,11 +18,32 @@ abstract final class CvOptions {
   const CvOptions._();
 
   static const List<String> governorates = <String>[
-    'Cairo', 'Giza', 'Alexandria', 'Dakahlia', 'Red Sea', 'Beheira',
-    'Fayoum', 'Gharbia', 'Ismailia', 'Menofia', 'Minya', 'Qalyubia',
-    'New Valley', 'North Sinai', 'Port Said', 'Sharqia', 'South Sinai',
-    'Suez', 'Aswan', 'Assiut', 'Beni Suef', 'Kafr El Sheikh', 'Luxor',
-    'Matruh', 'Qena', 'Sohag',
+    'Cairo',
+    'Giza',
+    'Alexandria',
+    'Dakahlia',
+    'Red Sea',
+    'Beheira',
+    'Fayoum',
+    'Gharbia',
+    'Ismailia',
+    'Menofia',
+    'Minya',
+    'Qalyubia',
+    'New Valley',
+    'North Sinai',
+    'Port Said',
+    'Sharqia',
+    'South Sinai',
+    'Suez',
+    'Aswan',
+    'Assiut',
+    'Beni Suef',
+    'Kafr El Sheikh',
+    'Luxor',
+    'Matruh',
+    'Qena',
+    'Sohag',
   ];
 
   static const List<String> militaryStatus = <String>[
@@ -31,63 +53,124 @@ abstract final class CvOptions {
     'Not Applicable',
   ];
 
-  /// 2015 up to and including the current year, newest first — the year a
-  /// list like this is scrolled to most often is the recent end.
-  static List<String> graduationYears() {
-    final int thisYear = DateTime.now().year;
-    return <String>[
-      for (int y = thisYear; y >= 2015; y--) '$y',
-    ];
-  }
-
-  /// ASEC is a mechanical academy, so Mechanical Engineering is the only
-  /// specialization and every new CV starts with it already picked.
-  static const String defaultSpecialization = 'Mechanical Engineering';
+  /// ENGX: 11 years from 2015 (2015 … 2025), oldest first.
+  static List<String> graduationYears() => <String>[
+        for (int i = 0; i < 11; i++) '${2015 + i}',
+      ];
 
   static const List<String> specializations = <String>[
-    defaultSpecialization,
+    'Civil Engineering',
+    'Mechanical Engineering',
+    'Electrical Engineering',
+    'Chemical Engineering',
+    'Industrial Engineering',
+    'Computer Engineering',
+    'Electronics Engineering',
+    'Architecture Engineering',
   ];
 
-  /// The three positions the CV directory is split into, in the order its
-  /// tabs show them (Eng. Ahmed Shuhayb's review, 9 Nov 2026).
   static const List<String> roles = <String>[
     'Site Engineer',
     'Technical Office Engineer',
-    'Design Engineer',
+    'Procurement Engineer',
+    'Sales Engineer',
+    'Tendering Engineer',
   ];
 
   static const List<String> languages = <String>[
     'Arabic',
     'English',
     'French',
+    'Other',
   ];
 
-  /// 09/11/2026: these six.
   static const List<String> softSkills = <String>[
     'Communication Skills',
     'Teamwork',
     'Time Management',
     'Problem Solving',
-    'Leadership',
-    'Critical Thinking',
+    'Attention to Detail',
+    'Adaptability',
+    'Work Under Pressure',
+    'Self-Learning',
+    'Responsibility',
   ];
 
-  /// 09/11/2026: ONE list of professional skills for every role — only
-  /// these.
-  static const List<String> proSkills = <String>[
-    'AutoCAD',
-    'Revit',
-    'Shop Drawings',
-    'BOQ',
-    'MS Office',
-    'HVAC Design',
-    'Plumbing Design',
-    'Fire Fighting Design',
-    'Navisworks',
-    'Coordination',
-  ];
+  /// The professional skills offered for each ROLE.
+  static const Map<String, List<String>> skillsByRole = <String, List<String>>{
+    'Site Engineer': <String>[
+      'AutoCAD',
+      'Site Supervision',
+      'Quality Control',
+      'Construction Management',
+      'BOQ',
+      'Shop Drawings',
+      'As-Built Drawings',
+      'Daily Reports',
+      'Material Inspection',
+      'Safety Management',
+      'Setting Out',
+      'Subcontractor Management',
+    ],
+    'Technical Office Engineer': <String>[
+      'AutoCAD',
+      'Revit',
+      'Shop Drawings',
+      'As-Built Drawings',
+      'BOQ',
+      'Quantity Surveying',
+      'Technical Submittals',
+      'RFI Management',
+      'Material Approvals',
+      'Cost Estimation',
+      'MS Office',
+      'Coordination',
+    ],
+    'Procurement Engineer': <String>[
+      'Procurement Management',
+      'Supply Chain',
+      'Vendor Management',
+      'Contract Management',
+      'Cost Estimation',
+      'BOQ',
+      'Tendering',
+      'Material Sourcing',
+      'Negotiation',
+      'ERP Systems',
+      'MS Office',
+      'Market Analysis',
+    ],
+    'Sales Engineer': <String>[
+      'Technical Sales',
+      'Client Relationship Management',
+      'Product Knowledge',
+      'Presentations',
+      'Negotiation',
+      'CRM Software',
+      'Market Analysis',
+      'Proposal Writing',
+      'After-Sales Support',
+      'MS Office',
+      'Communication Skills',
+      'Business Development',
+    ],
+    'Tendering Engineer': <String>[
+      'Tendering',
+      'BOQ',
+      'Cost Estimation',
+      'Quantity Surveying',
+      'Contract Management',
+      'Primavera P6',
+      'MS Project',
+      'AutoCAD',
+      'Proposal Writing',
+      'Value Engineering',
+      'Risk Analysis',
+      'MS Office',
+    ],
+  };
 
-  /// The skills to offer — the same for every role (kept as a function so
-  /// the form and the cubit need no change).
-  static List<String> skillsFor(String role) => proSkills;
+  /// The skills to offer for [role] — none until a role is picked.
+  static List<String> skillsFor(String role) =>
+      skillsByRole[role] ?? const <String>[];
 }

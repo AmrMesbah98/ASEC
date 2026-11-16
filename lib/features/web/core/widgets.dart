@@ -2,6 +2,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:asec/core/custom/116-app_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:asec/core/custom/111-app_svg_icon.dart';
@@ -96,7 +97,7 @@ class NetImage extends StatelessWidget {
         // `cover` may be height-bound: allow for a wide photo in a tall box.
         final double target = fit == BoxFit.cover ? (w > h * 1.78 ? w : h * 1.78) : w;
         final int? decodeWidth = target <= 0 || target.isInfinite ? null : (target * dpr).round().clamp(64, 2600);
-        return Image.network(
+        return AppNetworkImage(
           url,
           fit: fit,
           width: width,

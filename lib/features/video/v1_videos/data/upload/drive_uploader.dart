@@ -118,7 +118,6 @@ abstract final class DriveUploader {
           AccessCredentials.fromJson(Map<String, dynamic>.from(jsonDecode(saved) as Map));
       client = autoRefreshingClient(clientId, creds, http.Client());
     } else {
-      debugPrint('🟡 [DriveUpload] opening the browser for Google sign-in…');
       client = await clientViaUserConsent(
         clientId,
         <String>[drive.DriveApi.driveScope],
@@ -266,7 +265,6 @@ abstract final class DriveUploader {
     final (drive.DriveApi api, String rootId) = await _api();
     final String parent =
         inCourse.trim().isEmpty ? rootId : await _folderFor(api, rootId, inCourse);
-    debugPrint('🟡 [DriveUpload] new folder "$name" in ${inCourse.isEmpty ? 'root' : inCourse}');
     return _folderFor(api, parent, name);
   }
 
@@ -280,7 +278,6 @@ abstract final class DriveUploader {
       supportsAllDrives: true,
     ) as drive.File;
     final String remove = (f.parents ?? <String>[]).join(',');
-    debugPrint('🟡 [DriveUpload] move $fileId → $toFolderId (from $remove)');
     await api.files.update(
       drive.File(),
       fileId,
@@ -310,7 +307,6 @@ abstract final class DriveUploader {
     final drive.DriveApi api = drive.DriveApi(client);
     // A folder picked from the tree wins; else the category's sub-folder.
     final String parent = folderId ?? await _folderFor(api, rootId, category);
-    debugPrint('🟡 [DriveUpload] uploading ${file.name} → folder $parent');
 
     final drive.File created = await api.files.create(
       drive.File()
@@ -326,7 +322,6 @@ abstract final class DriveUploader {
       $fields: 'id,name,size',
       supportsAllDrives: true,
     );
-    debugPrint('🟡 [DriveUpload] done: ${created.id}');
     return created.id!;
   }
 }

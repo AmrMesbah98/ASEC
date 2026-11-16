@@ -25,6 +25,7 @@ import 'dart:math' as math;
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:asec/core/custom/116-app_network_image.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -75,7 +76,6 @@ abstract final class _BundledEnglish {
           };
         }
       } catch (e) {
-        debugPrint('Bundled project English not loaded: $e');
       } finally {
         _loading = null;
       }
@@ -316,7 +316,7 @@ class _Cover extends StatelessWidget {
       child: Icon(Icons.apartment_rounded, color: AppColors.secondaryText, size: 28),
     );
     if (url.trim().isEmpty) return placeholder;
-    return Image.network(
+    return AppNetworkImage(
       url,
       fit: BoxFit.cover,
       webHtmlElementStrategy: WebHtmlElementStrategy.fallback,

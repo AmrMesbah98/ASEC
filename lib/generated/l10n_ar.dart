@@ -1881,6 +1881,15 @@ class SAr extends S {
   String get cvRejected => 'مرفوض';
 
   @override
+  String get cvApproved => 'مقبول';
+
+  @override
+  String get cvApprove => 'قبول';
+
+  @override
+  String get cvReject => 'رفض';
+
+  @override
   String get reviewState => 'المراجعة';
 
   @override
@@ -2833,15 +2842,17 @@ class SAr extends S {
   String get updateTitle => 'يتوفر إصدار جديد';
 
   @override
-  String get updateMessage =>
-      'إصدار جديد من ASEC متاح الآن على Google Play مع تحسينات وإصلاحات.';
+  String updateMessage(String store) {
+    return 'إصدار جديد من ASEC متاح الآن على $store مع تحسينات وإصلاحات.';
+  }
 
   @override
   String get updateRequiredTitle => 'التحديث مطلوب';
 
   @override
-  String get updateRequiredMessage =>
-      'هذا الإصدار لم يعد مدعومًا. يرجى التحديث من Google Play لمتابعة استخدام ASEC.';
+  String updateRequiredMessage(String store) {
+    return 'هذا الإصدار لم يعد مدعومًا. يرجى التحديث من $store لمتابعة استخدام ASEC.';
+  }
 
   @override
   String get updateNow => 'تحديث الآن';
@@ -3881,25 +3892,30 @@ class SAr extends S {
   String get fvLoadFailed => 'تعذّر تحميل هذا الملف';
 
   @override
-  String get lessonNetworkBlocked => 'هذه الشبكة تحجب دروس ASEC (جدار حماية شركة أو جامعة أو مزوّد الإنترنت). جرّب اتصالًا آخر، مثل نقطة اتصال الهاتف، أو اطلب من مسؤول الشبكة السماح لـ ASEC، ثم اضغط «حاول مرة أخرى».';
+  String get lessonNetworkBlocked =>
+      'هذه الشبكة تحجب دروس ASEC (جدار حماية شركة أو جامعة أو مزوّد الإنترنت). جرّب اتصالًا آخر، مثل نقطة اتصال الهاتف، أو اطلب من مسؤول الشبكة السماح لـ ASEC، ثم اضغط «حاول مرة أخرى».';
 
   @override
-  String get lessonUnreachable => 'تعذّر الوصول إلى الدرس. تحقّق من اتصال الإنترنت ثم اضغط «حاول مرة أخرى». إذا كانت المواقع الأخرى تفتح، فقد تكون هذه الشبكة تحجب ASEC؛ جرّب اتصالًا آخر (مثل نقطة اتصال الهاتف).';
+  String get lessonUnreachable =>
+      'تعذّر الوصول إلى الدرس. تحقّق من اتصال الإنترنت ثم اضغط «حاول مرة أخرى». إذا كانت المواقع الأخرى تفتح، فقد تكون هذه الشبكة تحجب ASEC؛ جرّب اتصالًا آخر (مثل نقطة اتصال الهاتف).';
 
   @override
-  String get lessonTooSlow => 'يستغرق بدء الدرس وقتًا طويلًا. تحقّق من اتصال الإنترنت ثم اضغط «حاول مرة أخرى».';
+  String get lessonTooSlow =>
+      'يستغرق بدء الدرس وقتًا طويلًا. تحقّق من اتصال الإنترنت ثم اضغط «حاول مرة أخرى».';
 
   @override
   String get ctlOpenAllCourses => 'فتح كل الدورات لكل الأعضاء';
 
   @override
-  String get ctlOpenAllCoursesHint => 'يستطيع كل عضو مسجّل مشاهدة كل الدورات، بما فيها الجديدة التي ترفعها، دون الحاجة لتحديد الدورات له. تبقى الحسابات المحظورة والوصول الموقوف وتواريخ الانتهاء وحدود المنصّات كما هي. عند الإيقاف: يرى كل عضو الدورات المحددة له في تعديل الوصول فقط.';
+  String get ctlOpenAllCoursesHint =>
+      'يستطيع كل عضو مسجّل مشاهدة كل الدورات، بما فيها الجديدة التي ترفعها، دون الحاجة لتحديد الدورات له. تبقى الحسابات المحظورة والوصول الموقوف وتواريخ الانتهاء وحدود المنصّات كما هي. عند الإيقاف: يرى كل عضو الدورات المحددة له في تعديل الوصول فقط.';
 
   @override
   String get ctlDownloadExpiry => 'تنتهي صلاحية التنزيلات بعد';
 
   @override
-  String get ctlDownloadExpiryHint => 'يُحذف كل درس محفوظ بعد هذا العدد من الأيام من تنزيله. يعمل دون إنترنت، ولا يفيد إرجاع ساعة الجهاز.';
+  String get ctlDownloadExpiryHint =>
+      'يُحذف كل درس محفوظ بعد هذا العدد من الأيام من تنزيله. يعمل دون إنترنت، ولا يفيد إرجاع ساعة الجهاز.';
 
   @override
   String get ctlDownloadExpiryNever => 'أبدًا';

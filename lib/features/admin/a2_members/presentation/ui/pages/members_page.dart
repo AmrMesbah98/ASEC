@@ -323,7 +323,7 @@ class _ChoiceCell extends StatelessWidget {
     // Same ground and ink as every chip; the word says the state.
     return CustomDropdown<bool>(
       value: value,
-      height: 34.h,
+      height: 34,
       fillColor: AppColors.chip,
       valueStyle: StyleText.fontSize12Weight600.copyWith(color: AppColors.onChip),
       itemStyle: StyleText.fontSize12Weight500,

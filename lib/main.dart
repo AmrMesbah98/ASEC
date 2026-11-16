@@ -12,6 +12,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -41,6 +42,12 @@ import 'package:asec/core/settings/device_specs.dart';
 import 'package:asec/features/video/v1_videos/data/download/video_downloads.dart';
 
 Future<void> main() async {
+  // RELEASE (16/11/2026, as ENGX): nothing is ever written to the device log —
+  // no file names, ids, keys or errors a user could read off a released app.
+  if (kReleaseMode) {
+    debugPrint = (String? message, {int? wrapWidth}) {};
+    Get.isLogEnable = false;
+  }
   // WINDOWS (06/11/2026, from ENGX): notes each start step and repairs what a
   // crash / power cut can leave broken — core/settings/windows_boot_guard.dart.
   WindowsBootGuard.begin();

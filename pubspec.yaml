@@ -2,7 +2,7 @@ name: asec
 description: "ASEC — videos and timed quizzes for members, run by one admin."
 publish_to: 'none'
 
-version: 1.0.39+60
+version: 1.0.40+61
 
 environment:
   sdk: ^3.12.2
@@ -29,6 +29,7 @@ dependencies:
   flutter_bloc: ^9.1.1
   get: ^4.7.3
   get_storage: ^2.1.1
+  cached_network_image: ^3.4.1       # every picture downloaded once, then read from the device
 
   # ── Functional return types ────────────────────────────────────────────────
   dartz: ^0.10.1

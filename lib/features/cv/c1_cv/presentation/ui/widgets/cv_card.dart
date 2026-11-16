@@ -7,6 +7,7 @@
 /// Created: 20/9/2026
 
 import 'package:flutter/material.dart';
+import 'package:asec/core/custom/116-app_network_image.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import 'package:asec/core/custom/110-app_widgets.dart';
@@ -202,7 +203,7 @@ class CvAvatar extends StatelessWidget {
         shape: BoxShape.circle,
         color: AppColors.chip,
       ),
-      child: Image.network(
+      child: AppNetworkImage(
         cv.photoUrl,
         fit: BoxFit.cover,
         // A photo that will not load must not leave a broken box in a list:

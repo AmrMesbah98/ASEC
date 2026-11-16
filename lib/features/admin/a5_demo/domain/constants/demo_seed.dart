@@ -154,7 +154,7 @@ class DemoCv {
   final String cvFileName;
   final int cvFileSize;
 
-  /// A `CvStatus` key. Four CVs, four different states.
+  /// A `CvStatus` key: Pending, Approved or Rejected.
   final String statusKey;
 
   const DemoCv({
@@ -759,7 +759,7 @@ abstract final class DemoSeed {
           'Technical office engineer with three years on residential and '
           'commercial towers. I prepare shop drawings and submittals, and I '
           'have taken a project from foundation drawings to as-built.',
-      statusKey: 'Shortlisted',
+      statusKey: 'Approved',
       linkedinLink: 'https://www.linkedin.com/in/demo-sara-hassan',
       cvFileUrl: _samplePdf,
       cvFileName: 'Sara-Hassan-CV.pdf',
@@ -791,7 +791,7 @@ abstract final class DemoSeed {
           'Site engineer on infrastructure and industrial projects. Used to '
           'running a shift, keeping the setting out honest and closing the '
           'day with a report the consultant can actually read.',
-      statusKey: 'Reviewed',
+      statusKey: 'Pending',
       facebookLink: 'https://www.facebook.com/demo.omar.khaled',
       linkedinLink: 'https://www.linkedin.com/in/demo-omar-khaled',
       cvFileUrl: _samplePdf,

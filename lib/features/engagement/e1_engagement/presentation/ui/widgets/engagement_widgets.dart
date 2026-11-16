@@ -12,6 +12,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart' show FirebaseException;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:asec/core/custom/116-app_network_image.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -180,9 +181,7 @@ Future<bool> runUpload(
   ) upload,
 ) async {
   final S s = S.of(context);
-  debugPrint('🟡 [upload] opening picker');
   final PlatformFile? file = await EngagementRepository.pickFile();
-  debugPrint('🟡 [upload] picked: ${file?.name} path=${file?.path} size=${file?.size}');
   if (file == null || !context.mounted) return false;
 
   // The title is the file's name without its extension.
@@ -237,11 +236,9 @@ Future<bool> runUpload(
     await upload(file, title, (double v) {
       if (!closed) progress.value = v;
     });
-    debugPrint('🟢 [upload] done: ${file.name}');
   } catch (e, st) {
     ok = false;
     failure = e;
-    debugPrint('🔴 [upload] failed: $e\n$st');
   }
   closed = true;
   nav.pop();
@@ -540,7 +537,7 @@ class _FileCardState extends State<FileCard> {
                   fit: StackFit.expand,
                   children: <Widget>[
                     if (_imageUrl != null)
-                      Image.network(
+                      AppNetworkImage(
                         _imageUrl!,
                         fit: BoxFit.cover,
                         gaplessPlayback: true,
@@ -550,7 +547,6 @@ class _FileCardState extends State<FileCard> {
                               const Center(child: AppLoading()),
                             ]),
                         errorBuilder: (BuildContext c, Object e, StackTrace? st) {
-                          debugPrint('🔴 [file card] image failed: $e');
                           return _typeCover(colors);
                         },
                       )

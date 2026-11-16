@@ -516,7 +516,7 @@ service cloud.firestore {
                && request.resource.data.status == resource.data.status)
            );
 
-      // Only the admin marks a CV reviewed / shortlisted / rejected.
+      // Only the admin approves or rejects a CV (status 'Approved' / 'Rejected').
       allow update: if canDo('cvs', 'review')
         && request.resource.data.diff(resource.data)
              .affectedKeys().hasOnly(['status', 'updated_at']);

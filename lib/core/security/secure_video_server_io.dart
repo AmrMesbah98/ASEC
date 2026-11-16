@@ -36,7 +36,6 @@ import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 
-import 'package:flutter/foundation.dart' show debugPrint;
 
 import 'package:asec/core/security/content_crypto.dart';
 import 'package:asec/core/security/ctr_worker.dart';
@@ -351,7 +350,16 @@ abstract final class SecureVideoServer {
     await res.close();
   }
 
-  /// One lesson request to Cloudflare: 3 tries (15 s each). Null = no
+  /// The lesson address that answered last on this device ('' = none yet).
+  /// CloudLessons puts it first and keeps it for the next run (16/11/2026,
+  /// as ENGX).
+  static String goodCloudHost = '';
+
+  /// Told when [goodCloudHost] changes (CloudLessons saves it).
+  static void Function(String host)? onGoodCloudHost;
+
+  /// One lesson request to Cloudflare: 3 tries (15 s each), each on the next
+  /// lesson address (workers.dev, then engx.uk). Null = no
   /// answer (reported, and [_Source.problem] says why).
   static Future<HttpClientResponse?> _fetchCloud(_Source src, String? range, bool head,
       {bool report = true}) async {
@@ -364,6 +372,11 @@ abstract final class SecureVideoServer {
           final HttpClientResponse r =
               await PinnedFetch.get(at, range: range, head: head).timeout(const Duration(seconds: 15));
           src.problem = '';
+          // The address that answered is used first next time (16/11/2026).
+          if (goodCloudHost != at.host) {
+            goodCloudHost = at.host;
+            onGoodCloudHost?.call(at.host);
+          }
           return r;
         } on TimeoutException {
           // NO ANSWER (07/11/2026, from ENGX): some providers send
@@ -456,7 +469,6 @@ abstract final class SecureVideoServer {
         return;
       }
       src.resumes++;
-      debugPrint('🟡 [Lesson] stream stalled — picked up again at byte $from (${src.resumes})');
       up = next;
     }
   }

@@ -3500,6 +3500,24 @@ abstract class S {
   /// **'Rejected'**
   String get cvRejected;
 
+  /// No description provided for @cvApproved.
+  ///
+  /// In en, this message translates to:
+  /// **'Approved'**
+  String get cvApproved;
+
+  /// No description provided for @cvApprove.
+  ///
+  /// In en, this message translates to:
+  /// **'Approve'**
+  String get cvApprove;
+
+  /// No description provided for @cvReject.
+  ///
+  /// In en, this message translates to:
+  /// **'Reject'**
+  String get cvReject;
+
   /// No description provided for @reviewState.
   ///
   /// In en, this message translates to:
@@ -5225,8 +5243,8 @@ abstract class S {
   /// No description provided for @updateMessage.
   ///
   /// In en, this message translates to:
-  /// **'A new version of ASEC is ready on Google Play with improvements and fixes.'**
-  String get updateMessage;
+  /// **'A new version of ASEC is ready on {store} with improvements and fixes.'**
+  String updateMessage(String store);
 
   /// No description provided for @updateRequiredTitle.
   ///
@@ -5237,8 +5255,8 @@ abstract class S {
   /// No description provided for @updateRequiredMessage.
   ///
   /// In en, this message translates to:
-  /// **'This version is no longer supported. Please update from Google Play to keep using ASEC.'**
-  String get updateRequiredMessage;
+  /// **'This version is no longer supported. Please update from {store} to keep using ASEC.'**
+  String updateRequiredMessage(String store);
 
   /// No description provided for @updateNow.
   ///

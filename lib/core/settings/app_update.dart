@@ -166,16 +166,24 @@ abstract final class AppUpdate {
     try {
       final PackageInfo package = await PackageInfo.fromPlatform();
       final String version = package.version;
-      final int build = int.tryParse(package.buildNumber) ?? 0;
       final Map<String, dynamic> data = await _settings();
+      // 12/11/2026 FIX: only this platform's own rule (platforms.ios /
+      // platforms.macos, by VERSION NAME). `min_build` / `latest_build` are
+      // ANDROID build numbers (58, 59…) — iPhone build numbers are different,
+      // so applying them here forced the dialog forever, even on a fresh
+      // install of the newest App Store version.
       final (bool ownForced, bool ownAsked) = _platformRule(data, version);
-      final int minBuild = (data['min_build'] as num?)?.toInt() ?? 0;
 
       final (String, String)? store = await _appStore(package.packageName);
       final bool storeNewer = store != null && _compare(version, store.$1) < 0;
 
-      final bool forced = ownForced || (build > 0 && build < minBuild);
-      if (!forced && !ownAsked && !storeNewer) return false;
+      // Never ask for an update the App Store can't give: when this install is
+      // already the store's version (or newer), the user did update — a
+      // higher number typed in Settings just isn't live on the store yet.
+      final bool storeHasNothing = store != null && !storeNewer;
+      final bool forced = ownForced && !storeHasNothing;
+      final bool asked = ownAsked && !storeHasNothing;
+      if (!forced && !asked && !storeNewer) return false;
 
       // Where "Update now" goes: the link saved by the admin, else the App
       // Store page the lookup found.
@@ -197,7 +205,7 @@ abstract final class AppUpdate {
         forced: forced,
         icon: Icons.system_update_rounded,
         title: forced ? s.updateRequiredTitle : s.updateTitle,
-        message: forced ? s.updateRequiredMessage : s.updateMessage,
+        message: forced ? s.updateRequiredMessage('App Store') : s.updateMessage('App Store'),
         version: s.updateCurrentVersion(version),
         notes: (notes == null || notes.trim().isEmpty) ? null : notes.trim(),
         primaryLabel: s.updateNow,
@@ -306,6 +314,12 @@ abstract final class AppUpdate {
 
       // Android's own version rule (Settings → App update → Per platform).
       final (bool ownForced, bool ownAsked) = _platformRule(data, package.version);
+      // 12/11/2026 FIX: when Play answered and has NOTHING newer, this is
+      // already the newest version — don't trap the user in a dialog that
+      // sends them to a store with no update.
+      final bool playHasNothing =
+          play != null && play.updateAvailability == UpdateAvailability.updateNotAvailable;
+      if (playHasNothing) return false;
       final bool forced = build < minBuild || ownForced;
       if (!forced && !playHasUpdate && !ownAsked && build >= latestBuild) return false;
 
@@ -322,7 +336,7 @@ abstract final class AppUpdate {
         forced: forced,
         icon: Icons.system_update_rounded,
         title: forced ? s.updateRequiredTitle : s.updateTitle,
-        message: forced ? s.updateRequiredMessage : s.updateMessage,
+        message: forced ? s.updateRequiredMessage('Google Play') : s.updateMessage('Google Play'),
         version: s.updateCurrentVersion(package.version),
         notes: (notes == null || notes.trim().isEmpty) ? null : notes.trim(),
         primaryLabel: s.updateNow,

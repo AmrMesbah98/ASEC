@@ -552,7 +552,14 @@ class _CustomDropdownState<T> extends State<CustomDropdown<T>>
   Widget _sized(Widget trigger) {
     final double? h = widget.height;
     if (h == null) return trigger;
-    return SizedBox(height: h.sp, child: trigger);
+    // 16/11/2026: a MINIMUM, not a fixed height. On phones (and with a larger
+    // system font) the text + 20.sp chevron + padding is taller than a fixed
+    // 34–38 box, and the value was cut off. Now the trigger is at least [h]
+    // and grows just enough to show its text.
+    return ConstrainedBox(
+      constraints: BoxConstraints(minHeight: h.sp),
+      child: trigger,
+    );
   }
 
   Widget _buildTrigger(BuildContext context) {

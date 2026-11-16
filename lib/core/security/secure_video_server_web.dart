@@ -20,4 +20,7 @@ abstract final class SecureVideoServer {
   static String problemOf(Uri? stream) => '';
 
   static int servedOf(Uri? stream) => 0;
+
+  static String goodCloudHost = '';
+  static void Function(String host)? onGoodCloudHost;
 }

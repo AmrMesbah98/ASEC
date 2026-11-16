@@ -21,6 +21,8 @@ import 'package:asec/features/onboarding/o2_authentication/domain/entities/app_u
 import 'package:asec/features/onboarding/o2_authentication/domain/enums/auth_failure_type.dart';
 import 'package:asec/core/settings/app_features.dart';
 import 'package:asec/core/settings/presence.dart';
+import 'package:asec/features/cv/c1_cv/data/data_source/remote_data_source/cv_remote_data_source.dart';
+import 'package:asec/features/onboarding/o2_authentication/domain/enums/admin_permission.dart';
 
 /// The signed-in account, app-wide.
 ///
@@ -63,6 +65,10 @@ class SessionController extends GetxController {
     Presence.start(signedIn);
     // Removed access erases the saved lessons (12/11/2026).
     VideoDownloads.watchAccess(signedIn.uid);
+    // CVs made before Approve / Reject arrived are approved once (16/11/2026).
+    if (signedIn.isAdmin && signedIn.canDo(AdminAction.cvsReview)) {
+      unawaited(CvRemoteDataSource().approveExistingOnce());
+    }
     // If the LAST run crashed (e.g. vanished to the desktop on startup), it is
     // reported now — a report needs a signed-in user, and we have one.
     if (CrashTracker.hasPendingCrash) {

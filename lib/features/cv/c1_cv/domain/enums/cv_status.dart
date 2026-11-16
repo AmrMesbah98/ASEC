@@ -12,11 +12,15 @@ import 'package:asec/core/theme/app_colors.dart';
 import 'package:asec/generated/l10n.dart';
 
 /// Set by the ADMIN, never by the owner — the member writes the CV, the admin
-/// says what happened to it. Same four states ENGX uses.
+/// approves or rejects it.
+///
+/// 16/11/2026: the four ENGX states (Pending, Reviewed, Shortlisted,
+/// Rejected) are now three — a new CV is Pending until the admin taps
+/// Approve or Reject. CVs saved before keep working: "Shortlisted" reads as
+/// Approved, "Reviewed" as Pending.
 enum CvStatus {
   pending('Pending'),
-  reviewed('Reviewed'),
-  shortlisted('Shortlisted'),
+  approved('Approved'),
   rejected('Rejected');
 
   const CvStatus(this.key);
@@ -27,6 +31,8 @@ enum CvStatus {
     for (final CvStatus status in CvStatus.values) {
       if (status.key == key) return status;
     }
+    // The old review steps.
+    if (key == 'Shortlisted') return CvStatus.approved;
     return CvStatus.pending;
   }
 
@@ -34,9 +40,7 @@ enum CvStatus {
     switch (this) {
       case CvStatus.pending:
         return AppColors.statusPending;
-      case CvStatus.reviewed:
-        return AppColors.primary;
-      case CvStatus.shortlisted:
+      case CvStatus.approved:
         return AppColors.green;
       case CvStatus.rejected:
         return AppColors.red;
@@ -48,10 +52,8 @@ enum CvStatus {
     switch (this) {
       case CvStatus.pending:
         return s.cvPending;
-      case CvStatus.reviewed:
-        return s.cvReviewed;
-      case CvStatus.shortlisted:
-        return s.cvShortlisted;
+      case CvStatus.approved:
+        return s.cvApproved;
       case CvStatus.rejected:
         return s.cvRejected;
     }

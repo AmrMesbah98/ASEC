@@ -581,31 +581,110 @@ class _LinkLine extends StatelessWidget {
   }
 }
 
-/// Admin only: the four review states, one tap each. Kept OUTSIDE the sheet —
-/// it is a control, not part of the document.
+/// Admin only: Approve or Reject (16/11/2026 — replaces the four review
+/// steps). The current state shows above the buttons; the chosen button is
+/// filled. Kept OUTSIDE the sheet — it is a control, not part of the
+/// document.
 class _ReviewCard extends StatelessWidget {
   const _ReviewCard({required this.cv, required this.repository});
 
   final CvProfile cv;
   final CvBaseRepository repository;
 
+  /// Asks first, saves, then a success message that closes by itself
+  /// (16/11/2026).
+  Future<void> _decide(BuildContext context, CvStatus to) async {
+    final bool ar = Localizations.localeOf(context).languageCode == 'ar';
+    final bool approve = to == CvStatus.approved;
+    final String name = cv.fullName.trim().isEmpty ? (ar ? 'هذه السيرة الذاتية' : 'this CV') : cv.fullName.trim();
+    await CustomDialogManager.showConfirm(
+      context: context,
+      title: approve
+          ? (ar ? 'قبول السيرة الذاتية؟' : 'Approve this CV?')
+          : (ar ? 'رفض السيرة الذاتية؟' : 'Reject this CV?'),
+      subtitle: approve
+          ? (ar ? 'ستظهر سيرة $name لكل الأعضاء في دليل السير الذاتية.' : '$name will be shown to every member in the CV directory.')
+          : (ar ? 'ستُخفى سيرة $name عن الأعضاء. يمكنك قبولها لاحقاً.' : '$name will be hidden from members. You can approve it later.'),
+      confirmLabel: approve ? (ar ? 'قبول' : 'Approve') : (ar ? 'رفض' : 'Reject'),
+      cancelLabel: ar ? 'إلغاء' : 'Cancel',
+      onConfirm: () async {
+        final result = await repository.setStatus(cv.uid, to);
+        if (!context.mounted) return;
+        result.fold(
+          (failure) => CustomDialogManager.showError(
+            context: context,
+            title: ar ? 'لم يتم الحفظ' : 'Not saved',
+            subtitle: failure.message(context),
+            closeLabel: ar ? 'إغلاق' : 'Close',
+          ),
+          (_) => _successThenClose(
+            context,
+            approve
+                ? (ar ? 'تم قبول السيرة الذاتية' : 'CV approved')
+                : (ar ? 'تم رفض السيرة الذاتية' : 'CV rejected'),
+            ar,
+          ),
+        );
+      },
+    );
+  }
+
+  /// The success dialog, closed automatically after a moment.
+  void _successThenClose(BuildContext context, String title, bool ar) {
+    bool open = true;
+    final NavigatorState nav = Navigator.of(context, rootNavigator: true);
+    CustomDialogManager.showSuccess(
+      context: context,
+      title: title,
+      subtitle: '',
+      closeLabel: ar ? 'إغلاق' : 'Close',
+    ).whenComplete(() => open = false);
+    Future<void>.delayed(const Duration(milliseconds: 1600), () {
+      if (open && nav.mounted) nav.pop();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final S s = S.of(context);
 
+    final bool approved = cv.status == CvStatus.approved;
+    final bool rejected = cv.status == CvStatus.rejected;
+
     return AppCard(
       title: s.reviewState,
-      child: Wrap(
-        spacing: 8.w,
-        runSpacing: 8.h,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          for (final CvStatus status in CvStatus.values)
-            AppStatusChip(
-              label: status.label(context),
-              color: status.color,
-              active: cv.status == status,
-              onTap: () => repository.setStatus(cv.uid, status),
-            ),
+          AppStatusChip(
+            label: cv.status.label(context),
+            color: cv.status.color,
+            active: true,
+          ),
+          SizedBox(height: 12.h),
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: AppButton(
+                  label: s.cvApprove,
+                  icon: Icons.check_rounded,
+                  expand: true,
+                  color: AppColors.green,
+                  onPressed: approved ? null : () => _decide(context, CvStatus.approved),
+                ),
+              ),
+              SizedBox(width: 10.w),
+              Expanded(
+                child: AppButton(
+                  label: s.cvReject,
+                  icon: Icons.close_rounded,
+                  expand: true,
+                  color: AppColors.red,
+                  onPressed: rejected ? null : () => _decide(context, CvStatus.rejected),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );

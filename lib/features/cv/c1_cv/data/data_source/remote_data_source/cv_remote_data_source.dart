@@ -57,6 +57,38 @@ class CvRemoteDataSource {
   Future<void> setStatus(String uid, CvStatus status) =>
       _cvs.doc(uid).update(CvModel.toStatusMap(status));
 
+  /// Every CV made before Approve / Reject arrived (16/11/2026) is approved
+  /// once, the first time an admin who reviews CVs opens the app. CVs made
+  /// after [_reviewStart] stay Pending until the admin taps Approve or Reject.
+  /// Safe to run again: once done, nothing matches any more.
+  static final DateTime _reviewStart = DateTime.utc(2026, 11, 16, 9, 30);
+  static bool _approvedOld = false;
+
+  Future<void> approveExistingOnce() async {
+    if (_approvedOld) return;
+    _approvedOld = true;
+    try {
+      final QuerySnapshot<Map<String, dynamic>> all = await _cvs.get();
+      WriteBatch batch = AppFirebase.db.batch();
+      int n = 0;
+      for (final QueryDocumentSnapshot<Map<String, dynamic>> d in all.docs) {
+        final CvStatus st = CvStatus.fromKey(d.data()[CvModel.status] as String?);
+        if (st != CvStatus.pending) continue; // already Approved / Rejected
+        final Object? made = d.data()[FirebaseCollections.createdAtField];
+        final DateTime? at = made is Timestamp ? made.toDate().toUtc() : null;
+        if (at != null && !at.isBefore(_reviewStart)) continue; // a new CV: the admin decides
+        batch.update(d.reference, CvModel.toStatusMap(CvStatus.approved));
+        if (++n % 400 == 0) {
+          await batch.commit();
+          batch = AppFirebase.db.batch();
+        }
+      }
+      if (n % 400 != 0) await batch.commit();
+    } catch (_) {
+      _approvedOld = false; // try again next start
+    }
+  }
+
   Future<void> delete(CvProfile cv) async {
     await _cvs.doc(cv.uid).delete();
     // Both objects, not just the photo: a deleted CV that leaves its PDF in

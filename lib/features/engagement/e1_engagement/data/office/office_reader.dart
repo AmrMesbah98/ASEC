@@ -63,13 +63,10 @@ abstract final class OfficeReader {
 
   /// Downloads [url] (a signed Cloudflare address or a Firebase URL).
   static Future<Uint8List> download(String url) async {
-    debugPrint('🟡 [office] downloading $url');
     final http.Response r = await http.get(Uri.parse(url));
     if (r.statusCode < 200 || r.statusCode >= 300) {
-      debugPrint('🔴 [office] HTTP ${r.statusCode}');
       throw Exception('HTTP ${r.statusCode}');
     }
-    debugPrint('🟢 [office] ${r.bodyBytes.length} bytes');
     return r.bodyBytes;
   }
 

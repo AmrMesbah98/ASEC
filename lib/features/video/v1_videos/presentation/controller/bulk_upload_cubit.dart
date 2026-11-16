@@ -200,7 +200,6 @@ class BulkUploadCubit extends Cubit<BulkState> {
       }
       added.add(BulkItem(key: 'f${_seq++}', file: f, title: titleFromName(f.name)));
     }
-    debugPrint('🟡 [BulkUpload] added ${added.length} file(s), left out $rejected');
     emit(state.copyWith(
       items: <BulkItem>[...state.items, ...added],
       rejected: rejected,
@@ -384,7 +383,6 @@ class BulkUploadCubit extends Cubit<BulkState> {
         emit(state.copyWith(stop: e.what == 'folder' ? BulkStop.folderMissing : BulkStop.signInMissing));
         break;
       } catch (e) {
-        debugPrint('🔴 [BulkUpload] ${now.file.name} failed: $e');
         final bool full = '$e'.contains('storageQuotaExceeded') || '$e'.contains('storage quota');
         _update(now.key, (BulkItem i) => i.copyWith(
               status: full ? BulkItemStatus.pending : BulkItemStatus.failed,
@@ -418,7 +416,6 @@ class BulkUploadCubit extends Cubit<BulkState> {
     for (int attempt = 0; attempt < 4 && pending.isNotEmpty; attempt++) {
       if (attempt > 0) await Future<void>.delayed(const Duration(seconds: 3));
       final String? problem = await DriveVideoSync.run(adminUid: adminUid);
-      if (problem != null) debugPrint('🟡 [BulkUpload] sync: $problem');
       for (final BulkItem i in uploaded) {
         final String id = i.fileId!;
         if (!pending.contains(id)) continue;

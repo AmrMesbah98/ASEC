@@ -130,8 +130,12 @@ class AppSearchTextField extends StatelessWidget {
               )
             : null);
 
+    // 16/11/2026: no fixed height. A 38 box with 13.sp above and below left
+    // less than a line for the text — on phones the typed text and the hint
+    // were cut off. The field now sizes itself to one line plus 10.sp
+    // padding (about 38 on desktop) and is never shorter than its text.
     final Widget field = CustomTextField(
-      height: height ?? 38,
+      height: null,
       controller: controller,
       focusNode: focusNode,
       enabled: enabled,
@@ -150,7 +154,10 @@ class AppSearchTextField extends StatelessWidget {
       borderRadius: borderRadius ?? AppRadius.buttonR,
       // 8.sp vertical against a 38-tall box leaves 22 for a 12-14.sp line,
       // which fits — so the text centres instead of being clipped low.
-      contentPadding: EdgeInsets.symmetric(horizontal: AppPadding.h, vertical: 13.sp),
+      contentPadding: EdgeInsets.symmetric(
+        horizontal: AppPadding.h,
+        vertical: height == null ? 10.sp : ((height! - 20) / 2).clamp(6, 14).sp,
+      ),
       hintStyle: StyleText.fontSize13Weight400.copyWith(
         color: AppColors.secondaryText,
       ),

@@ -16,6 +16,7 @@ import 'dart:convert';
 
 import 'package:chewie/chewie.dart';
 import 'package:flutter/material.dart';
+import 'package:asec/core/custom/116-app_network_image.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:http/http.dart' as http;
 import 'package:pdfrx/pdfrx.dart';
@@ -440,7 +441,7 @@ class FilePreview extends StatelessWidget {
         return InteractiveViewer(
           maxScale: 6,
           child: Center(
-            child: Image.network(
+            child: AppNetworkImage(
               file.url,
               fit: BoxFit.contain,
               loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? p) =>

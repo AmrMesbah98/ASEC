@@ -22,6 +22,8 @@ import 'package:asec/features/cv/c1_cv/data/repository/cv_repository.dart';
 import 'package:asec/features/cv/c1_cv/domain/base_repository/cv_base_repository.dart';
 import 'package:asec/features/cv/c1_cv/domain/constants/cv_options.dart';
 import 'package:asec/features/cv/c1_cv/domain/entities/cv_profile.dart';
+import 'package:asec/features/cv/c1_cv/domain/enums/cv_status.dart';
+import 'package:asec/features/onboarding/o2_authentication/presentation/controller/session_controller.dart';
 import 'package:asec/features/cv/c1_cv/presentation/ui/pages/cv_detail_page.dart';
 import 'package:asec/features/cv/c1_cv/presentation/ui/widgets/cv_card.dart';
 import 'package:asec/generated/l10n.dart';
@@ -86,7 +88,15 @@ class _CvDirectoryPageState extends State<CvDirectoryPage> {
           if (snap.hasError) return AppErrorView(message: s.errUnknown, error: snap.error, stackTrace: snap.stackTrace);
           if (!snap.hasData) return const AppLoading();
 
-          final List<CvProfile> all = snap.data!;
+          // 16/11/2026: members see only the CVs the admin APPROVED (and
+          // their own, whatever its state); the admin sees every CV.
+          final String me = SessionController.to.current.uid;
+          final List<CvProfile> all = widget.isAdmin
+              ? snap.data!
+              : snap.data!
+                  .where((CvProfile cv) =>
+                      cv.status == CvStatus.approved || cv.uid == me)
+                  .toList();
           if (all.isEmpty) {
             return ConsolePage(
               title: s.cvs,
