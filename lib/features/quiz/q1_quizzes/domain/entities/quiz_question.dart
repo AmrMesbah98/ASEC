@@ -18,12 +18,22 @@ class QuizQuestion {
   final int correctIndex;
   final int points;
 
+  /// The question text WITH its formatting (bold, colours, sizes, lists…),
+  /// as a Quill delta (16/11/2026, as ENGX). [text] keeps the plain words for
+  /// exports, search and older app versions. Empty = plain [text] only.
+  final List<dynamic> rich;
+
+  /// Pictures shown with the question: R2 keys (`lessons/quiz_…`).
+  final List<String> images;
+
   const QuizQuestion({
     required this.id,
     required this.text,
     required this.options,
     this.correctIndex = 0,
     this.points = 1,
+    this.rich = const <dynamic>[],
+    this.images = const <String>[],
   });
 
   /// A blank question, ready for the editor. [id] must be unique within the
@@ -36,7 +46,7 @@ class QuizQuestion {
 
   /// Everything filled in and the correct answer pointing at a real option.
   bool get isComplete =>
-      text.trim().isNotEmpty &&
+      (text.trim().isNotEmpty || images.isNotEmpty) &&
       options.length >= 2 &&
       options.every((String o) => o.trim().isNotEmpty) &&
       correctIndex >= 0 &&
@@ -49,6 +59,8 @@ class QuizQuestion {
     List<String>? options,
     int? correctIndex,
     int? points,
+    List<dynamic>? rich,
+    List<String>? images,
   }) {
     final List<String> nextOptions = options ?? this.options;
     int nextCorrect = correctIndex ?? this.correctIndex;
@@ -62,6 +74,8 @@ class QuizQuestion {
       options: nextOptions,
       correctIndex: nextCorrect,
       points: points ?? this.points,
+      rich: rich ?? this.rich,
+      images: images ?? this.images,
     );
   }
 }

@@ -34,6 +34,7 @@ import 'package:asec/features/quiz/q1_quizzes/presentation/ui/widgets/quiz_text_
 import 'package:asec/features/quiz/q1_quizzes/presentation/ui/widgets/quiz_meta.dart';
 import 'package:asec/features/quiz/q1_quizzes/presentation/ui/widgets/quiz_result_export.dart';
 import 'package:asec/features/quiz/q2_certificates/presentation/ui/pages/certificate_page.dart';
+import 'package:asec/features/quiz/q1_quizzes/presentation/ui/widgets/quiz_rich_text.dart';
 import 'package:asec/generated/l10n.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
 import 'package:asec/core/custom/114-app_messenger.dart';
@@ -343,10 +344,16 @@ class _Questions extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
-                    Text(
-                      FormatHelper.capitalize(question.text),
+                    QuizQuestionText(
+                      key: ValueKey<String>('q-${question.id}'),
+                      text: FormatHelper.capitalize(question.text),
+                      rich: question.rich,
                       style: StyleText.fontSize18Weight600.copyWith(height: 1.4),
                     ),
+                    if (question.images.isNotEmpty) ...<Widget>[
+                      SizedBox(height: 14.h),
+                      QuizPictures(keys: question.images, height: 260),
+                    ],
                     SizedBox(height: 18.h),
                     for (int i = 0; i < question.options.length; i++)
                       _OptionTile(
@@ -716,9 +723,20 @@ class _ReviewRow extends StatelessWidget {
                     ),
                     SizedBox(width: 8.w),
                     Expanded(
-                      child: Text(
-                        FormatHelper.capitalize('${index + 1}. ${question.text}'),
-                        style: StyleText.fontSize14Weight600,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: <Widget>[
+                          QuizQuestionText(
+                            text: FormatHelper.capitalize(question.text),
+                            rich: question.rich,
+                            prefix: '${index + 1}. ',
+                            style: StyleText.fontSize14Weight600,
+                          ),
+                          if (question.images.isNotEmpty) ...<Widget>[
+                            SizedBox(height: 8.h),
+                            QuizPictures(keys: question.images, height: 120),
+                          ],
+                        ],
                       ),
                     ),
                   ],

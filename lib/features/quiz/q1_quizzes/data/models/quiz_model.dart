@@ -39,6 +39,8 @@ abstract final class QuizModel {
   static const String qOptions = 'options';
   static const String qCorrectIndex = 'correct_index';
   static const String qPoints = 'points';
+  static const String qRich = 'text_rich';
+  static const String qImages = 'images';
 
   static Quiz fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
     final Map<String, dynamic> data = doc.safeData;
@@ -80,6 +82,8 @@ abstract final class QuizModel {
       correctIndex:
           correct >= 0 && correct < options.length ? correct : -1,
       points: data.integer(qPoints, 1),
+      rich: data[qRich] is List ? List<dynamic>.from(data[qRich] as List<dynamic>) : const <dynamic>[],
+      images: data.stringList(qImages),
     );
   }
 
@@ -107,6 +111,8 @@ abstract final class QuizModel {
             ],
             qCorrectIndex: q.correctIndex,
             qPoints: q.points,
+            if (q.rich.isNotEmpty) qRich: q.rich,
+            if (q.images.isNotEmpty) qImages: q.images,
           },
       ],
       // Denormalised so a list of quizzes needs no per-quiz maths, and so the

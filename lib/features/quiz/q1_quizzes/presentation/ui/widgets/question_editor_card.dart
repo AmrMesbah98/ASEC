@@ -9,6 +9,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:asec/features/quiz/q1_quizzes/presentation/ui/widgets/quiz_text_direction.dart';
+import 'package:asec/features/quiz/q1_quizzes/presentation/ui/widgets/quiz_rich_text.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import 'package:asec/core/constants/app_constants.dart';
@@ -41,6 +42,8 @@ class QuestionEditorCard extends StatefulWidget {
     required this.onRemoveOption,
     required this.onRemove,
     this.canRemove = true,
+    this.onRichChanged,
+    this.onImagesChanged,
   });
 
   final int index;
@@ -53,6 +56,13 @@ class QuestionEditorCard extends StatefulWidget {
   final ValueChanged<int> onRemoveOption;
   final VoidCallback onRemove;
   final bool canRemove;
+
+  /// Word-style question (16/11/2026): plain words + the formatted delta.
+  /// When null, the plain text field is shown as before.
+  final void Function(String text, List<dynamic> rich)? onRichChanged;
+
+  /// The question's pictures changed.
+  final ValueChanged<List<String>>? onImagesChanged;
 
   @override
   State<QuestionEditorCard> createState() => _QuestionEditorCardState();
@@ -155,14 +165,28 @@ class _QuestionEditorCardState extends State<QuestionEditorCard> {
               ],
             ),
             SizedBox(height: 10.h),
-            CustomTextField(
-              controller: _text,
-              hint: s.questionText,
-              maxLines: 2,
-              // Arabic reads right to left, English left to right.
-              textDirection: quizTextDirection(_text.text),
-              onChanged: widget.onTextChanged,
-            ),
+            if (widget.onRichChanged != null)
+              QuizQuestionTextEditor(
+                text: widget.question.text,
+                rich: widget.question.rich,
+                onChanged: widget.onRichChanged!,
+              )
+            else
+              CustomTextField(
+                controller: _text,
+                hint: s.questionText,
+                maxLines: 2,
+                // Arabic reads right to left, English left to right.
+                textDirection: quizTextDirection(_text.text),
+                onChanged: widget.onTextChanged,
+              ),
+            if (widget.onImagesChanged != null) ...<Widget>[
+              SizedBox(height: 10.h),
+              QuizPicturesEditor(
+                keys: widget.question.images,
+                onChanged: widget.onImagesChanged!,
+              ),
+            ],
             SizedBox(height: 12.h),
             Text(
               q.correctIndex < 0

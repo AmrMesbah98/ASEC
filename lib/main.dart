@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_quill/flutter_quill.dart' show FlutterQuillLocalizations;
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -216,6 +217,8 @@ class AsecApp extends StatelessWidget {
               GlobalMaterialLocalizations.delegate,
               GlobalWidgetsLocalizations.delegate,
               GlobalCupertinoLocalizations.delegate,
+              // The quiz question editor's toolbar (flutter_quill).
+              FlutterQuillLocalizations.delegate,
             ],
             supportedLocales: S.supportedLocales,
             builder: (BuildContext context, Widget? widget) => Directionality(

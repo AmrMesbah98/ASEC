@@ -554,6 +554,10 @@ class _QuestionsColumn extends StatelessWidget {
             canRemove: questions.length > 1,
             onTextChanged: (String value) =>
                 cubit.setQuestionText(questions[i].id, value),
+            onRichChanged: (String text, List<dynamic> rich) =>
+                cubit.setQuestionRich(questions[i].id, text, rich),
+            onImagesChanged: (List<String> keys) =>
+                cubit.setQuestionImages(questions[i].id, keys),
             onOptionChanged: (int index, String value) =>
                 cubit.setOption(questions[i].id, index, value),
             onCorrectChanged: (int index) =>

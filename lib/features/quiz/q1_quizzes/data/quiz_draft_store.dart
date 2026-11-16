@@ -49,6 +49,8 @@ abstract final class QuizDraftStore {
               'options': q.options,
               'correct_index': q.correctIndex,
               'points': q.points,
+              if (q.rich.isNotEmpty) 'text_rich': q.rich,
+              if (q.images.isNotEmpty) 'images': q.images,
             },
         ],
       });
@@ -74,6 +76,8 @@ abstract final class QuizDraftStore {
               options: <String>[for (final Object? o in (q['options'] as List<dynamic>? ?? const <dynamic>[])) '$o'],
               correctIndex: (q['correct_index'] as num?)?.toInt() ?? -1,
               points: (q['points'] as num?)?.toInt() ?? 1,
+              rich: q['text_rich'] is List ? List<dynamic>.from(q['text_rich'] as List<dynamic>) : const <dynamic>[],
+              images: <String>[for (final Object? k in (q['images'] as List<dynamic>? ?? const <dynamic>[])) '$k'],
             ),
       ];
       return QuizLocalDraft(

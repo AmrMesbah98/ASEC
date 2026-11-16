@@ -156,6 +156,13 @@ class QuizEditorCubit extends Cubit<QuizEditorState> {
   void setQuestionText(String id, String text) =>
       _replace(id, (QuizQuestion q) => q.copyWith(text: text));
 
+  /// The formatted question (16/11/2026): plain words + the Quill delta.
+  void setQuestionRich(String id, String text, List<dynamic> rich) =>
+      _replace(id, (QuizQuestion q) => q.copyWith(text: text, rich: rich));
+
+  void setQuestionImages(String id, List<String> images) =>
+      _replace(id, (QuizQuestion q) => q.copyWith(images: images));
+
   void setQuestionPoints(String id, int points) => _replace(
       id, (QuizQuestion q) => q.copyWith(points: points < 1 ? 1 : points));
 

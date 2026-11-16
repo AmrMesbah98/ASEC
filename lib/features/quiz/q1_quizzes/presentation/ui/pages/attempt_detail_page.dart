@@ -25,6 +25,7 @@ import 'package:asec/features/quiz/q1_quizzes/domain/entities/quiz_attempt.dart'
 import 'package:asec/features/quiz/q1_quizzes/domain/entities/quiz_question.dart';
 import 'package:asec/features/quiz/q1_quizzes/presentation/ui/widgets/quiz_meta.dart';
 import 'package:asec/features/quiz/q1_quizzes/presentation/ui/widgets/quiz_result_export.dart';
+import 'package:asec/features/quiz/q1_quizzes/presentation/ui/widgets/quiz_rich_text.dart';
 import 'package:asec/generated/l10n.dart';
 import 'package:asec/core/helper/main_helper/format_helper.dart';
 
@@ -305,10 +306,15 @@ class _QuestionSheet extends StatelessWidget {
                             .copyWith(color: AppColors.secondaryText),
                       ),
                       SizedBox(height: 2.h),
-                      Text(
-                        FormatHelper.capitalize(question.text),
+                      QuizQuestionText(
+                        text: FormatHelper.capitalize(question.text),
+                        rich: question.rich,
                         style: StyleText.fontSize14Weight600,
                       ),
+                      if (question.images.isNotEmpty) ...<Widget>[
+                        SizedBox(height: 8.h),
+                        QuizPictures(keys: question.images, height: 120),
+                      ],
                     ],
                   ),
                 ),
